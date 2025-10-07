@@ -1,0 +1,73 @@
+export interface NFT {
+	id: number;
+	tokenId: number;
+	name: string;
+	owner: string;
+	round: number;
+	seed: string;
+	imageUrl: string;
+	videoUrl?: string;
+	mintedAt: string;
+	customName?: string;
+}
+
+export interface Round {
+	roundNumber: number;
+	prizePool: number;
+	lastBidder: string;
+	totalBids: number;
+	ethBidPrice: number;
+	cstBidPrice: number;
+	timeRemaining: number;
+	isActive: boolean;
+	startedAt?: string;
+	enduranceChampion?: Champion;
+	chronoWarrior?: Champion;
+}
+
+export interface Champion {
+	address: string;
+	duration: number;
+	ensName?: string;
+}
+
+export interface Bid {
+	id: string;
+	roundNumber: number;
+	bidder: string;
+	type: 'ETH' | 'CST' | 'ETH+NFT';
+	amount: number;
+	timestamp: string;
+	message?: string;
+	randomWalkNftId?: number;
+}
+
+export interface Prize {
+	type: 'main' | 'endurance' | 'chrono' | 'raffle-eth' | 'raffle-nft' | 'staking';
+	winner: string;
+	amount?: number;
+	nftId?: number;
+	roundNumber: number;
+	claimedAt?: string;
+}
+
+export interface StakeAction {
+	id: string;
+	nftId: number;
+	staker: string;
+	stakedAt: string;
+	unstakedAt?: string;
+	rewardsEarned?: number;
+}
+
+export interface UserStats {
+	address: string;
+	totalBids: number;
+	totalSpentEth: number;
+	totalSpentCst: number;
+	prizesWon: Prize[];
+	nftsOwned: NFT[];
+	nftsStaked: NFT[];
+	cstBalance: number;
+}
+

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad17" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#991B1B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7f1d1d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#0A0A0B"/>
+  <rect width="500" height="500" fill="url(#grad17)" opacity="0.15"/>
+  
+        <circle cx="392.9781484853197" cy="437.81588493348966" r="59.99512766164233" fill="#991B1B" opacity="0.6"/>
+        <circle cx="170.58162098947668" cy="349.7436835736843" r="91.72776113194352" fill="#7f1d1d" opacity="0.7"/>
+        <circle cx="194.79948278258493" cy="238.0031094517954" r="49.10024887413836" fill="#991B1B" opacity="0.5"/>
+      
+  <text x="250" y="460" font-family="monospace" font-size="16" fill="#A8A8A0" text-anchor="middle" opacity="0.5">
+    Cosmic Signature #1017
+  </text>
+</svg>

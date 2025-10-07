@@ -1,0 +1,5 @@
+[
+  "function curTokenId() view returns (uint256)",
+  "function mint(address)",
+  "function multimint(address, uint256)"
+]

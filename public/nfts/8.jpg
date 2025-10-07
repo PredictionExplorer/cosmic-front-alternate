@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad8" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D8659;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e5d3f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="500" height="500" fill="#0A0A0B"/>
+  <rect width="500" height="500" fill="url(#grad8)" opacity="0.15"/>
+  
+        <polygon points="250,100 350,300 150,300" fill="#2D8659" opacity="0.6"/>
+        <polygon points="300,200 400,350 200,350" fill="#1e5d3f" opacity="0.5"/>
+      
+  <text x="250" y="460" font-family="monospace" font-size="16" fill="#A8A8A0" text-anchor="middle" opacity="0.5">
+    Cosmic Signature #1008
+  </text>
+</svg>

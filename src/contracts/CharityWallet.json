@@ -1,0 +1,18 @@
+[
+  "constructor()",
+  "error FundTransferFailed(string,address,uint256)",
+  "error OwnableInvalidOwner(address)",
+  "error OwnableUnauthorizedAccount(address)",
+  "error ZeroAddress(string)",
+  "event CharityAddressChanged(address indexed)",
+  "event DonationReceived(address indexed,uint256)",
+  "event FundsTransferredToCharity(address indexed,uint256)",
+  "event OwnershipTransferred(address indexed,address indexed)",
+  "function charityAddress() view returns (address)",
+  "function owner() view returns (address)",
+  "function renounceOwnership()",
+  "function send(uint256)",
+  "function send()",
+  "function setCharityAddress(address)",
+  "function transferOwnership(address)"
+]
