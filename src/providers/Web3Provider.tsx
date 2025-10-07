@@ -11,36 +11,36 @@
  * - TanStack Query (data fetching and caching)
  */
 
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { wagmiConfig, rainbowKitTheme } from '@/lib/web3/config';
+import { ReactNode } from "react";
+import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { wagmiConfig, rainbowKitTheme } from "@/lib/web3/config";
 
-import '@rainbow-me/rainbowkit/styles.css';
+import "@rainbow-me/rainbowkit/styles.css";
 
 /**
  * Query client for TanStack Query
  * Handles caching and data fetching
  */
 const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			staleTime: 60 * 1000, // Data is fresh for 1 minute
-			gcTime: 5 * 60 * 1000, // Cache for 5 minutes
-			retry: 2,
-			refetchOnWindowFocus: false
-		}
-	}
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // Data is fresh for 1 minute
+      gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 /**
  * Props for Web3Provider
  */
 interface Web3ProviderProps {
-	children: ReactNode;
+  children: ReactNode;
 }
 
 /**
@@ -65,18 +65,18 @@ interface Web3ProviderProps {
  * ```
  */
 export function Web3Provider({ children }: Web3ProviderProps) {
-	return (
-		<WagmiProvider config={wagmiConfig}>
-			<QueryClientProvider client={queryClient}>
-				<RainbowKitProvider
-					theme={darkTheme(rainbowKitTheme.custom)}
-					modalSize="compact"
-					showRecentTransactions={true}
-					coolMode // Adds confetti on connect 🎉
-				>
-					{children}
-				</RainbowKitProvider>
-			</QueryClientProvider>
-		</WagmiProvider>
-	);
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme()}
+          modalSize="compact"
+          showRecentTransactions={true}
+          coolMode // Adds confetti on connect 🎉
+        >
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
 }
