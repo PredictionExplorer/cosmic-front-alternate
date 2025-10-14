@@ -4,6 +4,7 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Web3Provider } from '@/providers/Web3Provider';
+import { NetworkSwitchGuard } from '@/components/web3/NetworkSwitchGuard';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ApiDataProvider } from '@/contexts/ApiDataContext';
 
@@ -55,6 +56,7 @@ export default function RootLayout({
 		<html lang="en" className="scroll-smooth">
 			<body className={`${cormorant.variable} ${inter.variable} ${spaceGrotesk.variable} font-sans`}>
 				<Web3Provider>
+					<NetworkSwitchGuard />
 					<NotificationProvider>
 						<ApiDataProvider>
 							<div className="flex min-h-screen flex-col">

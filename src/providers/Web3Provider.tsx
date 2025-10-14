@@ -17,7 +17,8 @@ import { ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { wagmiConfig, rainbowKitTheme } from "@/lib/web3/config";
+import { wagmiConfig } from "@/lib/web3/config";
+import { defaultChain } from "@/lib/web3/chains";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -73,6 +74,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
           modalSize="compact"
           showRecentTransactions={true}
           coolMode // Adds confetti on connect 🎉
+          initialChain={defaultChain}
         >
           {children}
         </RainbowKitProvider>

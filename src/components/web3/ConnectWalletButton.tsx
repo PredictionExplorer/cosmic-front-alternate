@@ -218,22 +218,16 @@ export function ConnectWalletButton({
 
                       {/* Disconnect Button */}
                       <div className="p-2 border-t border-text-muted/10">
-                        <ConnectButton.Custom>
-                          {({ openAccountModal: _, ...props }) => (
-                            <button
-                              onClick={() => {
-                                if ('account' in props && props.account) {
-                                  openAccountModal();
-                                  setIsDropdownOpen(false);
-                                }
-                              }}
-                              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
-                            >
-                              <LogOut size={16} />
-                              Disconnect
-                            </button>
-                          )}
-                        </ConnectButton.Custom>
+                        <button
+                          onClick={() => {
+                            openAccountModal();
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
+                        >
+                          <LogOut size={16} />
+                          Disconnect
+                        </button>
                       </div>
                     </div>
                   )}
