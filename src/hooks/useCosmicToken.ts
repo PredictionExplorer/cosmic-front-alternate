@@ -10,6 +10,7 @@
 import { useReadContract, useAccount } from 'wagmi';
 import { Address, formatUnits } from 'viem';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { defaultChain } from '@/lib/web3/chains';
 import CosmicTokenABI from '@/contracts/CosmicToken.json';
 
 /**
@@ -21,7 +22,8 @@ import CosmicTokenABI from '@/contracts/CosmicToken.json';
 export function useCosmicTokenRead() {
 	const contractConfig = {
 		address: CONTRACTS.COSMIC_SIGNATURE_TOKEN,
-		abi: CosmicTokenABI
+		abi: CosmicTokenABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {

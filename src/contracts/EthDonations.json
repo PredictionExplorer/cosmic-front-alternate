@@ -1,68 +1,744 @@
 [
-    "error InvalidInitialization()",
-    "error NotInitializing()",
-    "error OwnableInvalidOwner(address)",
-    "error OwnableUnauthorizedAccount(address)",
-    "event EthDonated(uint256 indexed,address indexed,uint256)",
-    "event EthDonatedWithInfo(uint256 indexed,address indexed,uint256,uint256 indexed)",
-    "event Initialized(uint64)",
-    "event OwnershipTransferred(address indexed,address indexed)",
-    "function bidMessageLengthMaxLimit() view returns (uint256)",
-    "function bidderAddresses(uint256) view returns (uint256)",
-    "function biddersInfo(uint256,address) view returns (uint256, uint256, uint256)",
-    "function charityAddress() view returns (address)",
-    "function charityEthDonationAmountPercentage() view returns (uint256)",
-    "function chronoWarriorAddress() view returns (address)",
-    "function chronoWarriorDuration() view returns (uint256)",
-    "function chronoWarriorEthPrizeAmountPercentage() view returns (uint256)",
-    "function cosmicSignatureNftStakingTotalEthRewardAmountPercentage() view returns (uint256)",
-    "function cstDutchAuctionBeginningBidPrice() view returns (uint256)",
-    "function cstDutchAuctionBeginningBidPriceMinLimit() view returns (uint256)",
-    "function cstDutchAuctionBeginningTimeStamp() view returns (uint256)",
-    "function cstDutchAuctionDurationDivisor() view returns (uint256)",
-    "function cstRewardAmountForBidding() view returns (uint256)",
-    "function cstRewardAmountMultiplier() view returns (uint256)",
-    "function delayDurationBeforeRoundActivation() view returns (uint256)",
-    "function donateEth() payable",
-    "function donateEthWithInfo(string) payable",
-    "function enduranceChampionAddress() view returns (address)",
-    "function enduranceChampionDuration() view returns (uint256)",
-    "function enduranceChampionStartTimeStamp() view returns (uint256)",
-    "function ethBidRefundAmountInGasMinLimit() view returns (uint256)",
-    "function ethDonationWithInfoRecords(uint256) view returns (uint256, address, uint256, string)",
-    "function ethDutchAuctionBeginningBidPrice() view returns (uint256)",
-    "function ethDutchAuctionDurationDivisor() view returns (uint256)",
-    "function ethDutchAuctionEndingBidPriceDivisor() view returns (uint256)",
-    "function initialDurationUntilMainPrizeDivisor() view returns (uint256)",
-    "function lastBidderAddress() view returns (address)",
-    "function lastCstBidderAddress() view returns (address)",
-    "function mainEthPrizeAmountPercentage() view returns (uint256)",
-    "function mainPrizeTime() view returns (uint256)",
-    "function mainPrizeTimeIncrementInMicroSeconds() view returns (uint256)",
-    "function mainPrizeTimeIncrementIncreaseDivisor() view returns (uint256)",
-    "function marketingWallet() view returns (address)",
-    "function marketingWalletCstContributionAmount() view returns (uint256)",
-    "function nextEthBidPrice() view returns (uint256)",
-    "function nextEthBidPriceIncreaseDivisor() view returns (uint256)",
-    "function nextRoundFirstCstDutchAuctionBeginningBidPrice() view returns (uint256)",
-    "function nft() view returns (address)",
-    "function numEthDonationWithInfoRecords() view returns (uint256)",
-    "function numRaffleCosmicSignatureNftsForBidders() view returns (uint256)",
-    "function numRaffleCosmicSignatureNftsForRandomWalkNftStakers() view returns (uint256)",
-    "function numRaffleEthPrizesForBidders() view returns (uint256)",
-    "function owner() view returns (address)",
-    "function prevEnduranceChampionDuration() view returns (uint256)",
-    "function prizesWallet() view returns (address)",
-    "function raffleTotalEthPrizeAmountForBiddersPercentage() view returns (uint256)",
-    "function randomWalkNft() view returns (address)",
-    "function renounceOwnership()",
-    "function roundActivationTime() view returns (uint256)",
-    "function roundNum() view returns (uint256)",
-    "function stakingWalletCosmicSignatureNft() view returns (address)",
-    "function stakingWalletRandomWalkNft() view returns (address)",
-    "function timeoutDurationToClaimMainPrize() view returns (uint256)",
-    "function token() view returns (address)",
-    "function transferOwnership(address)",
-    "function usedRandomWalkNfts(uint256) view returns (uint256)"
-  ]
-  
+  {
+    "name": "InvalidInitialization",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "NotInitializing",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "OwnableInvalidOwner",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "EthDonated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "EthDonatedWithInfo",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "Initialized",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "name": "OwnershipTransferred",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "bidMessageLengthMaxLimit",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "bidderAddresses",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "biddersInfo",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "charityAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "charityEthDonationAmountPercentage",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "chronoWarriorAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "chronoWarriorDuration",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "chronoWarriorEthPrizeAmountPercentage",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cosmicSignatureNftStakingTotalEthRewardAmountPercentage",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstDutchAuctionBeginningBidPrice",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstDutchAuctionBeginningBidPriceMinLimit",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstDutchAuctionBeginningTimeStamp",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstDutchAuctionDurationDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstRewardAmountForBidding",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "cstRewardAmountMultiplier",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "delayDurationBeforeRoundActivation",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "donateEth",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "donateEthWithInfo",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "string"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "enduranceChampionAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "enduranceChampionDuration",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "enduranceChampionStartTimeStamp",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ethBidRefundAmountInGasMinLimit",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ethDonationWithInfoRecords",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "ethDutchAuctionBeginningBidPrice",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ethDutchAuctionDurationDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ethDutchAuctionEndingBidPriceDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "initialDurationUntilMainPrizeDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "lastBidderAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "lastCstBidderAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "mainEthPrizeAmountPercentage",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "mainPrizeTime",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "mainPrizeTimeIncrementInMicroSeconds",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "mainPrizeTimeIncrementIncreaseDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "marketingWallet",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "marketingWalletCstContributionAmount",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "nextEthBidPrice",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "nextEthBidPriceIncreaseDivisor",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "nextRoundFirstCstDutchAuctionBeginningBidPrice",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "nft",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "numEthDonationWithInfoRecords",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "numRaffleCosmicSignatureNftsForBidders",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "numRaffleCosmicSignatureNftsForRandomWalkNftStakers",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "numRaffleEthPrizesForBidders",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "owner",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "prevEnduranceChampionDuration",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "prizesWallet",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "raffleTotalEthPrizeAmountForBiddersPercentage",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "randomWalkNft",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "renounceOwnership",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "roundActivationTime",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "roundNum",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "stakingWalletCosmicSignatureNft",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "stakingWalletRandomWalkNft",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "timeoutDurationToClaimMainPrize",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "token",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "transferOwnership",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "usedRandomWalkNfts",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
+]

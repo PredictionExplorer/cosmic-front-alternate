@@ -1,63 +1,263 @@
 [
-  "constructor(address)",
-  "error CheckpointUnorderedInsertion()",
-  "error ECDSAInvalidSignature()",
-  "error ECDSAInvalidSignatureLength(uint256)",
-  "error ECDSAInvalidSignatureS(bytes32)",
-  "error ERC20ExceededSafeSupply(uint256,uint256)",
-  "error ERC20InsufficientAllowance(address,uint256,uint256)",
-  "error ERC20InsufficientBalance(address,uint256,uint256)",
-  "error ERC20InvalidApprover(address)",
-  "error ERC20InvalidReceiver(address)",
-  "error ERC20InvalidSender(address)",
-  "error ERC20InvalidSpender(address)",
-  "error ERC2612ExpiredSignature(uint256)",
-  "error ERC2612InvalidSigner(address,address)",
-  "error ERC5805FutureLookup(uint256,uint48)",
-  "error ERC6372InconsistentClock()",
-  "error InvalidAccountNonce(address,uint256)",
-  "error InvalidShortString()",
-  "error SafeCastOverflowedUintDowncast(uint8,uint256)",
-  "error StringTooLong(string)",
-  "error UnauthorizedCaller(string,address)",
-  "error VotesExpiredSignature(uint256)",
-  "error ZeroAddress(string)",
-  "event Approval(address indexed,address indexed,uint256)",
-  "event DelegateChanged(address indexed,address indexed,address indexed)",
-  "event DelegateVotesChanged(address indexed,uint256,uint256)",
-  "event EIP712DomainChanged()",
-  "event Transfer(address indexed,address indexed,uint256)",
-  "function CLOCK_MODE() pure returns (string)",
-  "function DOMAIN_SEPARATOR() view returns (bytes32)",
-  "function allowance(address,address) view returns (uint256)",
-  "function approve(address,uint256) returns (bool)",
-  "function balanceOf(address) view returns (uint256)",
-  "function burn(uint256)",
-  "function burn(address,uint256)",
-  "function burnFrom(address,uint256)",
-  "function burnMany(tuple(address,uint256)[])",
-  "function checkpoints(address,uint32) view returns (tuple(uint48,uint208))",
-  "function clock() view returns (uint48)",
-  "function decimals() view returns (uint8)",
-  "function delegate(address)",
-  "function delegateBySig(address,uint256,uint256,uint8,bytes32,bytes32)",
-  "function delegates(address) view returns (address)",
-  "function eip712Domain() view returns (bytes1, string, string, uint256, address, bytes32, uint256[])",
-  "function game() view returns (address)",
-  "function getPastTotalSupply(uint256) view returns (uint256)",
-  "function getPastVotes(address,uint256) view returns (uint256)",
-  "function getVotes(address) view returns (uint256)",
-  "function mint(address,uint256)",
-  "function mintAndBurnMany(tuple(address,int256)[])",
-  "function mintMany(tuple(address,uint256)[])",
-  "function name() view returns (string)",
-  "function nonces(address) view returns (uint256)",
-  "function numCheckpoints(address) view returns (uint32)",
-  "function permit(address,address,uint256,uint256,uint8,bytes32,bytes32)",
-  "function symbol() view returns (string)",
-  "function totalSupply() view returns (uint256)",
-  "function transfer(address,uint256) returns (bool)",
-  "function transferFrom(address,address,uint256) returns (bool)",
-  "function transferMany(address[],uint256)",
-  "function transferMany(tuple(address,uint256)[])"
+  {
+    "type": "function",
+    "name": "CLOCK_MODE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "DOMAIN_SEPARATOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "allowance",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "approve",
+    "inputs": [
+      {
+        "name": "spender",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "decimals",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "name",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "symbol",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalSupply",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transfer",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferFrom",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "game",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "Transfer",
+    "inputs": [
+      {
+        "name": "from",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Approval",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "spender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  }
 ]

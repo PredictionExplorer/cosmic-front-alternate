@@ -1,83 +1,1147 @@
 [
-  "constructor(address)",
-  "error CheckpointUnorderedInsertion()",
-  "error FailedCall()",
-  "error GovernorAlreadyCastVote(address)",
-  "error GovernorAlreadyQueuedProposal(uint256)",
-  "error GovernorDisabledDeposit()",
-  "error GovernorInsufficientProposerVotes(address,uint256,uint256)",
-  "error GovernorInvalidProposalLength(uint256,uint256,uint256)",
-  "error GovernorInvalidQuorumFraction(uint256,uint256)",
-  "error GovernorInvalidSignature(address)",
-  "error GovernorInvalidVoteParams()",
-  "error GovernorInvalidVoteType()",
-  "error GovernorInvalidVotingPeriod(uint256)",
-  "error GovernorNonexistentProposal(uint256)",
-  "error GovernorNotQueuedProposal(uint256)",
-  "error GovernorOnlyExecutor(address)",
-  "error GovernorOnlyProposer(address)",
-  "error GovernorQueueNotImplemented()",
-  "error GovernorRestrictedProposer(address)",
-  "error GovernorUnexpectedProposalState(uint256,uint8,bytes32)",
-  "error InvalidAccountNonce(address,uint256)",
-  "error InvalidShortString()",
-  "error SafeCastOverflowedUintDowncast(uint8,uint256)",
-  "error StringTooLong(string)",
-  "event EIP712DomainChanged()",
-  "event ProposalCanceled(uint256)",
-  "event ProposalCreated(uint256,address,address[],uint256[],string[],bytes[],uint256,uint256,string)",
-  "event ProposalExecuted(uint256)",
-  "event ProposalQueued(uint256,uint256)",
-  "event ProposalThresholdSet(uint256,uint256)",
-  "event QuorumNumeratorUpdated(uint256,uint256)",
-  "event VoteCast(address indexed,uint256,uint8,uint256,string)",
-  "event VoteCastWithParams(address indexed,uint256,uint8,uint256,string,bytes)",
-  "event VotingDelaySet(uint256,uint256)",
-  "event VotingPeriodSet(uint256,uint256)",
-  "function BALLOT_TYPEHASH() view returns (bytes32)",
-  "function CLOCK_MODE() view returns (string)",
-  "function COUNTING_MODE() pure returns (string)",
-  "function EXTENDED_BALLOT_TYPEHASH() view returns (bytes32)",
-  "function cancel(address[],uint256[],bytes[],bytes32) returns (uint256)",
-  "function castVote(uint256,uint8) returns (uint256)",
-  "function castVoteBySig(uint256,uint8,address,bytes) returns (uint256)",
-  "function castVoteWithReason(uint256,uint8,string) returns (uint256)",
-  "function castVoteWithReasonAndParams(uint256,uint8,string,bytes) returns (uint256)",
-  "function castVoteWithReasonAndParamsBySig(uint256,uint8,address,string,bytes,bytes) returns (uint256)",
-  "function clock() view returns (uint48)",
-  "function eip712Domain() view returns (bytes1, string, string, uint256, address, bytes32, uint256[])",
-  "function execute(address[],uint256[],bytes[],bytes32) payable returns (uint256)",
-  "function getVotes(address,uint256) view returns (uint256)",
-  "function getVotesWithParams(address,uint256,bytes) view returns (uint256)",
-  "function hasVoted(uint256,address) view returns (bool)",
-  "function hashProposal(address[],uint256[],bytes[],bytes32) pure returns (uint256)",
-  "function name() view returns (string)",
-  "function nonces(address) view returns (uint256)",
-  "function onERC1155BatchReceived(address,address,uint256[],uint256[],bytes) returns (bytes4)",
-  "function onERC1155Received(address,address,uint256,uint256,bytes) returns (bytes4)",
-  "function onERC721Received(address,address,uint256,bytes) returns (bytes4)",
-  "function proposalDeadline(uint256) view returns (uint256)",
-  "function proposalEta(uint256) view returns (uint256)",
-  "function proposalNeedsQueuing(uint256) view returns (bool)",
-  "function proposalProposer(uint256) view returns (address)",
-  "function proposalSnapshot(uint256) view returns (uint256)",
-  "function proposalThreshold() view returns (uint256)",
-  "function proposalVotes(uint256) view returns (uint256, uint256, uint256)",
-  "function propose(address[],uint256[],bytes[],string) returns (uint256)",
-  "function queue(address[],uint256[],bytes[],bytes32) returns (uint256)",
-  "function quorum(uint256) view returns (uint256)",
-  "function quorumDenominator() view returns (uint256)",
-  "function quorumNumerator(uint256) view returns (uint256)",
-  "function quorumNumerator() view returns (uint256)",
-  "function relay(address,uint256,bytes) payable",
-  "function setProposalThreshold(uint256)",
-  "function setVotingDelay(uint48)",
-  "function setVotingPeriod(uint32)",
-  "function state(uint256) view returns (uint8)",
-  "function supportsInterface(bytes4) view returns (bool)",
-  "function token() view returns (address)",
-  "function updateQuorumNumerator(uint256)",
-  "function version() view returns (string)",
-  "function votingDelay() view returns (uint256)",
-  "function votingPeriod() view returns (uint256)"
+  {
+    "name": "CheckpointUnorderedInsertion",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "FailedCall",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "GovernorAlreadyCastVote",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "GovernorAlreadyQueuedProposal",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorDisabledDeposit",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "GovernorInsufficientProposerVotes",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorInvalidProposalLength",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorInvalidQuorumFraction",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorInvalidSignature",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "GovernorInvalidVoteParams",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "GovernorInvalidVoteType",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "GovernorInvalidVotingPeriod",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorNonexistentProposal",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorNotQueuedProposal",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "GovernorOnlyExecutor",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "GovernorOnlyProposer",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "GovernorQueueNotImplemented",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "GovernorRestrictedProposer",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "GovernorUnexpectedProposalState",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "name": "InvalidAccountNonce",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "InvalidShortString",
+    "type": "error",
+    "inputs": []
+  },
+  {
+    "name": "SafeCastOverflowedUintDowncast",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "StringTooLong",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "EIP712DomainChanged",
+    "type": "event",
+    "inputs": []
+  },
+  {
+    "name": "ProposalCanceled",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ProposalCreated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "string[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "ProposalExecuted",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ProposalQueued",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "ProposalThresholdSet",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "QuorumNumeratorUpdated",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "VoteCast",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "VoteCastWithParams",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "string"
+      },
+      {
+        "type": "bytes"
+      }
+    ]
+  },
+  {
+    "name": "VotingDelaySet",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "VotingPeriodSet",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "BALLOT_TYPEHASH",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "name": "CLOCK_MODE",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "COUNTING_MODE",
+    "type": "function",
+    "stateMutability": "pure",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "EXTENDED_BALLOT_TYPEHASH",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "name": "cancel",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "castVote",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "castVoteBySig",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "castVoteWithReason",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "castVoteWithReasonAndParams",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "string"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "castVoteWithReasonAndParamsBySig",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint8"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "string"
+      },
+      {
+        "type": "bytes"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "clock",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint48"
+      }
+    ]
+  },
+  {
+    "name": "eip712Domain",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "bytes1"
+      },
+      {
+        "type": "string"
+      },
+      {
+        "type": "string"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "bytes32"
+      },
+      {
+        "type": "uint256[]"
+      }
+    ]
+  },
+  {
+    "name": "execute",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "getVotes",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "getVotesWithParams",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "hasVoted",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "hashProposal",
+    "type": "function",
+    "stateMutability": "pure",
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "name",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "nonces",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "onERC1155BatchReceived",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes4"
+      }
+    ]
+  },
+  {
+    "name": "onERC1155Received",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes4"
+      }
+    ]
+  },
+  {
+    "name": "onERC721Received",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bytes4"
+      }
+    ]
+  },
+  {
+    "name": "proposalDeadline",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "proposalEta",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "proposalNeedsQueuing",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "proposalProposer",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "proposalSnapshot",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "proposalThreshold",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "proposalVotes",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "propose",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "queue",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address[]"
+      },
+      {
+        "type": "uint256[]"
+      },
+      {
+        "type": "bytes[]"
+      },
+      {
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quorum",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quorumDenominator",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quorumNumerator",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "quorumNumerator",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "relay",
+    "type": "function",
+    "stateMutability": "payable",
+    "inputs": [
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      },
+      {
+        "type": "bytes"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "setProposalThreshold",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "setVotingDelay",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint48"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "setVotingPeriod",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint32"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "state",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint8"
+      }
+    ]
+  },
+  {
+    "name": "supportsInterface",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "type": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "name": "token",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "updateQuorumNumerator",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "version",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "votingDelay",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "votingPeriod",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "uint256"
+      }
+    ]
+  }
 ]

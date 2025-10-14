@@ -10,6 +10,7 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { Address } from 'viem';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { defaultChain } from '@/lib/web3/chains';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
 
 /**
@@ -21,7 +22,8 @@ import CosmicGameABI from '@/contracts/CosmicGame.json';
 export function useCosmicGameRead() {
 	const contractConfig = {
 		address: CONTRACTS.COSMIC_GAME,
-		abi: CosmicGameABI
+		abi: CosmicGameABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {
@@ -158,7 +160,8 @@ export function useCosmicGameWrite() {
 
 	const contractConfig = {
 		address: CONTRACTS.COSMIC_GAME,
-		abi: CosmicGameABI
+		abi: CosmicGameABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {

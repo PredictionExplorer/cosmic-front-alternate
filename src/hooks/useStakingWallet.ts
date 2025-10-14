@@ -9,6 +9,7 @@
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { defaultChain } from '@/lib/web3/chains';
 import StakingWalletCSTABI from '@/contracts/StakingWalletCosmicSignatureNft.json';
 import StakingWalletRWLKABI from '@/contracts/StakingWalletRandomWalkNft.json';
 
@@ -18,7 +19,8 @@ import StakingWalletRWLKABI from '@/contracts/StakingWalletRandomWalkNft.json';
 export function useStakingWalletCST() {
 	const contractConfig = {
 		address: CONTRACTS.STAKING_WALLET_CST,
-		abi: StakingWalletCSTABI
+		abi: StakingWalletCSTABI,
+		chainId: defaultChain.id
 	} as const;
 
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
@@ -136,7 +138,8 @@ export function useStakingWalletCST() {
 export function useStakingWalletRWLK() {
 	const contractConfig = {
 		address: CONTRACTS.STAKING_WALLET_RWLK,
-		abi: StakingWalletRWLKABI
+		abi: StakingWalletRWLKABI,
+		chainId: defaultChain.id
 	} as const;
 
 	const { data: hash, writeContract, isPending, error } = useWriteContract();

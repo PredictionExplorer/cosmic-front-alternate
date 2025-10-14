@@ -10,6 +10,7 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { Address } from 'viem';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { defaultChain } from '@/lib/web3/chains';
 import PrizesWalletABI from '@/contracts/PrizesWallet.json';
 
 /**
@@ -18,7 +19,8 @@ import PrizesWalletABI from '@/contracts/PrizesWallet.json';
 export function usePrizesWalletRead() {
 	const contractConfig = {
 		address: CONTRACTS.PRIZES_WALLET,
-		abi: PrizesWalletABI
+		abi: PrizesWalletABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {
@@ -83,7 +85,8 @@ export function usePrizesWalletWrite() {
 
 	const contractConfig = {
 		address: CONTRACTS.PRIZES_WALLET,
-		abi: PrizesWalletABI
+		abi: PrizesWalletABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {

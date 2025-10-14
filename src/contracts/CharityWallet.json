@@ -1,18 +1,163 @@
 [
-  "constructor()",
-  "error FundTransferFailed(string,address,uint256)",
-  "error OwnableInvalidOwner(address)",
-  "error OwnableUnauthorizedAccount(address)",
-  "error ZeroAddress(string)",
-  "event CharityAddressChanged(address indexed)",
-  "event DonationReceived(address indexed,uint256)",
-  "event FundsTransferredToCharity(address indexed,uint256)",
-  "event OwnershipTransferred(address indexed,address indexed)",
-  "function charityAddress() view returns (address)",
-  "function owner() view returns (address)",
-  "function renounceOwnership()",
-  "function send(uint256)",
-  "function send()",
-  "function setCharityAddress(address)",
-  "function transferOwnership(address)"
+  {
+    "name": "FundTransferFailed",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "address"
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "OwnableInvalidOwner",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "OwnableUnauthorizedAccount",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "ZeroAddress",
+    "type": "error",
+    "inputs": [
+      {
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "CharityAddressChanged",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "DonationReceived",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "FundsTransferredToCharity",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "uint256"
+      }
+    ]
+  },
+  {
+    "name": "OwnershipTransferred",
+    "type": "event",
+    "inputs": [
+      {
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "type": "address",
+        "indexed": true
+      }
+    ]
+  },
+  {
+    "name": "charityAddress",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "owner",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "type": "address"
+      }
+    ]
+  },
+  {
+    "name": "renounceOwnership",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "send",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "uint256"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "send",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [],
+    "outputs": []
+  },
+  {
+    "name": "setCharityAddress",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "name": "transferOwnership",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "type": "address"
+      }
+    ],
+    "outputs": []
+  }
 ]

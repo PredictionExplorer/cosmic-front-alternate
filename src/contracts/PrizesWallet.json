@@ -1,49 +1,199 @@
 [
-    "constructor(address)",
-    "error DonatedNftAlreadyClaimed(string,uint256)",
-    "error DonatedNftClaimDenied(string,address,uint256)",
-    "error DonatedTokenClaimDenied(string,uint256,address,address)",
-    "error EarlyWithdrawal(string,uint256,uint256)",
-    "error FundTransferFailed(string,address,uint256)",
-    "error InvalidDonatedNftIndex(string,uint256)",
-    "error OwnableInvalidOwner(address)",
-    "error OwnableUnauthorizedAccount(address)",
-    "error SafeERC20FailedOperation(address)",
-    "error UnauthorizedCaller(string,address)",
-    "error ZeroAddress(string)",
-    "event DonatedNftClaimed(uint256 indexed,address indexed,address indexed,uint256,uint256)",
-    "event DonatedTokenClaimed(uint256 indexed,address indexed,address indexed,uint256)",
-    "event EthReceived(uint256 indexed,address indexed,uint256)",
-    "event EthWithdrawn(address indexed,address indexed,uint256)",
-    "event NftDonated(uint256 indexed,address indexed,address indexed,uint256,uint256)",
-    "event OwnershipTransferred(address indexed,address indexed)",
-    "event TimeoutDurationToWithdrawPrizesChanged(uint256)",
-    "event TokenDonated(uint256 indexed,address indexed,address indexed,uint256)",
-    "function claimDonatedNft(uint256)",
-    "function claimDonatedToken(uint256,address,uint256)",
-    "function claimManyDonatedNfts(uint256[])",
-    "function claimManyDonatedTokens(tuple(uint256,address,uint256)[])",
-    "function depositEth(uint256,address) payable",
-    "function donateNft(uint256,address,address,uint256)",
-    "function donateToken(uint256,address,address,uint256)",
-    "function donatedNfts(uint256) view returns (uint256, address, uint256)",
-    "function donatedTokens(uint256) view returns (uint256)",
-    "function game() view returns (address)",
-    "function getDonatedTokenAmount(uint256,address) view returns (uint256)",
-    "function getEthBalanceInfo() view returns (tuple(uint256,uint256))",
-    "function getEthBalanceInfo(address) view returns (tuple(uint256,uint256))",
-    "function mainPrizeBeneficiaryAddresses(uint256) view returns (address)",
-    "function numDonatedNfts() view returns (uint256)",
-    "function owner() view returns (address)",
-    "function registerRoundEnd(uint256,address)",
-    "function registerRoundEndAndDepositEthMany(uint256,address,tuple(address,uint256)[]) payable",
-    "function renounceOwnership()",
-    "function roundTimeoutTimesToWithdrawPrizes(uint256) view returns (uint256)",
-    "function setTimeoutDurationToWithdrawPrizes(uint256)",
-    "function timeoutDurationToWithdrawPrizes() view returns (uint256)",
-    "function transferOwnership(address)",
-    "function withdrawEth(address)",
-    "function withdrawEth()",
-    "function withdrawEverything(bool,tuple(uint256,address)[],uint256[])"
-  ]
-  
+  {
+    "type": "constructor",
+    "inputs": [{ "name": "game_", "type": "address", "internalType": "address" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimDonatedNft",
+    "inputs": [{ "name": "index", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimDonatedToken",
+    "inputs": [
+      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+      { "name": "tokenAddress", "type": "address", "internalType": "address" },
+      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimManyDonatedNfts",
+    "inputs": [{ "name": "indexes", "type": "uint256[]", "internalType": "uint256[]" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimManyDonatedTokens",
+    "inputs": [
+      {
+        "name": "tokens",
+        "type": "tuple[]",
+        "internalType": "struct PrizesWallet.DonatedTokenClaim[]",
+        "components": [
+          { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+          { "name": "tokenAddress", "type": "address", "internalType": "address" },
+          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "depositEth",
+    "inputs": [
+      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+      { "name": "beneficiary", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "donatedNfts",
+    "inputs": [{ "name": "index", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+      { "name": "nftAddress", "type": "address", "internalType": "address" },
+      { "name": "tokenId", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "game",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDonatedTokenAmount",
+    "inputs": [
+      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+      { "name": "tokenAddress", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEthBalanceInfo",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PrizesWallet.EthBalance",
+        "components": [
+          { "name": "balance", "type": "uint256", "internalType": "uint256" },
+          { "name": "roundNum", "type": "uint256", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEthBalanceInfo",
+    "inputs": [{ "name": "user", "type": "address", "internalType": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PrizesWallet.EthBalance",
+        "components": [
+          { "name": "balance", "type": "uint256", "internalType": "uint256" },
+          { "name": "roundNum", "type": "uint256", "internalType": "uint256" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mainPrizeBeneficiaryAddresses",
+    "inputs": [{ "name": "roundNum", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "numDonatedNfts",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "roundTimeoutTimesToWithdrawPrizes",
+    "inputs": [{ "name": "roundNum", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "withdrawEth",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawEth",
+    "inputs": [{ "name": "user", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawEverything",
+    "inputs": [
+      { "name": "withdrawEthFlag", "type": "bool", "internalType": "bool" },
+      {
+        "name": "donatedTokens",
+        "type": "tuple[]",
+        "internalType": "struct PrizesWallet.DonatedTokenClaim[]",
+        "components": [
+          { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
+          { "name": "tokenAddress", "type": "address", "internalType": "address" },
+          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+        ]
+      },
+      { "name": "donatedNftIndexes", "type": "uint256[]", "internalType": "uint256[]" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "EthWithdrawn",
+    "inputs": [
+      { "name": "user", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "beneficiary", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DonatedNftClaimed",
+    "inputs": [
+      { "name": "roundNum", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "claimer", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "nftAddress", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "tokenId", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "index", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  }
+]

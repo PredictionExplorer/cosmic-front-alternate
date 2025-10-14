@@ -10,6 +10,7 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { Address } from 'viem';
 import { CONTRACTS } from '@/lib/web3/contracts';
+import { defaultChain } from '@/lib/web3/chains';
 import CosmicSignatureNFTABI from '@/contracts/CosmicSignature.json';
 
 /**
@@ -22,7 +23,8 @@ export function useCosmicSignatureNFT() {
 
 	const contractConfig = {
 		address: CONTRACTS.COSMIC_SIGNATURE_NFT,
-		abi: CosmicSignatureNFTABI
+		abi: CosmicSignatureNFTABI,
+		chainId: defaultChain.id
 	} as const;
 
 	return {
