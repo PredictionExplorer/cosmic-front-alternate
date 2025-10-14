@@ -15,9 +15,11 @@
 
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Wallet, ChevronDown } from "lucide-react";
+import { Wallet, ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
 
 /**
  * Props for ConnectWalletButton
@@ -49,6 +51,27 @@ export function ConnectWalletButton({
   showBalance = true,
   className,
 }: ConnectWalletButtonProps) {
+  // Get CST token balance
+  const { formattedBalance: cstBalance, isLoading: cstLoading } = useCosmicTokenBalance();
+  
+  // Dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+  
   return (
     <ConnectButton.Custom>
       {({
@@ -61,6 +84,14 @@ export function ConnectWalletButton({
       }) => {
         const ready = mounted;
         const connected = ready && account && chain;
+        
+        // Copy address to clipboard
+        const copyAddress = () => {
+          if (account?.address) {
+            navigator.clipboard.writeText(account.address);
+            setIsDropdownOpen(false);
+          }
+        };
 
         return (
           <div
@@ -99,21 +130,13 @@ export function ConnectWalletButton({
                 );
               }
 
-              // Connected - show account info with fixed width
+              // Connected - show account info with dropdown
               return (
-                <div className="flex items-center gap-2 justify-end w-full">
-                  {showBalance && account.balanceFormatted && (
-                    <div className="hidden md:flex items-center px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 min-w-[120px] justify-center">
-                      <span className="font-mono text-sm text-text-primary">
-                        {parseFloat(account.balanceFormatted).toFixed(4)}
-                      </span>
-                    </div>
-                  )}
-
+                <div className="relative" ref={dropdownRef}>
                   <Button
                     size={size}
                     variant="outline"
-                    onClick={openAccountModal}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     type="button"
                     className="group min-w-[160px]"
                   >
@@ -132,25 +155,88 @@ export function ConnectWalletButton({
                       {/* Dropdown Icon */}
                       <ChevronDown
                         size={16}
-                        className="text-text-secondary group-hover:text-primary transition-colors flex-shrink-0"
+                        className={`text-text-secondary group-hover:text-primary transition-all flex-shrink-0 ${
+                          isDropdownOpen ? 'rotate-180' : ''
+                        }`}
                       />
                     </div>
                   </Button>
 
-                  {/* Chain Switcher (if needed in future) */}
-                  {/* <button
-										onClick={openChainModal}
-										type="button"
-										className="flex items-center px-3 py-2 rounded-lg bg-background-elevated border border-text-muted/10 hover:border-primary/40 transition-colors"
-									>
-										{chain.hasIcon && chain.iconUrl && (
-											<img
-												alt={chain.name ?? 'Chain icon'}
-												src={chain.iconUrl}
-												className="h-5 w-5 rounded-full"
-											/>
-										)}
-									</button> */}
+                  {/* Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-text-muted/10 bg-background-surface/95 backdrop-blur-xl shadow-luxury overflow-hidden z-50">
+                      {/* Balances Section */}
+                      {showBalance && (
+                        <div className="p-4 border-b border-text-muted/10 space-y-3">
+                          <div className="text-xs text-text-secondary uppercase tracking-wider mb-2">
+                            Balances
+                          </div>
+                          
+                          {/* ETH Balance */}
+                          {account.balanceFormatted && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-text-muted/10">
+                              <span className="text-sm text-text-secondary">ETH</span>
+                              <span className="font-mono text-sm text-text-primary font-medium">
+                                {parseFloat(account.balanceFormatted).toFixed(4)}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {/* CST Balance */}
+                          {!cstLoading && (
+                            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-primary/20">
+                              <span className="text-sm text-primary font-medium">CST</span>
+                              <span className="font-mono text-sm text-text-primary font-medium">
+                                {parseFloat(cstBalance).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="p-2">
+                        <button
+                          onClick={copyAddress}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-background-elevated rounded-lg transition-colors"
+                        >
+                          <Copy size={16} />
+                          Copy Address
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            openAccountModal();
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-text-secondary hover:text-primary hover:bg-background-elevated rounded-lg transition-colors"
+                        >
+                          <ExternalLink size={16} />
+                          View Account
+                        </button>
+                      </div>
+
+                      {/* Disconnect Button */}
+                      <div className="p-2 border-t border-text-muted/10">
+                        <ConnectButton.Custom>
+                          {({ openAccountModal: _, ...props }) => (
+                            <button
+                              onClick={() => {
+                                if ('account' in props && props.account) {
+                                  openAccountModal();
+                                  setIsDropdownOpen(false);
+                                }
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-status-error hover:bg-status-error/10 rounded-lg transition-colors"
+                            >
+                              <LogOut size={16} />
+                              Disconnect
+                            </button>
+                          )}
+                        </ConnectButton.Custom>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}

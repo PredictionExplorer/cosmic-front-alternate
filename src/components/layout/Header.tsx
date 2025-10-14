@@ -86,7 +86,7 @@ export function Header() {
           {/* Wallet Connect Button - Fixed width to prevent shift */}
           <div
             className="hidden lg:flex lg:justify-end"
-            style={{ width: "320px" }}
+            style={{ width: "180px" }}
           >
             <ConnectWalletButton size="md" showBalance={true} />
           </div>
