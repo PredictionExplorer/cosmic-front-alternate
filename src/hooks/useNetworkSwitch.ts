@@ -11,6 +11,10 @@ import { useState } from "react";
 import { useAccount, useChainId, useSwitchChain } from "wagmi";
 import { defaultChain } from "@/lib/web3/chains";
 
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
 interface UseNetworkSwitchReturn {
   /** Whether the user is on the correct network */
   isCorrectNetwork: boolean;
@@ -79,7 +83,7 @@ export function useNetworkSwitch(): UseNetworkSwitchReturn {
       if (typeof window !== "undefined" && window.ethereum) {
         try {
           // Try to switch network
-          await (window.ethereum as any).request({
+          await (window.ethereum as EthereumProvider).request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: `0x${defaultChain.id.toString(16)}` }],
           });
@@ -90,7 +94,7 @@ export function useNetworkSwitch(): UseNetworkSwitchReturn {
           const error = switchError as { code?: number; message?: string };
           if (error.code === 4902) {
             try {
-              await (window.ethereum as any).request({
+              await (window.ethereum as EthereumProvider).request({
                 method: "wallet_addEthereumChain",
                 params: [
                   {
