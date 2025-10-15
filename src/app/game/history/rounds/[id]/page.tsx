@@ -1,16 +1,19 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Users, Clock, TrendingUp, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
+import { ElegantTable } from "@/components/data/ElegantTable";
 import { getRoundInfo } from "@/lib/mockData/rounds";
 import { formatEth, formatCst, formatDate, formatDuration } from "@/lib/utils";
+import api from "@/services/api";
 
 export default function RoundDetailPage({
   params,
@@ -19,9 +22,112 @@ export default function RoundDetailPage({
 }) {
   const { id } = use(params);
   const round = getRoundInfo(parseInt(id));
-  const [activeTab, setActiveTab] = useState<"overview" | "winners" | "stats">(
-    "overview"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "winners" | "stats" | "bids" | "donations"
+  >("overview");
+
+  // Bids state
+  const [bids, setBids] = useState<
+    Array<{
+      id: number;
+      bidder: string;
+      bidType: string;
+      amount: number;
+      timestamp: number;
+      message?: string;
+    }>
+  >([]);
+  const [isLoadingBids, setIsLoadingBids] = useState(true);
+
+  // Donations state
+  const [ethDonations, setEthDonations] = useState<
+    Array<{
+      id: number;
+      donor: string;
+      amount: number;
+      timestamp: number;
+      message?: string;
+    }>
+  >([]);
+  const [nftDonations, setNftDonations] = useState<
+    Array<{
+      id: number;
+      donor: string;
+      tokenId: number;
+      contractAddress: string;
+      timestamp: number;
+    }>
+  >([]);
+  const [isLoadingDonations, setIsLoadingDonations] = useState(true);
+
+  // Fetch bids for this round
+  useEffect(() => {
+    async function fetchBids() {
+      if (!round) return;
+      try {
+        const bidsData = await api.getBidListByRound(round.roundNum, "desc");
+        const formattedBids = bidsData.map((bid: Record<string, unknown>) => ({
+          id: (bid.EvtLogId as number) || 0,
+          bidder: (bid.BidderAddr as string) || "0x0",
+          bidType: (bid.BidType as string) || "ETH",
+          amount: parseFloat((bid.BidPrice as string) || "0") / 1e18,
+          timestamp: (bid.TimeStamp as number) || 0,
+          message: (bid.Message as string) || undefined,
+        }));
+        setBids(formattedBids);
+      } catch (error) {
+        console.error("Failed to fetch bids:", error);
+        setBids([]);
+      } finally {
+        setIsLoadingBids(false);
+      }
+    }
+    fetchBids();
+  }, [round]);
+
+  // Fetch donations for this round
+  useEffect(() => {
+    async function fetchDonations() {
+      if (!round) return;
+      try {
+        const [ethDonationsData, nftDonationsData] = await Promise.all([
+          api.getETHDonationsByRound(round.roundNum),
+          api.getNFTDonationsByRound(round.roundNum),
+        ]);
+
+        // Format ETH donations
+        const formattedEthDonations = ethDonationsData.map(
+          (donation: Record<string, unknown>) => ({
+            id: (donation.EvtLogId as number) || 0,
+            donor: (donation.DonorAddr as string) || "0x0",
+            amount: parseFloat((donation.Amount as string) || "0") / 1e18,
+            timestamp: (donation.TimeStamp as number) || 0,
+            message: (donation.Message as string) || undefined,
+          })
+        );
+        setEthDonations(formattedEthDonations);
+
+        // Format NFT donations
+        const formattedNftDonations = nftDonationsData.map(
+          (donation: Record<string, unknown>) => ({
+            id: (donation.EvtLogId as number) || 0,
+            donor: (donation.DonorAddr as string) || "0x0",
+            tokenId: (donation.TokenId as number) || 0,
+            contractAddress: (donation.NftAddr as string) || "0x0",
+            timestamp: (donation.TimeStamp as number) || 0,
+          })
+        );
+        setNftDonations(formattedNftDonations);
+      } catch (error) {
+        console.error("Failed to fetch donations:", error);
+        setEthDonations([]);
+        setNftDonations([]);
+      } finally {
+        setIsLoadingDonations(false);
+      }
+    }
+    fetchDonations();
+  }, [round]);
 
   if (!round) {
     return (
@@ -124,7 +230,7 @@ export default function RoundDetailPage({
       {/* Tabs */}
       <section className="py-6 sticky top-[160px] lg:top-[176px] z-30 bg-background/95 backdrop-blur-xl border-b border-text-muted/10">
         <Container>
-          <div className="flex space-x-1">
+          <div className="flex flex-wrap gap-1">
             <button
               onClick={() => setActiveTab("overview")}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -144,6 +250,26 @@ export default function RoundDetailPage({
               }`}
             >
               Winners
+            </button>
+            <button
+              onClick={() => setActiveTab("bids")}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                activeTab === "bids"
+                  ? "bg-primary/10 text-primary"
+                  : "text-text-secondary hover:text-primary"
+              }`}
+            >
+              Bids ({bids.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("donations")}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                activeTab === "donations"
+                  ? "bg-primary/10 text-primary"
+                  : "text-text-secondary hover:text-primary"
+              }`}
+            >
+              Donations ({ethDonations.length + nftDonations.length})
             </button>
             <button
               onClick={() => setActiveTab("stats")}
@@ -428,6 +554,266 @@ export default function RoundDetailPage({
                   ))}
                 </div>
               </Card>
+            </div>
+          )}
+
+          {activeTab === "bids" && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
+                  All Bids for Round {round.roundNum}
+                </h3>
+                <p className="text-text-secondary mb-6">
+                  Complete bidding history for this round ({bids.length} total
+                  bids)
+                </p>
+              </div>
+
+              {isLoadingBids ? (
+                <Card glass className="p-12 text-center">
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="text-text-secondary">Loading bids...</p>
+                  </div>
+                </Card>
+              ) : bids.length > 0 ? (
+                <ElegantTable
+                  data={bids}
+                  mode="table"
+                  columns={[
+                    {
+                      key: "bidder",
+                      label: "Bidder",
+                      render: (_value, item) => (
+                        <AddressDisplay
+                          address={item.bidder as string}
+                          showCopy={false}
+                        />
+                      ),
+                    },
+                    {
+                      key: "bidType",
+                      label: "Type",
+                      render: (value) => (
+                        <Badge
+                          variant={
+                            value === "ETH"
+                              ? "default"
+                              : value === "CST"
+                              ? "info"
+                              : "success"
+                          }
+                        >
+                          {String(value)}
+                        </Badge>
+                      ),
+                    },
+                    {
+                      key: "amount",
+                      label: "Amount",
+                      sortable: true,
+                      render: (value, item) => (
+                        <span className="font-mono text-primary font-semibold">
+                          {typeof value === "number"
+                            ? value.toFixed(6)
+                            : "0.000000"}{" "}
+                          {item.bidType === "CST" ? "CST" : "ETH"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "timestamp",
+                      label: "Time",
+                      sortable: true,
+                      render: (value) => (
+                        <span className="text-text-secondary text-sm">
+                          {typeof value === "number"
+                            ? formatDate(new Date(value * 1000))
+                            : "Unknown"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "message",
+                      label: "Message",
+                      render: (value) => (
+                        <span className="text-text-secondary italic text-sm truncate max-w-xs block">
+                          {value ? String(value) : "—"}
+                        </span>
+                      ),
+                    },
+                  ]}
+                  emptyMessage="No bids found for this round."
+                />
+              ) : (
+                <Card glass className="p-12 text-center">
+                  <p className="text-text-secondary">
+                    No bids found for this round.
+                  </p>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {activeTab === "donations" && (
+            <div className="space-y-8">
+              <div>
+                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
+                  Donations for Round {round.roundNum}
+                </h3>
+                <p className="text-text-secondary mb-6">
+                  All ETH and NFT donations received during this round
+                </p>
+              </div>
+
+              {/* ETH Donations */}
+              <div>
+                <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
+                  ETH Donations ({ethDonations.length})
+                </h4>
+                {isLoadingDonations ? (
+                  <Card glass className="p-12 text-center">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="text-text-secondary">
+                        Loading donations...
+                      </p>
+                    </div>
+                  </Card>
+                ) : ethDonations.length > 0 ? (
+                  <ElegantTable
+                    data={ethDonations}
+                    mode="table"
+                    columns={[
+                      {
+                        key: "donor",
+                        label: "Donor",
+                        render: (_value, item) => (
+                          <AddressDisplay
+                            address={item.donor as string}
+                            showCopy={false}
+                          />
+                        ),
+                      },
+                      {
+                        key: "amount",
+                        label: "Amount",
+                        sortable: true,
+                        render: (value) => (
+                          <span className="font-mono text-primary font-semibold">
+                            {typeof value === "number"
+                              ? value.toFixed(6)
+                              : "0.000000"}{" "}
+                            ETH
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "timestamp",
+                        label: "Time",
+                        sortable: true,
+                        render: (value) => (
+                          <span className="text-text-secondary text-sm">
+                            {typeof value === "number"
+                              ? formatDate(new Date(value * 1000))
+                              : "Unknown"}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "message",
+                        label: "Message",
+                        render: (value) => (
+                          <span className="text-text-secondary italic text-sm truncate max-w-xs block">
+                            {value ? String(value) : "—"}
+                          </span>
+                        ),
+                      },
+                    ]}
+                    emptyMessage="No ETH donations for this round."
+                  />
+                ) : (
+                  <Card glass className="p-8 text-center">
+                    <p className="text-text-secondary">
+                      No ETH donations for this round.
+                    </p>
+                  </Card>
+                )}
+              </div>
+
+              {/* NFT Donations */}
+              <div>
+                <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
+                  NFT Donations ({nftDonations.length})
+                </h4>
+                {isLoadingDonations ? (
+                  <Card glass className="p-12 text-center">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="text-text-secondary">
+                        Loading donations...
+                      </p>
+                    </div>
+                  </Card>
+                ) : nftDonations.length > 0 ? (
+                  <ElegantTable
+                    data={nftDonations}
+                    mode="table"
+                    columns={[
+                      {
+                        key: "donor",
+                        label: "Donor",
+                        render: (_value, item) => (
+                          <AddressDisplay
+                            address={item.donor as string}
+                            showCopy={false}
+                          />
+                        ),
+                      },
+                      {
+                        key: "tokenId",
+                        label: "Token ID",
+                        render: (value) => (
+                          <span className="font-mono text-primary">
+                            #{String(value)}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: "contractAddress",
+                        label: "NFT Contract",
+                        render: (_value, item) => (
+                          <AddressDisplay
+                            address={item.contractAddress as string}
+                            showCopy={false}
+                            shorten={true}
+                            chars={4}
+                          />
+                        ),
+                      },
+                      {
+                        key: "timestamp",
+                        label: "Time",
+                        sortable: true,
+                        render: (value) => (
+                          <span className="text-text-secondary text-sm">
+                            {typeof value === "number"
+                              ? formatDate(new Date(value * 1000))
+                              : "Unknown"}
+                          </span>
+                        ),
+                      },
+                    ]}
+                    emptyMessage="No NFT donations for this round."
+                  />
+                ) : (
+                  <Card glass className="p-8 text-center">
+                    <p className="text-text-secondary">
+                      No NFT donations for this round.
+                    </p>
+                  </Card>
+                )}
+              </div>
             </div>
           )}
         </Container>

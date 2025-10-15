@@ -19,10 +19,14 @@ import { Card } from "@/components/ui/Card";
 import { NFTCard } from "@/components/nft/NFTCard";
 import { CountdownTimer } from "@/components/game/CountdownTimer";
 import { StatCard } from "@/components/game/StatCard";
+import { ElegantTable } from "@/components/data/ElegantTable";
+import { Badge } from "@/components/ui/Badge";
+import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api from "@/services/api";
 import { shortenAddress } from "@/lib/web3/utils";
+import { formatDate } from "@/lib/utils";
 import { GAME_CONSTANTS } from "@/lib/constants";
 
 export default function Home() {
@@ -44,6 +48,17 @@ export default function Home() {
     }>
   >([]);
   const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
+  const [currentBids, setCurrentBids] = useState<
+    Array<{
+      id: number;
+      bidder: string;
+      bidType: string;
+      amount: number;
+      timestamp: number;
+      message?: string;
+    }>
+  >([]);
+  const [isLoadingBids, setIsLoadingBids] = useState(true);
 
   // Get blockchain data
   const { data: roundNum } = useRoundNum();
@@ -103,6 +118,43 @@ export default function Home() {
     }
     fetchNFTs();
   }, []);
+
+  // Fetch current round bids
+  useEffect(() => {
+    async function fetchCurrentBids() {
+      try {
+        const currentRoundNumber =
+          roundNum?.toString() ||
+          dashboardData?.CurRoundNum?.toString() ||
+          "0";
+        if (currentRoundNumber && currentRoundNumber !== "0") {
+          const bids = await api.getBidListByRound(
+            parseInt(currentRoundNumber),
+            "desc"
+          );
+          // Get the 10 most recent bids
+          const recentBids = bids.slice(0, 10).map((bid: Record<string, unknown>) => ({
+            id: (bid.EvtLogId as number) || 0,
+            bidder: (bid.BidderAddr as string) || "0x0",
+            bidType: (bid.BidType as string) || "ETH",
+            amount: parseFloat((bid.BidPrice as string) || "0") / 1e18,
+            timestamp: (bid.TimeStamp as number) || 0,
+            message: (bid.Message as string) || undefined,
+          }));
+          setCurrentBids(recentBids);
+        }
+      } catch (error) {
+        console.error("Failed to fetch bids:", error);
+        setCurrentBids([]);
+      } finally {
+        setIsLoadingBids(false);
+      }
+    }
+    fetchCurrentBids();
+    // Refresh bids every 10 seconds
+    const interval = setInterval(fetchCurrentBids, 10000);
+    return () => clearInterval(interval);
+  }, [roundNum, dashboardData]);
 
   // Prepare display data with safe defaults
   const currentRound = {
@@ -356,8 +408,137 @@ export default function Home() {
         </Container>
       </section>
 
-      {/* Three Pillars */}
+      {/* Current Bids List */}
       <section className="section-padding">
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="heading-md text-balance mb-4">Recent Bids</h2>
+            <p className="body-lg max-w-2xl mx-auto">
+              Live view of the latest bids in Round {currentRound.roundNumber}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            {isLoadingBids ? (
+              <Card glass className="p-12 text-center">
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="text-text-secondary">Loading bids...</p>
+                </div>
+              </Card>
+            ) : currentBids.length > 0 ? (
+              <ElegantTable
+                data={currentBids}
+                mode="table"
+                columns={[
+                  {
+                    key: "bidder",
+                    label: "Bidder",
+                    render: (_value, item) => (
+                      <AddressDisplay
+                        address={item.bidder as string}
+                        showCopy={false}
+                      />
+                    ),
+                  },
+                  {
+                    key: "bidType",
+                    label: "Type",
+                    render: (value) => (
+                      <Badge
+                        variant={
+                          value === "ETH"
+                            ? "default"
+                            : value === "CST"
+                            ? "info"
+                            : "success"
+                        }
+                      >
+                        {String(value)}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: "amount",
+                    label: "Amount",
+                    sortable: true,
+                    render: (value, item) => (
+                      <span className="font-mono text-primary font-semibold">
+                        {typeof value === "number"
+                          ? value.toFixed(6)
+                          : "0.000000"}{" "}
+                        {item.bidType === "CST" ? "CST" : "ETH"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "timestamp",
+                    label: "Time",
+                    sortable: true,
+                    render: (value) => (
+                      <span className="text-text-secondary text-sm">
+                        {typeof value === "number"
+                          ? formatDate(new Date(value * 1000))
+                          : "Unknown"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "message",
+                    label: "Message",
+                    render: (value) => (
+                      <span className="text-text-secondary italic text-sm truncate max-w-xs block">
+                        {value ? String(value) : "—"}
+                      </span>
+                    ),
+                  },
+                ]}
+                emptyMessage="No bids yet. Be the first to place a bid!"
+              />
+            ) : (
+              <Card glass className="p-12 text-center">
+                <p className="text-text-secondary mb-6">
+                  No bids yet. Be the first to place a bid!
+                </p>
+                <Button size="lg" asChild>
+                  <Link href="/game/play">
+                    Place First Bid
+                    <ArrowRight className="ml-2" size={20} />
+                  </Link>
+                </Button>
+              </Card>
+            )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.6 }}
+            className="text-center mt-8"
+          >
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/game/play">
+                Place Your Bid
+                <ArrowRight className="ml-2" size={20} />
+              </Link>
+            </Button>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* Three Pillars */}
+      <section className="section-padding bg-background-surface/50">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -445,7 +626,7 @@ export default function Home() {
       </section>
 
       {/* Featured NFTs */}
-      <section className="section-padding bg-background-surface/50">
+      <section className="section-padding">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -516,7 +697,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Preview */}
-      <section className="section-padding">
+      <section className="section-padding bg-background-surface/50">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -673,13 +854,8 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding relative overflow-hidden">
-        {/* Background effect */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        </div>
-
-        <Container className="relative z-10">
+      <section className="section-padding">
+        <Container>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

@@ -134,6 +134,7 @@ export const NAV_LINKS = [
       { href: "/game/how-it-works", label: "How It Works" },
       { href: "/game/prizes", label: "Prize Structure" },
       { href: "/game/leaderboard", label: "Leaderboard" },
+      { href: "/game/statistics", label: "Statistics" },
       { href: "/game/history/rounds", label: "Round History" },
     ],
   },
