@@ -138,15 +138,6 @@ export const NAV_LINKS = [
       { href: "/game/history/rounds", label: "Round History" },
     ],
   },
-  {
-    label: "My Account",
-    submenu: [
-      { href: "/account", label: "Dashboard" },
-      { href: "/account/nfts", label: "My NFTs" },
-      { href: "/account/winnings", label: "My Winnings" },
-      { href: "/account/activity", label: "Activity" },
-    ],
-  },
   { href: "/stake", label: "Stake" },
   { href: "/contracts", label: "Contracts" },
   { href: "/about", label: "About" },

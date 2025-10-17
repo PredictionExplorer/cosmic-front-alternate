@@ -17,9 +17,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Wallet, ChevronDown, Copy, ExternalLink, LogOut } from "lucide-react";
+import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image, Trophy, Activity } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /**
  * Props for ConnectWalletButton
@@ -53,10 +55,19 @@ export function ConnectWalletButton({
 }: ConnectWalletButtonProps) {
   // Get CST token balance
   const { formattedBalance: cstBalance, isLoading: cstLoading } = useCosmicTokenBalance();
+  const pathname = usePathname();
   
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Account menu items
+  const accountMenuItems = [
+    { href: "/account", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/account/nfts", label: "My NFTs", icon: Image },
+    { href: "/account/winnings", label: "My Winnings", icon: Trophy },
+    { href: "/account/activity", label: "Activity", icon: Activity },
+  ];
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -193,6 +204,32 @@ export function ConnectWalletButton({
                           )}
                         </div>
                       )}
+
+                      {/* My Account Section */}
+                      <div className="p-2 border-b border-text-muted/10">
+                        <div className="text-xs text-text-secondary uppercase tracking-wider px-3 py-2">
+                          My Account
+                        </div>
+                        {accountMenuItems.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = pathname === item.href;
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setIsDropdownOpen(false)}
+                              className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors ${
+                                isActive
+                                  ? 'text-primary bg-primary/10'
+                                  : 'text-text-secondary hover:text-primary hover:bg-background-elevated'
+                              }`}
+                            >
+                              <Icon size={16} />
+                              {item.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
 
                       {/* Actions */}
                       <div className="p-2">
