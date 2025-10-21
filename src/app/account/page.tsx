@@ -12,10 +12,9 @@ import { StatCard } from "@/components/game/StatCard";
 import { NFTCard } from "@/components/nft/NFTCard";
 import { Timeline } from "@/components/data/Timeline";
 import { AlertCard } from "@/components/features/AlertCard";
-import { MOCK_CURRENT_USER } from "@/lib/mockData/users";
 import { MOCK_USER_ACTIVITIES } from "@/lib/mockData/activities";
 import { MOCK_NFTS } from "@/lib/constants";
-import { formatEth, formatCst } from "@/lib/utils";
+import { formatEth } from "@/lib/utils";
 import api from "@/services/api";
 
 // API response type for user winnings
@@ -31,6 +30,24 @@ interface UserWinningsAPI {
   UnclaimedStakingReward: number;
 }
 
+// API response type for user info
+interface UserInfoAPI {
+  Address: string;
+  NumBids: number;
+  CosmicSignatureNumTransfers: number;
+  CosmicTokenNumTransfers: number;
+  MaxBidAmount: number;
+  NumPrizes: number;
+  MaxWinAmount: number;
+  SumRaffleEthWinnings: number;
+  SumRaffleEthWithdrawal: number;
+  UnclaimedNFTs: number;
+  NumRaffleEthWinnings: number;
+  RaffleNFTsCount: number;
+  RewardNFTsCount: number;
+  TotalCSTokensWon: number;
+}
+
 // Default winnings data (when not connected or loading)
 const DEFAULT_WINNINGS: UserWinningsAPI = {
   DonatedERC20Tokens: [],
@@ -40,19 +57,78 @@ const DEFAULT_WINNINGS: UserWinningsAPI = {
   UnclaimedStakingReward: 0,
 };
 
+// Default user info
+const DEFAULT_USER_INFO: UserInfoAPI = {
+  Address: "",
+  NumBids: 0,
+  CosmicSignatureNumTransfers: 0,
+  CosmicTokenNumTransfers: 0,
+  MaxBidAmount: 0,
+  NumPrizes: 0,
+  MaxWinAmount: 0,
+  SumRaffleEthWinnings: 0,
+  SumRaffleEthWithdrawal: 0,
+  UnclaimedNFTs: 0,
+  NumRaffleEthWinnings: 0,
+  RaffleNFTsCount: 0,
+  RewardNFTsCount: 0,
+  TotalCSTokensWon: 0,
+};
+
 export default function AccountDashboardPage() {
   const { address, isConnected } = useAccount();
-  const user = MOCK_CURRENT_USER;
+  const [userInfo, setUserInfo] = useState<UserInfoAPI>(DEFAULT_USER_INFO);
   const [winnings, setWinnings] = useState<UserWinningsAPI>(DEFAULT_WINNINGS);
   const [isLoadingWinnings, setIsLoadingWinnings] = useState(false);
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
   const recentActivities = MOCK_USER_ACTIVITIES.slice(0, 5);
   const userNFTs = MOCK_NFTS.slice(0, 6); // Preview of user's NFTs
+
+  // Fetch user info from API when wallet is connected
+  useEffect(() => {
+    async function fetchUserInfo() {
+      if (!address || !isConnected) {
+        setUserInfo(DEFAULT_USER_INFO);
+        return;
+      }
+
+      try {
+        setIsLoadingUserInfo(true);
+        const data = await api.getUserInfo(address);
+
+        if (data) {
+          setUserInfo({
+            Address: data.Address || address,
+            NumBids: data.NumBids || 0,
+            CosmicSignatureNumTransfers: data.CosmicSignatureNumTransfers || 0,
+            CosmicTokenNumTransfers: data.CosmicTokenNumTransfers || 0,
+            MaxBidAmount: data.MaxBidAmount || 0,
+            NumPrizes: data.NumPrizes || 0,
+            MaxWinAmount: data.MaxWinAmount || 0,
+            SumRaffleEthWinnings: data.SumRaffleEthWinnings || 0,
+            SumRaffleEthWithdrawal: data.SumRaffleEthWithdrawal || 0,
+            UnclaimedNFTs: data.UnclaimedNFTs || 0,
+            NumRaffleEthWinnings: data.NumRaffleEthWinnings || 0,
+            RaffleNFTsCount: data.RaffleNFTsCount || 0,
+            RewardNFTsCount: data.RewardNFTsCount || 0,
+            TotalCSTokensWon: data.TotalCSTokensWon || 0,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch user info:", error);
+        setUserInfo(DEFAULT_USER_INFO);
+      } finally {
+        setIsLoadingUserInfo(false);
+      }
+    }
+
+    fetchUserInfo();
+  }, [address, isConnected]);
 
   // Fetch user winnings from API when wallet is connected
   useEffect(() => {
     async function fetchWinnings() {
       if (!address || !isConnected) {
-        // Use default data when wallet is not connected
         setWinnings(DEFAULT_WINNINGS);
         return;
       }
@@ -72,7 +148,6 @@ export default function AccountDashboardPage() {
         }
       } catch (error) {
         console.error("Failed to fetch user winnings:", error);
-        // Fall back to default data on error
         setWinnings(DEFAULT_WINNINGS);
       } finally {
         setIsLoadingWinnings(false);
@@ -100,28 +175,13 @@ export default function AccountDashboardPage() {
             <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
               <div>
                 <h1 className="heading-lg mb-2">
-                  Welcome back, {user.ensName || "Collector"}
+                  Welcome back, {isConnected ? "Collector" : "Guest"}
                 </h1>
                 <p className="text-text-secondary">
-                  Member since {user.joinedDate} • Last active recently
+                  {isConnected
+                    ? `${userInfo.NumBids} bids placed • ${userInfo.NumPrizes} prizes won`
+                    : "Connect your wallet to view your stats"}
                 </p>
-              </div>
-
-              <div className="flex space-x-2">
-                {user.isChronoWarrior && (
-                  <div className="px-4 py-2 rounded-lg bg-status-info/10 border border-status-info/20">
-                    <span className="text-sm font-medium text-status-info">
-                      ⚡ Chrono-Warrior
-                    </span>
-                  </div>
-                )}
-                {user.isEnduranceChampion && (
-                  <div className="px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                    <span className="text-sm font-medium text-primary">
-                      🏆 Endurance Champion
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           </motion.div>
@@ -163,25 +223,27 @@ export default function AccountDashboardPage() {
       <section className="py-12">
         <Container>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard label="NFTs Owned" value={user.nftsOwned} icon={Gem} />
             <StatCard
-              label="NFTs Staked"
-              value={user.nftsStaked}
+              label="Total NFTs Won"
+              value={userInfo.TotalCSTokensWon}
+              icon={Gem}
+            />
+            <StatCard
+              label="Raffle NFTs"
+              value={userInfo.RaffleNFTsCount}
               icon={Award}
             />
             <StatCard
               label="Total Bids"
-              value={user.totalBids}
+              value={userInfo.NumBids}
               icon={Activity}
             />
             <StatCard
-              label="Total Won"
-              value={`${formatEth(user.totalETHWon)} ETH`}
+              label="Total ETH Won"
+              value={`${(
+                userInfo.SumRaffleEthWinnings + userInfo.SumRaffleEthWithdrawal
+              ).toFixed(6)} ETH`}
               icon={Trophy}
-              trend={{
-                value: 68,
-                isPositive: true,
-              }}
             />
           </div>
         </Container>
@@ -191,96 +253,144 @@ export default function AccountDashboardPage() {
       <section className="py-12 bg-background-surface/50">
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Spending vs Winnings */}
+            {/* Raffle Winnings Stats */}
             <Card glass className="p-8">
               <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                Your Performance
+                Raffle Performance
               </h3>
 
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
                     <span className="text-sm text-text-secondary">
-                      Total Spent
+                      Total ETH Won
                     </span>
-                    <span className="font-mono text-xl text-text-primary">
-                      {formatEth(user.totalETHSpent)} ETH
+                    <span className="font-mono text-xl text-primary">
+                      {(
+                        userInfo.SumRaffleEthWinnings +
+                        userInfo.SumRaffleEthWithdrawal
+                      ).toFixed(6)}{" "}
+                      ETH
                     </span>
                   </div>
                   <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                    <div className="h-full bg-status-error/40 rounded-full w-[40%]" />
+                    <div className="h-full bg-status-success rounded-full w-[75%]" />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between items-baseline mb-2">
                     <span className="text-sm text-text-secondary">
-                      Total Won
+                      ETH Currently Claimable
                     </span>
-                    <span className="font-mono text-xl text-primary">
-                      {formatEth(user.totalETHWon)} ETH
+                    <span className="font-mono text-xl text-status-warning">
+                      {userInfo.SumRaffleEthWinnings.toFixed(6)} ETH
                     </span>
                   </div>
                   <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                    <div className="h-full bg-status-success rounded-full w-[67%]" />
+                    <div
+                      className="h-full bg-status-warning rounded-full"
+                      style={{
+                        width: `${
+                          userInfo.SumRaffleEthWinnings +
+                            userInfo.SumRaffleEthWithdrawal >
+                          0
+                            ? (userInfo.SumRaffleEthWinnings /
+                                (userInfo.SumRaffleEthWinnings +
+                                  userInfo.SumRaffleEthWithdrawal)) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-baseline mb-2">
+                    <span className="text-sm text-text-secondary">
+                      ETH Withdrawn
+                    </span>
+                    <span className="font-mono text-xl text-text-primary">
+                      {userInfo.SumRaffleEthWithdrawal.toFixed(6)} ETH
+                    </span>
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-text-muted/10">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-secondary">
-                      Return on Investment
+                      Raffles Participated
                     </span>
-                    <span className="font-mono text-2xl font-semibold text-status-success">
-                      +68%
+                    <span className="font-mono text-2xl font-semibold text-primary">
+                      {userInfo.NumRaffleEthWinnings}
                     </span>
                   </div>
                 </div>
               </div>
             </Card>
 
-            {/* Prize Breakdown */}
+            {/* NFT & Prize Stats */}
             <Card glass className="p-8">
               <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                Prize Wins
+                NFT & Prize Stats
               </h3>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
                   <div className="flex items-center space-x-3">
-                    <Trophy size={20} className="text-primary" />
-                    <span className="text-text-primary">Main Prize</span>
+                    <Gem size={20} className="text-primary" />
+                    <span className="text-text-primary">
+                      Total Cosmic Signature NFTs
+                    </span>
                   </div>
                   <span className="font-mono text-lg font-semibold text-primary">
-                    {user.mainPrizesWon}x
+                    {userInfo.TotalCSTokensWon}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-lg bg-status-info/5 border border-status-info/10">
                   <div className="flex items-center space-x-3">
-                    <Award size={20} className="text-status-info" />
-                    <span className="text-text-primary">Champion</span>
+                    <Trophy size={20} className="text-status-info" />
+                    <span className="text-text-primary">Raffle NFTs</span>
                   </div>
                   <span className="font-mono text-lg font-semibold text-status-info">
-                    {user.championPrizesWon}x
+                    {userInfo.RaffleNFTsCount}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg bg-status-success/5 border border-status-success/10">
+                  <div className="flex items-center space-x-3">
+                    <Award size={20} className="text-status-success" />
+                    <span className="text-text-primary">Reward NFTs</span>
+                  </div>
+                  <span className="font-mono text-lg font-semibold text-status-success">
+                    {userInfo.RewardNFTsCount}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-lg bg-status-warning/5 border border-status-warning/10">
                   <div className="flex items-center space-x-3">
                     <TrendingUp size={20} className="text-status-warning" />
-                    <span className="text-text-primary">Raffle</span>
+                    <span className="text-text-primary">Total Prizes Won</span>
                   </div>
                   <span className="font-mono text-lg font-semibold text-status-warning">
-                    {user.rafflePrizesWon}x
+                    {userInfo.NumPrizes}
                   </span>
                 </div>
               </div>
 
               <div className="mt-6">
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/account/stats">View Detailed Statistics →</Link>
-                </Button>
+                <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-text-secondary">
+                      Max Single Prize Won
+                    </span>
+                    <span className="font-mono text-lg font-semibold text-text-primary">
+                      {userInfo.MaxWinAmount.toFixed(6)} ETH
+                    </span>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -365,7 +475,9 @@ export default function AccountDashboardPage() {
               Your Collection
             </h2>
             <Button variant="ghost" asChild>
-              <Link href="/account/nfts">View All {user.nftsOwned} NFTs →</Link>
+              <Link href="/account/nfts">
+                View All {userInfo.TotalCSTokensWon} NFTs →
+              </Link>
             </Button>
           </div>
 
@@ -377,46 +489,73 @@ export default function AccountDashboardPage() {
         </Container>
       </section>
 
-      {/* CST Token Balance */}
+      {/* Additional Stats */}
       <section className="py-12 bg-background-surface/50">
         <Container>
           <Card glass className="p-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                  CST Token Balance
-                </h3>
-                <p className="text-sm text-text-secondary">
-                  Earned from {user.totalBids} bids • Use for future bidding
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="font-mono text-4xl font-bold text-primary mb-2">
-                  {formatCst(
-                    parseFloat(user.totalCSTWon) -
-                      parseFloat(user.totalCSTSpent)
-                  )}
-                </div>
-                <div className="text-sm text-text-muted">CST</div>
-              </div>
-            </div>
+            <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+              Transfer History
+            </h3>
 
-            <div className="mt-6 pt-6 border-t border-text-muted/10 grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
-                  Earned
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                <p className="text-sm text-text-secondary mb-2">
+                  Cosmic Signature Transfers
                 </p>
-                <p className="font-mono text-lg text-status-success">
-                  {formatCst(user.totalCSTWon)} CST
+                <p className="font-mono text-2xl font-bold text-primary">
+                  {userInfo.CosmicSignatureNumTransfers}
+                </p>
+                {isConnected && userInfo.Address && (
+                  <Link
+                    href={`/cosmic-signature-transfer/${userInfo.Address}`}
+                    className="text-sm text-primary hover:underline mt-2 inline-block"
+                  >
+                    View All Transfers →
+                  </Link>
+                )}
+              </div>
+
+              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                <p className="text-sm text-text-secondary mb-2">
+                  Cosmic Token Transfers
+                </p>
+                <p className="font-mono text-2xl font-bold text-primary">
+                  {userInfo.CosmicTokenNumTransfers}
+                </p>
+                {isConnected && userInfo.Address && (
+                  <Link
+                    href={`/cosmic-token-transfer/${userInfo.Address}`}
+                    className="text-sm text-primary hover:underline mt-2 inline-block"
+                  >
+                    View All Transfers →
+                  </Link>
+                )}
+              </div>
+
+              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                <p className="text-sm text-text-secondary mb-2">
+                  Maximum Bid Amount
+                </p>
+                <p className="font-mono text-2xl font-bold text-status-warning">
+                  {userInfo.MaxBidAmount.toFixed(6)} ETH
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
-                  Spent
+
+              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                <p className="text-sm text-text-secondary mb-2">
+                  Unclaimed Donated NFTs
                 </p>
-                <p className="font-mono text-lg text-text-primary">
-                  {formatCst(user.totalCSTSpent)} CST
+                <p className="font-mono text-2xl font-bold text-status-info">
+                  {userInfo.UnclaimedNFTs}
                 </p>
+                {isConnected && userInfo.UnclaimedNFTs > 0 && (
+                  <Link
+                    href="/account/winnings"
+                    className="text-sm text-primary hover:underline mt-2 inline-block"
+                  >
+                    Claim NFTs →
+                  </Link>
+                )}
               </div>
             </div>
           </Card>
