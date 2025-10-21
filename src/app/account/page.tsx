@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { Trophy, Gem, Award, TrendingUp, Activity } from "lucide-react";
 import Link from "next/link";
+import { useAccount } from "wagmi";
+import { useState, useEffect } from "react";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -10,21 +12,81 @@ import { StatCard } from "@/components/game/StatCard";
 import { NFTCard } from "@/components/nft/NFTCard";
 import { Timeline } from "@/components/data/Timeline";
 import { AlertCard } from "@/components/features/AlertCard";
-import { MOCK_CURRENT_USER, MOCK_USER_WINNINGS } from "@/lib/mockData/users";
+import { MOCK_CURRENT_USER } from "@/lib/mockData/users";
 import { MOCK_USER_ACTIVITIES } from "@/lib/mockData/activities";
 import { MOCK_NFTS } from "@/lib/constants";
 import { formatEth, formatCst } from "@/lib/utils";
+import api from "@/services/api";
+
+// API response type for user winnings
+interface UserWinningsAPI {
+  DonatedERC20Tokens: Array<{
+    TokenAddress: string;
+    TokenSymbol: string;
+    Amount: string;
+  }>;
+  ETHRaffleToClaim: number;
+  ETHRaffleToClaimWei: string;
+  NumDonatedNFTToClaim: number;
+  UnclaimedStakingReward: number;
+}
+
+// Default winnings data (when not connected or loading)
+const DEFAULT_WINNINGS: UserWinningsAPI = {
+  DonatedERC20Tokens: [],
+  ETHRaffleToClaim: 0,
+  ETHRaffleToClaimWei: "0",
+  NumDonatedNFTToClaim: 0,
+  UnclaimedStakingReward: 0,
+};
 
 export default function AccountDashboardPage() {
+  const { address, isConnected } = useAccount();
   const user = MOCK_CURRENT_USER;
-  const winnings = MOCK_USER_WINNINGS;
+  const [winnings, setWinnings] = useState<UserWinningsAPI>(DEFAULT_WINNINGS);
+  const [isLoadingWinnings, setIsLoadingWinnings] = useState(false);
   const recentActivities = MOCK_USER_ACTIVITIES.slice(0, 5);
   const userNFTs = MOCK_NFTS.slice(0, 6); // Preview of user's NFTs
 
+  // Fetch user winnings from API when wallet is connected
+  useEffect(() => {
+    async function fetchWinnings() {
+      if (!address || !isConnected) {
+        // Use default data when wallet is not connected
+        setWinnings(DEFAULT_WINNINGS);
+        return;
+      }
+
+      try {
+        setIsLoadingWinnings(true);
+        const data = await api.getUserWinnings(address);
+
+        if (data) {
+          setWinnings({
+            DonatedERC20Tokens: data.DonatedERC20Tokens || [],
+            ETHRaffleToClaim: data.ETHRaffleToClaim || 0,
+            ETHRaffleToClaimWei: data.ETHRaffleToClaimWei || "0",
+            NumDonatedNFTToClaim: data.NumDonatedNFTToClaim || 0,
+            UnclaimedStakingReward: data.UnclaimedStakingReward || 0,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch user winnings:", error);
+        // Fall back to default data on error
+        setWinnings(DEFAULT_WINNINGS);
+      } finally {
+        setIsLoadingWinnings(false);
+      }
+    }
+
+    fetchWinnings();
+  }, [address, isConnected]);
+
   const hasUnclaimedPrizes =
-    parseFloat(winnings.unclaimedETH) > 0 ||
-    winnings.unclaimedERC20Tokens.length > 0 ||
-    winnings.unclaimedDonatedNFTs.length > 0;
+    winnings.ETHRaffleToClaim > 0 ||
+    winnings.UnclaimedStakingReward > 0 ||
+    winnings.DonatedERC20Tokens.length > 0 ||
+    winnings.NumDonatedNFTToClaim > 0;
 
   return (
     <div className="min-h-screen">
@@ -73,16 +135,18 @@ export default function AccountDashboardPage() {
             <AlertCard
               severity="warning"
               title="You have prizes to claim"
-              description={`${formatEth(winnings.unclaimedETH)} ETH${
-                winnings.unclaimedERC20Tokens.length > 0
-                  ? ` + ${winnings.unclaimedERC20Tokens.length} ERC-20 token${
-                      winnings.unclaimedERC20Tokens.length > 1 ? "s" : ""
+              description={`${formatEth(
+                winnings.ETHRaffleToClaim + winnings.UnclaimedStakingReward
+              )} ETH${
+                winnings.DonatedERC20Tokens.length > 0
+                  ? ` + ${winnings.DonatedERC20Tokens.length} ERC-20 token${
+                      winnings.DonatedERC20Tokens.length > 1 ? "s" : ""
                     }`
                   : ""
               }${
-                winnings.unclaimedDonatedNFTs.length > 0
-                  ? ` + ${winnings.unclaimedDonatedNFTs.length} donated NFT${
-                      winnings.unclaimedDonatedNFTs.length > 1 ? "s" : ""
+                winnings.NumDonatedNFTToClaim > 0
+                  ? ` + ${winnings.NumDonatedNFTToClaim} donated NFT${
+                      winnings.NumDonatedNFTToClaim > 1 ? "s" : ""
                     }`
                   : ""
               } waiting for you`}
