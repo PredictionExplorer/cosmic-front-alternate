@@ -95,23 +95,24 @@ export default function AccountDashboardPage() {
       try {
         setIsLoadingUserInfo(true);
         const data = await api.getUserInfo(address);
-
-        if (data) {
+        console.log("User info data:", data);
+        if (data && data.UserInfo) {
+          const userInfoData = data.UserInfo;
           setUserInfo({
-            Address: data.Address || address,
-            NumBids: data.NumBids || 0,
-            CosmicSignatureNumTransfers: data.CosmicSignatureNumTransfers || 0,
-            CosmicTokenNumTransfers: data.CosmicTokenNumTransfers || 0,
-            MaxBidAmount: data.MaxBidAmount || 0,
-            NumPrizes: data.NumPrizes || 0,
-            MaxWinAmount: data.MaxWinAmount || 0,
-            SumRaffleEthWinnings: data.SumRaffleEthWinnings || 0,
-            SumRaffleEthWithdrawal: data.SumRaffleEthWithdrawal || 0,
-            UnclaimedNFTs: data.UnclaimedNFTs || 0,
-            NumRaffleEthWinnings: data.NumRaffleEthWinnings || 0,
-            RaffleNFTsCount: data.RaffleNFTsCount || 0,
-            RewardNFTsCount: data.RewardNFTsCount || 0,
-            TotalCSTokensWon: data.TotalCSTokensWon || 0,
+            Address: userInfoData.Address || address,
+            NumBids: userInfoData.NumBids || 0,
+            CosmicSignatureNumTransfers: userInfoData.CosmicSignatureNumTransfers || 0,
+            CosmicTokenNumTransfers: userInfoData.CosmicTokenNumTransfers || 0,
+            MaxBidAmount: userInfoData.MaxBidAmount || 0,
+            NumPrizes: userInfoData.NumPrizes || 0,
+            MaxWinAmount: userInfoData.MaxWinAmount || 0,
+            SumRaffleEthWinnings: userInfoData.SumRaffleEthWinnings || 0,
+            SumRaffleEthWithdrawal: userInfoData.SumRaffleEthWithdrawal || 0,
+            UnclaimedNFTs: userInfoData.UnclaimedNFTs || 0,
+            NumRaffleEthWinnings: userInfoData.NumRaffleEthWinnings || 0,
+            RaffleNFTsCount: userInfoData.RaffleNFTsCount || 0,
+            RewardNFTsCount: userInfoData.RewardNFTsCount || 0,
+            TotalCSTokensWon: userInfoData.TotalCSTokensWon || 0,
           });
         }
       } catch (error) {
