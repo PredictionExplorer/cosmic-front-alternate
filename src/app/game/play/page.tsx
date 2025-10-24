@@ -17,7 +17,7 @@ import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
 
 export default function PlayPage() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { read, write, isTransactionPending, transactionHash } =
     useCosmicGame();
   const { dashboardData, refresh: refreshDashboard } = useApiData();
@@ -51,6 +51,14 @@ export default function PlayPage() {
       return () => clearInterval(interval);
     }
   }, [mainPrizeTime]);
+
+  // Check if user can claim main prize
+  const canClaimMainPrize =
+    isConnected &&
+    address &&
+    lastBidder &&
+    address.toLowerCase() === (lastBidder as string).toLowerCase() &&
+    timeRemaining === 0;
 
   // Format prices
   const ethBidPrice = ethBidPriceRaw
@@ -126,17 +134,37 @@ export default function PlayPage() {
     }
   };
 
+  // Handle Main Prize Claim
+  const handleClaimMainPrize = async () => {
+    if (!isConnected) {
+      showWarning("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      await write.claimMainPrize();
+      showInfo("Transaction submitted! Claiming main prize...");
+    } catch (error) {
+      const friendlyError = parseContractError(error);
+      showError(friendlyError);
+    }
+  };
+
   // Watch for transaction success
   useEffect(() => {
     if (write.status.isSuccess) {
-      showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
-      setBidMessage("");
+      if (canClaimMainPrize) {
+        showSuccess("🎉 Main Prize claimed successfully! Congratulations!");
+      } else {
+        showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
+        setBidMessage("");
+      }
       // Refresh data after short delay
       setTimeout(() => {
         refreshDashboard();
       }, 2000);
     }
-  }, [write.status.isSuccess, showSuccess, refreshDashboard]);
+  }, [write.status.isSuccess, showSuccess, refreshDashboard, canClaimMainPrize]);
 
   // Prepare display data
   const currentRound = {
@@ -174,6 +202,54 @@ export default function PlayPage() {
           </motion.div>
         </Container>
       </section>
+
+      {/* Claim Main Prize Banner */}
+      {canClaimMainPrize ? (
+        <section className="py-8 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border-y border-primary/30">
+          <Container>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <div className="inline-flex items-center space-x-2 mb-4">
+                <Trophy size={32} className="text-primary animate-pulse" />
+                <h2 className="text-3xl font-serif font-bold text-primary">
+                  You Won the Main Prize!
+                </h2>
+                <Trophy size={32} className="text-primary animate-pulse" />
+              </div>
+              <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
+                Congratulations! The countdown has ended and you are the last
+                bidder. Claim your prize now to receive{" "}
+                <span className="text-primary font-semibold">
+                  {(currentRound.prizePool * 0.25).toFixed(4)} ETH
+                </span>{" "}
+                and a <span className="text-primary font-semibold">Cosmic Signature NFT</span>!
+              </p>
+              {isTransactionPending ? (
+                <Button size="xl" disabled className="shadow-luxury-lg">
+                  <Loader2 className="mr-2 animate-spin" size={24} />
+                  Processing Transaction...
+                </Button>
+              ) : (
+                <Button
+                  size="xl"
+                  onClick={handleClaimMainPrize}
+                  className="shadow-luxury-lg animate-pulse"
+                >
+                  <Trophy className="mr-2" size={24} />
+                  Claim Main Prize
+                </Button>
+              )}
+              <p className="text-xs text-text-muted mt-4">
+                ⚠️ Important: You have 1 day to claim. After that, anyone can
+                claim and receive your prize.
+              </p>
+            </motion.div>
+          </Container>
+        </section>
+      ) : null}
 
       {/* Main Dashboard */}
       <section className="py-12">

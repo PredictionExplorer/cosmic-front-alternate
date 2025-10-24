@@ -33,7 +33,7 @@ export function formatTime(seconds: number): string {
 	const secs = seconds % 60;
 
 	if (days > 0) {
-		return `${days}d ${hours}h ${minutes}m`;
+		return `${days}d ${hours}h ${minutes}m ${secs}s`;
 	}
 	if (hours > 0) {
 		return `${hours}h ${minutes}m ${secs}s`;
