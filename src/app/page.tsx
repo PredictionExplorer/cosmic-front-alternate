@@ -53,12 +53,55 @@ export default function Home() {
       id: number;
       bidder: string;
       bidType: string;
+      bidTypeNum: number;
       amount: number;
       timestamp: number;
       message?: string;
+      roundNum?: number;
+      rwalkNftId?: number;
+      duration?: number;
+      nftDonationAddr?: string;
+      nftDonationId?: number;
+      erc20DonationAddr?: string;
+      erc20DonationAmount?: string;
     }>
   >([]);
   const [isLoadingBids, setIsLoadingBids] = useState(true);
+  const [bannedBids, setBannedBids] = useState<number[]>([]);
+
+  // Helper function to map bid type numbers to labels
+  const getBidTypeLabel = (bidType: number | string): string => {
+    const typeNum = typeof bidType === "string" ? parseInt(bidType) : bidType;
+    switch (typeNum) {
+      case 0:
+        return "ETH Bid";
+      case 1:
+        return "RWLK Token Bid";
+      case 2:
+        return "CST Bid";
+      default:
+        return "ETH Bid"; // Default fallback
+    }
+  };
+
+  // Helper function to format bid duration
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${Math.floor(seconds)}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes}m ${secs}s`;
+    } else if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${minutes}m`;
+    } else {
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      return `${days}d ${hours}h`;
+    }
+  };
 
   // Get blockchain data
   const { data: roundNum } = useRoundNum();
@@ -119,28 +162,78 @@ export default function Home() {
     fetchNFTs();
   }, []);
 
+  // Fetch banned bids list
+  useEffect(() => {
+    async function fetchBannedBids() {
+      try {
+        const bids = await api.getBannedBids();
+        const bannedIds = bids.map(
+          (x: Record<string, unknown>) => x.bid_id as number
+        );
+        setBannedBids(bannedIds);
+      } catch (error) {
+        console.error("Failed to fetch banned bids:", error);
+      }
+    }
+    fetchBannedBids();
+  }, []);
+
   // Fetch current round bids
   useEffect(() => {
     async function fetchCurrentBids() {
       try {
         const currentRoundNumber =
-          roundNum?.toString() ||
-          dashboardData?.CurRoundNum?.toString() ||
-          "0";
+          roundNum?.toString() || dashboardData?.CurRoundNum?.toString() || "0";
         if (currentRoundNumber && currentRoundNumber !== "0") {
           const bids = await api.getBidListByRound(
             parseInt(currentRoundNumber),
             "desc"
           );
-          // Get the 10 most recent bids
-          const recentBids = bids.slice(0, 10).map((bid: Record<string, unknown>) => ({
-            id: (bid.EvtLogId as number) || 0,
-            bidder: (bid.BidderAddr as string) || "0x0",
-            bidType: (bid.BidType as string) || "ETH",
-            amount: parseFloat((bid.BidPrice as string) || "0") / 1e18,
-            timestamp: (bid.TimeStamp as number) || 0,
-            message: (bid.Message as string) || undefined,
-          }));
+
+          // Get the 10 most recent bids and calculate durations
+          const recentBids = bids
+            .slice(0, 10)
+            .map((bid: Record<string, unknown>, index: number) => {
+              const bidTypeNum = (bid.BidType as number) || 0;
+              const timestamp = (bid.TimeStamp as number) || 0;
+
+              // Calculate duration (time between this bid and the previous one, or now for the most recent)
+              let duration = 0;
+              if (index === 0) {
+                // Most recent bid - duration is from bid time to now
+                duration = Date.now() / 1000 - timestamp;
+              } else {
+                // Duration is from this bid to the previous bid
+                const prevTimestamp =
+                  (bids[index - 1].TimeStamp as number) || 0;
+                duration = prevTimestamp - timestamp;
+              }
+
+              // For CST bids, use NumCSTTokensEth field; for ETH/RWLK bids, use BidPrice
+              const amount =
+                bidTypeNum === 2 ? bid.NumCSTTokensEth : bid.BidPriceEth;
+
+              return {
+                id: (bid.EvtLogId as number) || 0,
+                bidder: (bid.BidderAddr as string) || "0x0",
+                bidType: getBidTypeLabel(bidTypeNum),
+                bidTypeNum,
+                amount,
+                timestamp,
+                message: (bid.Message as string) || undefined,
+                roundNum: (bid.RoundNum as number) || undefined,
+                rwalkNftId: (bid.RWalkNFTId as number) || undefined,
+                duration,
+                nftDonationAddr:
+                  (bid.NFTDonationTokenAddr as string) || undefined,
+                nftDonationId: (bid.NFTDonationTokenId as number) || undefined,
+                erc20DonationAddr:
+                  (bid.DonatedERC20TokenAddr as string) || undefined,
+                erc20DonationAmount:
+                  (bid.DonatedERC20TokenAmount as string) || undefined,
+              };
+            });
+
           setCurrentBids(recentBids);
         }
       } catch (error) {
@@ -442,6 +535,18 @@ export default function Home() {
                 mode="table"
                 columns={[
                   {
+                    key: "timestamp",
+                    label: "Time",
+                    sortable: true,
+                    render: (value) => (
+                      <span className="text-text-secondary text-sm whitespace-nowrap">
+                        {typeof value === "number"
+                          ? formatDate(new Date(value * 1000))
+                          : "Unknown"}
+                      </span>
+                    ),
+                  },
+                  {
                     key: "bidder",
                     label: "Bidder",
                     render: (_value, item) => (
@@ -454,53 +559,143 @@ export default function Home() {
                   {
                     key: "bidType",
                     label: "Type",
-                    render: (value) => (
-                      <Badge
-                        variant={
-                          value === "ETH"
-                            ? "default"
-                            : value === "CST"
-                            ? "info"
-                            : "success"
-                        }
-                      >
-                        {String(value)}
-                      </Badge>
-                    ),
+                    render: (value) => {
+                      const bidTypeStr = String(value);
+                      let variant: "default" | "info" | "success" = "default";
+
+                      if (bidTypeStr.includes("ETH")) {
+                        variant = "default";
+                      } else if (bidTypeStr.includes("CST")) {
+                        variant = "info";
+                      } else if (bidTypeStr.includes("RWLK")) {
+                        variant = "success";
+                      }
+
+                      return <Badge variant={variant}>{bidTypeStr}</Badge>;
+                    },
                   },
                   {
                     key: "amount",
-                    label: "Amount",
+                    label: "Price",
                     sortable: true,
-                    render: (value, item) => (
-                      <span className="font-mono text-primary font-semibold">
+                    render: (value, item) => {
+                      const bidTypeStr = String(item.bidType || "");
+                      const amount = typeof value === "number" ? value : 0;
+                      let tokenSymbol = "ETH";
+
+                      if (bidTypeStr.includes("CST")) {
+                        tokenSymbol = "CST";
+                      } else if (bidTypeStr.includes("RWLK")) {
+                        tokenSymbol = "ETH";
+                      } else if (bidTypeStr.includes("ETH")) {
+                        tokenSymbol = "ETH";
+                      }
+
+                      // Dynamic precision: 7 decimals for small amounts, 4 for larger
+                      const formatted =
+                        amount < 1 ? amount.toFixed(7) : amount.toFixed(4);
+
+                      return (
+                        <span className="font-mono text-primary font-semibold whitespace-nowrap">
+                          {formatted} {tokenSymbol}
+                        </span>
+                      );
+                    },
+                  },
+                  {
+                    key: "duration",
+                    label: "Duration",
+                    render: (value) => (
+                      <span className="text-text-secondary text-sm whitespace-nowrap">
                         {typeof value === "number"
-                          ? value.toFixed(6)
-                          : "0.000000"}{" "}
-                        {item.bidType === "CST" ? "CST" : "ETH"}
+                          ? formatDuration(value)
+                          : "-"}
                       </span>
                     ),
                   },
                   {
-                    key: "timestamp",
-                    label: "Time",
-                    sortable: true,
-                    render: (value) => (
-                      <span className="text-text-secondary text-sm">
-                        {typeof value === "number"
-                          ? formatDate(new Date(value * 1000))
-                          : "Unknown"}
-                      </span>
-                    ),
+                    key: "bidInfo",
+                    label: "Bid Info",
+                    render: (_value, item) => {
+                      const hasRWLK = item.bidTypeNum === 1 && item.rwalkNftId !== undefined;
+                      const hasNFTDonation = !!item.nftDonationAddr;
+                      const hasERC20Donation = !!item.erc20DonationAddr;
+                      const hasDonations = hasNFTDonation || hasERC20Donation;
+
+                      // If no special info, return dash
+                      if (!hasRWLK && !hasDonations) {
+                        return <span className="text-text-secondary text-sm">-</span>;
+                      }
+
+                      return (
+                        <div className="text-text-secondary text-sm break-words max-w-xs">
+                          {/* RWLK Token Info */}
+                          {hasRWLK && (
+                            <span>
+                              Bid was made using RandomWalk Token (ID = {item.rwalkNftId})
+                            </span>
+                          )}
+
+                          {/* Donations Info */}
+                          {hasDonations && (
+                            <span>
+                              {/* Bid type description */}
+                              {item.bidTypeNum === 2 && "Bid was made using Cosmic Signature Tokens"}
+                              {item.bidTypeNum === 0 && "Bid was made using ETH"}
+                              
+                              {/* NFT Donation */}
+                              {hasNFTDonation && (
+                                <span>
+                                  {" and a token ("}
+                                  <span className="font-mono">
+                                    {(item.nftDonationAddr as string).slice(0, 6)}...
+                                    {(item.nftDonationAddr as string).slice(-4)}
+                                  </span>
+                                  {") with ID "}
+                                  {item.nftDonationId}
+                                  {" was donated"}
+                                </span>
+                              )}
+                              
+                              {/* ERC20 Donation */}
+                              {hasERC20Donation && (
+                                <span>
+                                  {" and "}
+                                  <span className="font-mono">
+                                    {(item.erc20DonationAddr as string).slice(0, 6)}...
+                                    {(item.erc20DonationAddr as string).slice(-4)}
+                                  </span>
+                                  {" tokens were donated"}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    },
                   },
                   {
                     key: "message",
                     label: "Message",
-                    render: (value) => (
-                      <span className="text-text-secondary italic text-sm truncate max-w-xs block">
-                        {value ? String(value) : "—"}
-                      </span>
-                    ),
+                    render: (value, item) => {
+                      const isBanned = bannedBids.includes(item.id as number);
+                      const message = value ? String(value) : "";
+
+                      if (isBanned || !message) {
+                        return (
+                          <span className="text-text-muted text-sm">-</span>
+                        );
+                      }
+
+                      return (
+                        <span
+                          className="text-text-secondary italic text-sm truncate max-w-xs block"
+                          title={message}
+                        >
+                          &quot;{message}&quot;
+                        </span>
+                      );
+                    },
                   },
                 ]}
                 emptyMessage="No bids yet. Be the first to place a bid!"
