@@ -40,9 +40,9 @@ export default function PlayPage() {
   const { data: roundNum } = read.useRoundNum();
   const { data: lastBidder } = read.useLastBidder();
   const { data: mainPrizeTime } = read.useMainPrizeTime();
-  const { data: ethBidPriceRaw } = read.useEthBidPrice();
-  const { data: cstBidPriceRaw } = read.useCstBidPrice();
-  const { data: prizeAmount } = read.useMainPrizeAmount();
+  const { data: ethBidPriceRaw, refetch: refetchEthPrice } = read.useEthBidPrice();
+  const { data: cstBidPriceRaw, refetch: refetchCstPrice } = read.useCstBidPrice();
+  const { data: prizeAmount, refetch: refetchPrizeAmount } = read.useMainPrizeAmount();
 
   // Get user's Random Walk NFTs
   const { data: userNfts } = readRandomWalk.useWalletOfOwner(address);
@@ -187,16 +187,25 @@ export default function PlayPage() {
       return;
     }
 
-    if (!cstBidPriceRaw) {
+    if (cstBidPriceRaw === undefined) {
       showError("Unable to get CST bid price. Please try again.");
       return;
     }
 
     try {
-      // Use maxCstPrice if provided, otherwise use current price * 1.1 for safety
-      const maxLimit = maxCstPrice
-        ? parseEther(maxCstPrice)
-        : ((cstBidPriceRaw as bigint) * BigInt(110)) / BigInt(100);
+      // Determine max limit based on current price
+      let maxLimit: bigint;
+      
+      if (cstBidPriceRaw === BigInt(0)) {
+        // Free bid - price is 0
+        maxLimit = BigInt(0);
+      } else if (maxCstPrice) {
+        // User specified max price
+        maxLimit = parseEther(maxCstPrice);
+      } else {
+        // Auto calculate: current price * 1.1 for slippage protection
+        maxLimit = ((cstBidPriceRaw as bigint) * BigInt(110)) / BigInt(100);
+      }
 
       // Track that this is a bid action
       setLastActionType("bid");
@@ -232,10 +241,13 @@ export default function PlayPage() {
   // Watch for transaction success
   useEffect(() => {
     if (write.status.isSuccess) {
+      // Capture action type before resetting
+      const actionType = lastActionType;
+      
       // Display appropriate success message based on the action performed
-      if (lastActionType === "claimPrize") {
+      if (actionType === "claimPrize") {
         showSuccess("🎉 Main Prize claimed successfully! Congratulations!");
-      } else if (lastActionType === "bid") {
+      } else if (actionType === "bid") {
         showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
         setBidMessage("");
       }
@@ -246,6 +258,14 @@ export default function PlayPage() {
       // Refresh data after short delay
       setTimeout(async () => {
         refreshDashboard();
+        
+        // Refresh bid prices after bid is placed
+        if (actionType === "bid") {
+          refetchEthPrice();
+          refetchCstPrice();
+          refetchPrizeAmount();
+        }
+        
         // Refresh used NFTs list if RandomWalk NFT was used
         if (useRandomWalkNft && selectedNftId !== null) {
           try {
@@ -279,6 +299,9 @@ export default function PlayPage() {
     lastActionType,
     useRandomWalkNft,
     selectedNftId,
+    refetchEthPrice,
+    refetchCstPrice,
+    refetchPrizeAmount,
   ]);
 
   // Prepare display data
@@ -573,38 +596,61 @@ export default function PlayPage() {
                           Current CST Bid Price
                         </label>
                         <div className="flex items-baseline space-x-2">
-                          <span className="font-mono text-4xl font-semibold text-primary">
-                            {cstBidPrice.toFixed(2)}
-                          </span>
-                          <span className="text-text-secondary">CST</span>
+                          {cstBidPrice === 0 ? (
+                            <>
+                              <span className="font-mono text-4xl font-semibold text-status-success">
+                                FREE
+                              </span>
+                              <span className="text-status-success">BID</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-mono text-4xl font-semibold text-primary">
+                                {cstBidPrice.toFixed(2)}
+                              </span>
+                              <span className="text-text-secondary">CST</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-xs text-text-secondary">
                           {cstBidPrice === 0
-                            ? "FREE BID! Dutch auction ended"
+                            ? "🎉 Dutch auction ended - Bid for free!"
                             : "Price decreases to 0 over time"}
                         </p>
                       </div>
 
-                      {/* Max Price Protection */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-text-secondary">
-                          Maximum Price (Slippage Protection)
-                        </label>
-                        <input
-                          type="number"
-                          value={maxCstPrice}
-                          onChange={(e) => setMaxCstPrice(e.target.value)}
-                          placeholder={`Leave empty for auto (${(
-                            cstBidPrice * 1.1
-                          ).toFixed(2)} CST)`}
-                          disabled={isTransactionPending}
-                          className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
-                        />
-                        <p className="text-xs text-text-secondary">
-                          Your bid will revert if the price increases above this
-                          limit
-                        </p>
-                      </div>
+                      {/* Max Price Protection - Only show if price is not 0 */}
+                      {cstBidPrice > 0 && (
+                        <div className="space-y-2">
+                          <label className="text-sm text-text-secondary">
+                            Maximum Price (Slippage Protection)
+                          </label>
+                          <input
+                            type="number"
+                            value={maxCstPrice}
+                            onChange={(e) => setMaxCstPrice(e.target.value)}
+                            placeholder={`Leave empty for auto (${(
+                              cstBidPrice * 1.1
+                            ).toFixed(2)} CST)`}
+                            disabled={isTransactionPending}
+                            className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                          <p className="text-xs text-text-secondary">
+                            Your bid will revert if the price increases above this
+                            limit
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Free Bid Info */}
+                      {cstBidPrice === 0 && (
+                        <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/20">
+                          <p className="text-sm text-text-secondary text-center">
+                            ✨ This is a <span className="text-status-success font-semibold">free bid</span>! 
+                            No CST tokens required.
+                          </p>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -651,7 +697,8 @@ export default function PlayPage() {
                       Place {bidType} Bid
                       {bidType === "ETH" &&
                         ` (${discountedEthPrice.toFixed(6)} ETH)`}
-                      {bidType === "CST" && ` (${cstBidPrice.toFixed(2)} CST)`}
+                      {bidType === "CST" && cstBidPrice === 0 && " (FREE)"}
+                      {bidType === "CST" && cstBidPrice > 0 && ` (${cstBidPrice.toFixed(2)} CST)`}
                     </Button>
                   )}
 
@@ -743,11 +790,17 @@ export default function PlayPage() {
                       </p>
                     )}
                   </div>
-                  <div className="p-4 rounded-lg bg-status-info/5 border border-status-info/10">
+                  <div className={`p-4 rounded-lg ${
+                    cstBidPrice === 0 
+                      ? "bg-status-success/5 border border-status-success/10"
+                      : "bg-status-info/5 border border-status-info/10"
+                  }`}>
                     <p className="text-xs text-text-secondary mb-2 uppercase tracking-wide">
                       CST Bid
                     </p>
-                    <p className="font-mono text-2xl font-semibold text-status-info">
+                    <p className={`font-mono text-2xl font-semibold ${
+                      cstBidPrice === 0 ? "text-status-success" : "text-status-info"
+                    }`}>
                       {cstBidPrice === 0
                         ? "FREE"
                         : `${cstBidPrice.toFixed(2)} CST`}
