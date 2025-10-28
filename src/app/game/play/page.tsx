@@ -34,6 +34,7 @@ export default function PlayPage() {
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2); // % buffer for price collision prevention
   const [usedNfts, setUsedNfts] = useState<number[]>([]); // List of used NFT IDs
+  const [lastActionType, setLastActionType] = useState<"bid" | "claimPrize" | null>(null); // Track last action
 
   // Get blockchain data
   const { data: roundNum } = read.useRoundNum();
@@ -52,7 +53,6 @@ export default function PlayPage() {
     const fetchUsedNfts = async () => {
       try {
         const response = await api.getUsedRWLKNfts();
-        console.log("Raw API response for used NFTs:", response);
 
         // Handle different possible response formats
         let normalizedList: number[] = [];
@@ -71,7 +71,6 @@ export default function PlayPage() {
           });
         }
 
-        console.log("Normalized used NFTs list:", normalizedList);
         setUsedNfts(normalizedList);
       } catch (error) {
         console.error("Failed to fetch used NFTs:", error);
@@ -85,30 +84,8 @@ export default function PlayPage() {
   const availableNfts = ownedNfts.filter((nftId) => {
     const nftIdNumber = Number(nftId);
     const isUsed = usedNfts.includes(nftIdNumber);
-    if (ownedNfts.length > 0 && usedNfts.length > 0) {
-      console.log(`Checking NFT #${nftIdNumber}: isUsed=${isUsed}, type=${typeof nftIdNumber}`);
-    }
-    // Special logging for tokenId 0
-    if (nftIdNumber === 0) {
-      console.log("⚠️ TokenId 0 detected:", { nftId, nftIdNumber, isUsed, usedNfts });
-    }
     return !isUsed;
   });
-
-  // Log filtering results
-  useEffect(() => {
-    if (ownedNfts.length > 0) {
-      console.log(
-        "Owned NFTs:",
-        ownedNfts.map((n) => Number(n))
-      );
-      console.log("Used NFTs:", usedNfts);
-      console.log(
-        "Available NFTs:",
-        availableNfts.map((n) => Number(n))
-      );
-    }
-  }, [ownedNfts, usedNfts, availableNfts]);
 
   // Clear selected NFT if it's no longer available
   useEffect(() => {
@@ -155,7 +132,6 @@ export default function PlayPage() {
 
   // Handle NFT selection with logging
   const handleNftSelection = (nftId: bigint) => {
-    console.log("NFT selected:", { nftId, nftIdNumber: Number(nftId) });
     setSelectedNftId(nftId);
   };
 
@@ -186,12 +162,9 @@ export default function PlayPage() {
 
       // Determine NFT ID to send
       const nftIdToSend = useRandomWalkNft && selectedNftId !== null ? selectedNftId : BigInt(-1);
-      console.log("Submitting bid with:", {
-        useRandomWalkNft,
-        selectedNftId,
-        nftIdToSend,
-        finalValue: finalValue.toString(),
-      });
+
+      // Track that this is a bid action
+      setLastActionType("bid");
 
       // Submit bid
       await write.bidWithEth(
@@ -225,6 +198,9 @@ export default function PlayPage() {
         ? parseEther(maxCstPrice)
         : ((cstBidPriceRaw as bigint) * BigInt(110)) / BigInt(100);
 
+      // Track that this is a bid action
+      setLastActionType("bid");
+
       await write.bidWithCst(maxLimit, bidMessage);
 
       showInfo("Transaction submitted! Waiting for confirmation...");
@@ -242,6 +218,9 @@ export default function PlayPage() {
     }
 
     try {
+      // Track that this is a claim prize action
+      setLastActionType("claimPrize");
+      
       await write.claimMainPrize();
       showInfo("Transaction submitted! Claiming main prize...");
     } catch (error) {
@@ -253,12 +232,17 @@ export default function PlayPage() {
   // Watch for transaction success
   useEffect(() => {
     if (write.status.isSuccess) {
-      if (canClaimMainPrize) {
+      // Display appropriate success message based on the action performed
+      if (lastActionType === "claimPrize") {
         showSuccess("🎉 Main Prize claimed successfully! Congratulations!");
-      } else {
+      } else if (lastActionType === "bid") {
         showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
         setBidMessage("");
       }
+      
+      // Reset action type
+      setLastActionType(null);
+      
       // Refresh data after short delay
       setTimeout(async () => {
         refreshDashboard();
@@ -280,7 +264,6 @@ export default function PlayPage() {
                 return Number(item);
               });
             }
-            console.log("Refreshed used NFTs:", normalizedList);
             setUsedNfts(normalizedList);
             setSelectedNftId(null);
           } catch (error) {
@@ -293,7 +276,7 @@ export default function PlayPage() {
     write.status.isSuccess,
     showSuccess,
     refreshDashboard,
-    canClaimMainPrize,
+    lastActionType,
     useRandomWalkNft,
     selectedNftId,
   ]);
