@@ -213,7 +213,7 @@ export default function Home() {
               const amount =
                 bidTypeNum === 2 ? bid.NumCSTTokensEth : bid.BidPriceEth;
 
-              return {
+              const processedBid = {
                 id: (bid.EvtLogId as number) || 0,
                 bidder: (bid.BidderAddr as string) || "0x0",
                 bidType: getBidTypeLabel(bidTypeNum),
@@ -222,16 +222,25 @@ export default function Home() {
                 timestamp,
                 message: (bid.Message as string) || undefined,
                 roundNum: (bid.RoundNum as number) || undefined,
-                rwalkNftId: (bid.RWalkNFTId as number) || undefined,
+                rwalkNftId:
+                  bid.RWalkNFTId !== null && bid.RWalkNFTId !== undefined
+                    ? (bid.RWalkNFTId as number)
+                    : undefined,
                 duration,
                 nftDonationAddr:
                   (bid.NFTDonationTokenAddr as string) || undefined,
-                nftDonationId: (bid.NFTDonationTokenId as number) || undefined,
+                nftDonationId:
+                  bid.NFTDonationTokenId !== null &&
+                  bid.NFTDonationTokenId !== undefined
+                    ? (bid.NFTDonationTokenId as number)
+                    : undefined,
                 erc20DonationAddr:
                   (bid.DonatedERC20TokenAddr as string) || undefined,
                 erc20DonationAmount:
                   (bid.DonatedERC20TokenAmount as string) || undefined,
               };
+
+              return processedBid;
             });
 
           setCurrentBids(recentBids);
@@ -617,38 +626,50 @@ export default function Home() {
                     key: "bidInfo",
                     label: "Bid Info",
                     render: (_value, item) => {
-                      const hasRWLK = item.bidTypeNum === 1 && item.rwalkNftId !== undefined;
+                      const hasRWLK =
+                        item.bidTypeNum === 1 &&
+                        item.rwalkNftId !== undefined &&
+                        item.rwalkNftId !== null;
                       const hasNFTDonation = !!item.nftDonationAddr;
                       const hasERC20Donation = !!item.erc20DonationAddr;
                       const hasDonations = hasNFTDonation || hasERC20Donation;
 
                       // If no special info, return dash
                       if (!hasRWLK && !hasDonations) {
-                        return <span className="text-text-secondary text-sm">-</span>;
+                        return (
+                          <span className="text-text-secondary text-sm">-</span>
+                        );
                       }
 
                       return (
                         <div className="text-text-secondary text-sm break-words max-w-xs">
                           {/* RWLK Token Info */}
                           {hasRWLK && (
-                            <span>
-                              Bid was made using RandomWalk Token (ID = {item.rwalkNftId})
-                            </span>
+                            <div className="mb-1">
+                              Bid was made using RandomWalk Token (ID ={" "}
+                              {item.rwalkNftId})
+                            </div>
                           )}
 
                           {/* Donations Info */}
                           {hasDonations && (
                             <span>
                               {/* Bid type description */}
-                              {item.bidTypeNum === 2 && "Bid was made using Cosmic Signature Tokens"}
-                              {item.bidTypeNum === 0 && "Bid was made using ETH"}
-                              
+                              {item.bidTypeNum === 2 &&
+                                "Bid was made using Cosmic Signature Tokens"}
+                              {item.bidTypeNum === 0 &&
+                                "Bid was made using ETH"}
+
                               {/* NFT Donation */}
                               {hasNFTDonation && (
                                 <span>
                                   {" and a token ("}
                                   <span className="font-mono">
-                                    {(item.nftDonationAddr as string).slice(0, 6)}...
+                                    {(item.nftDonationAddr as string).slice(
+                                      0,
+                                      6
+                                    )}
+                                    ...
                                     {(item.nftDonationAddr as string).slice(-4)}
                                   </span>
                                   {") with ID "}
@@ -656,14 +677,20 @@ export default function Home() {
                                   {" was donated"}
                                 </span>
                               )}
-                              
+
                               {/* ERC20 Donation */}
                               {hasERC20Donation && (
                                 <span>
                                   {" and "}
                                   <span className="font-mono">
-                                    {(item.erc20DonationAddr as string).slice(0, 6)}...
-                                    {(item.erc20DonationAddr as string).slice(-4)}
+                                    {(item.erc20DonationAddr as string).slice(
+                                      0,
+                                      6
+                                    )}
+                                    ...
+                                    {(item.erc20DonationAddr as string).slice(
+                                      -4
+                                    )}
                                   </span>
                                   {" tokens were donated"}
                                 </span>
