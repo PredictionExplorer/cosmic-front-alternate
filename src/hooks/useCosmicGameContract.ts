@@ -196,6 +196,28 @@ export function useCosmicGameWrite() {
 		},
 
 		/**
+		 * Place a CST bid and donate an NFT
+		 */
+		bidWithCstAndDonateNft: (priceMaxLimit: bigint, message: string, nftAddress: Address, nftTokenId: bigint) => {
+			return writeContract({
+				...contractConfig,
+				functionName: 'bidWithCstAndDonateNft',
+				args: [priceMaxLimit, message, nftAddress, nftTokenId]
+			});
+		},
+
+		/**
+		 * Place a CST bid and donate ERC20 tokens
+		 */
+		bidWithCstAndDonateToken: (priceMaxLimit: bigint, message: string, tokenAddress: Address, amount: bigint) => {
+			return writeContract({
+				...contractConfig,
+				functionName: 'bidWithCstAndDonateToken',
+				args: [priceMaxLimit, message, tokenAddress, amount]
+			});
+		},
+
+		/**
 		 * Claim the main prize
 		 *
 		 * Ends the round and distributes all prizes.

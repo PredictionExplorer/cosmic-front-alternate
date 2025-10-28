@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trophy, AlertCircle, Loader2 } from "lucide-react";
+import { Trophy, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import { useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { Container } from "@/components/ui/Container";
@@ -34,15 +34,28 @@ export default function PlayPage() {
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2); // % buffer for price collision prevention
   const [usedNfts, setUsedNfts] = useState<number[]>([]); // List of used NFT IDs
-  const [lastActionType, setLastActionType] = useState<"bid" | "claimPrize" | null>(null); // Track last action
+  const [lastActionType, setLastActionType] = useState<
+    "bid" | "claimPrize" | null
+  >(null); // Track last action
+
+  // Advanced Options State
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [donationType, setDonationType] = useState<"nft" | "token">("nft");
+  const [donationNftAddress, setDonationNftAddress] = useState("");
+  const [donationNftTokenId, setDonationNftTokenId] = useState("");
+  const [donationTokenAddress, setDonationTokenAddress] = useState("");
+  const [donationTokenAmount, setDonationTokenAmount] = useState("");
 
   // Get blockchain data
   const { data: roundNum } = read.useRoundNum();
   const { data: lastBidder } = read.useLastBidder();
   const { data: mainPrizeTime } = read.useMainPrizeTime();
-  const { data: ethBidPriceRaw, refetch: refetchEthPrice } = read.useEthBidPrice();
-  const { data: cstBidPriceRaw, refetch: refetchCstPrice } = read.useCstBidPrice();
-  const { data: prizeAmount, refetch: refetchPrizeAmount } = read.useMainPrizeAmount();
+  const { data: ethBidPriceRaw, refetch: refetchEthPrice } =
+    read.useEthBidPrice();
+  const { data: cstBidPriceRaw, refetch: refetchCstPrice } =
+    read.useCstBidPrice();
+  const { data: prizeAmount, refetch: refetchPrizeAmount } =
+    read.useMainPrizeAmount();
 
   // Get user's Random Walk NFTs
   const { data: userNfts } = readRandomWalk.useWalletOfOwner(address);
@@ -89,7 +102,10 @@ export default function PlayPage() {
 
   // Clear selected NFT if it's no longer available
   useEffect(() => {
-    if (selectedNftId !== null && !availableNfts.some((id) => id === selectedNftId)) {
+    if (
+      selectedNftId !== null &&
+      !availableNfts.some((id) => id === selectedNftId)
+    ) {
       setSelectedNftId(null);
     }
   }, [availableNfts, selectedNftId]);
@@ -161,17 +177,39 @@ export default function PlayPage() {
       }
 
       // Determine NFT ID to send
-      const nftIdToSend = useRandomWalkNft && selectedNftId !== null ? selectedNftId : BigInt(-1);
+      const nftIdToSend =
+        useRandomWalkNft && selectedNftId !== null ? selectedNftId : BigInt(-1);
 
       // Track that this is a bid action
       setLastActionType("bid");
 
-      // Submit bid
-      await write.bidWithEth(
-        nftIdToSend, // RandomWalk NFT ID or -1 for none
-        bidMessage,
-        finalValue
-      );
+      // Submit bid with or without donation
+      if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Bid with NFT donation
+        await write.bidWithEthAndDonateNft(
+          nftIdToSend,
+          bidMessage,
+          donationNftAddress as `0x${string}`,
+          BigInt(donationNftTokenId),
+          finalValue
+        );
+      } else if (
+        donationType === "token" &&
+        donationTokenAddress &&
+        donationTokenAmount
+      ) {
+        // Bid with ERC20 token donation
+        await write.bidWithEthAndDonateToken(
+          nftIdToSend,
+          bidMessage,
+          donationTokenAddress as `0x${string}`,
+          parseEther(donationTokenAmount),
+          finalValue
+        );
+      } else {
+        // Regular bid without donation
+        await write.bidWithEth(nftIdToSend, bidMessage, finalValue);
+      }
 
       showInfo("Transaction submitted! Waiting for confirmation...");
     } catch (error) {
@@ -195,7 +233,7 @@ export default function PlayPage() {
     try {
       // Determine max limit based on current price
       let maxLimit: bigint;
-      
+
       if (cstBidPriceRaw === BigInt(0)) {
         // Free bid - price is 0
         maxLimit = BigInt(0);
@@ -210,7 +248,31 @@ export default function PlayPage() {
       // Track that this is a bid action
       setLastActionType("bid");
 
-      await write.bidWithCst(maxLimit, bidMessage);
+      // Submit bid with or without donation
+      if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Bid with NFT donation
+        await write.bidWithCstAndDonateNft(
+          maxLimit,
+          bidMessage,
+          donationNftAddress as `0x${string}`,
+          BigInt(donationNftTokenId)
+        );
+      } else if (
+        donationType === "token" &&
+        donationTokenAddress &&
+        donationTokenAmount
+      ) {
+        // Bid with ERC20 token donation
+        await write.bidWithCstAndDonateToken(
+          maxLimit,
+          bidMessage,
+          donationTokenAddress as `0x${string}`,
+          parseEther(donationTokenAmount)
+        );
+      } else {
+        // Regular bid without donation
+        await write.bidWithCst(maxLimit, bidMessage);
+      }
 
       showInfo("Transaction submitted! Waiting for confirmation...");
     } catch (error) {
@@ -229,7 +291,7 @@ export default function PlayPage() {
     try {
       // Track that this is a claim prize action
       setLastActionType("claimPrize");
-      
+
       await write.claimMainPrize();
       showInfo("Transaction submitted! Claiming main prize...");
     } catch (error) {
@@ -243,7 +305,7 @@ export default function PlayPage() {
     if (write.status.isSuccess) {
       // Capture action type before resetting
       const actionType = lastActionType;
-      
+
       // Display appropriate success message based on the action performed
       if (actionType === "claimPrize") {
         showSuccess("🎉 Main Prize claimed successfully! Congratulations!");
@@ -251,21 +313,21 @@ export default function PlayPage() {
         showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
         setBidMessage("");
       }
-      
+
       // Reset action type
       setLastActionType(null);
-      
+
       // Refresh data after short delay
       setTimeout(async () => {
         refreshDashboard();
-        
+
         // Refresh bid prices after bid is placed
         if (actionType === "bid") {
           refetchEthPrice();
           refetchCstPrice();
           refetchPrizeAmount();
         }
-        
+
         // Refresh used NFTs list if RandomWalk NFT was used
         if (useRandomWalkNft && selectedNftId !== null) {
           try {
@@ -461,38 +523,6 @@ export default function PlayPage() {
                         )}
                       </div>
 
-                      {/* Price Collision Prevention */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-text-secondary">
-                          Price Collision Prevention (+{priceBuffer}%)
-                        </label>
-                        <div className="flex items-center space-x-4">
-                          <input
-                            type="range"
-                            min="0"
-                            max="10"
-                            value={priceBuffer}
-                            onChange={(e) =>
-                              setPriceBuffer(Number(e.target.value))
-                            }
-                            className="flex-1"
-                          />
-                          <span className="font-mono text-sm text-primary w-16">
-                            {priceBuffer}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs text-text-muted">
-                          <span>You&apos;ll pay:</span>
-                          <span className="font-mono text-primary">
-                            {discountedEthPrice.toFixed(6)} ETH
-                          </span>
-                        </div>
-                        <p className="text-xs text-text-secondary">
-                          Adds a buffer to prevent your bid from failing if
-                          someone bids simultaneously
-                        </p>
-                      </div>
-
                       {/* Random Walk NFT Toggle */}
                       <div className="space-y-3">
                         <label className="flex items-center space-x-3 cursor-pointer group">
@@ -553,7 +583,9 @@ export default function PlayPage() {
                                     {availableNfts.map((nftId) => (
                                       <button
                                         key={nftId.toString()}
-                                        onClick={() => handleNftSelection(nftId)}
+                                        onClick={() =>
+                                          handleNftSelection(nftId)
+                                        }
                                         disabled={isTransactionPending}
                                         className={`p-3 rounded-lg border-2 transition-all text-left ${
                                           selectedNftId === nftId
@@ -636,8 +668,8 @@ export default function PlayPage() {
                             className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
                           />
                           <p className="text-xs text-text-secondary">
-                            Your bid will revert if the price increases above this
-                            limit
+                            Your bid will revert if the price increases above
+                            this limit
                           </p>
                         </div>
                       )}
@@ -646,8 +678,11 @@ export default function PlayPage() {
                       {cstBidPrice === 0 && (
                         <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/20">
                           <p className="text-sm text-text-secondary text-center">
-                            ✨ This is a <span className="text-status-success font-semibold">free bid</span>! 
-                            No CST tokens required.
+                            ✨ This is a{" "}
+                            <span className="text-status-success font-semibold">
+                              free bid
+                            </span>
+                            ! No CST tokens required.
                           </p>
                         </div>
                       )}
@@ -674,6 +709,184 @@ export default function PlayPage() {
                     </div>
                   </div>
 
+                  {/* Advanced Options */}
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowAdvancedOptions(!showAdvancedOptions)
+                      }
+                      disabled={isTransactionPending}
+                      className="flex items-center justify-between w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 hover:border-primary/40 transition-colors"
+                    >
+                      <span className="text-sm text-text-secondary">
+                        Advanced Options
+                      </span>
+                      <ChevronDown
+                        size={16}
+                        className={`transform transition-transform ${
+                          showAdvancedOptions ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+
+                    {showAdvancedOptions && (
+                      <div className="space-y-4 p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                        <p className="text-xs text-text-secondary">
+                          Advanced options for price collision prevention and
+                          donations while bidding.
+                        </p>
+
+                        {/* Price Collision Prevention */}
+                        {bidType === "ETH" && (
+                          <div className="space-y-2">
+                            <label className="text-sm text-text-secondary font-medium">
+                              Price Collision Prevention (+{priceBuffer}%)
+                            </label>
+                            <div className="flex items-center space-x-4">
+                              <input
+                                type="range"
+                                min="0"
+                                max="10"
+                                value={priceBuffer}
+                                onChange={(e) =>
+                                  setPriceBuffer(Number(e.target.value))
+                                }
+                                className="flex-1"
+                                disabled={isTransactionPending}
+                              />
+                              <span className="font-mono text-sm text-primary w-16">
+                                {priceBuffer}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs text-text-muted">
+                              <span>You&apos;ll pay:</span>
+                              <span className="font-mono text-primary">
+                                {discountedEthPrice.toFixed(6)} ETH
+                              </span>
+                            </div>
+                            <p className="text-xs text-text-secondary">
+                              Adds a buffer to prevent your bid from failing if
+                              someone bids simultaneously
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Donation Type Selection */}
+                        <div>
+                          <label className="text-sm text-text-secondary font-medium mb-2 block">
+                            Donation Type (Optional)
+                          </label>
+                          <div className="flex space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setDonationType("nft")}
+                              disabled={isTransactionPending}
+                              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                                donationType === "nft"
+                                  ? "bg-primary/10 text-primary border border-primary/20"
+                                  : "bg-background-surface text-text-secondary hover:text-primary"
+                              }`}
+                            >
+                              Donate NFT
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDonationType("token")}
+                              disabled={isTransactionPending}
+                              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                                donationType === "token"
+                                  ? "bg-primary/10 text-primary border border-primary/20"
+                                  : "bg-background-surface text-text-secondary hover:text-primary"
+                              }`}
+                            >
+                              Donate ERC20
+                            </button>
+                          </div>
+                          <p className="text-xs text-text-muted mt-2">
+                            Leave fields empty to skip donation
+                          </p>
+                        </div>
+
+                        {/* NFT Donation Fields */}
+                        {donationType === "nft" && (
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <label className="text-sm text-text-secondary">
+                                NFT Contract Address
+                              </label>
+                              <input
+                                type="text"
+                                value={donationNftAddress}
+                                onChange={(e) =>
+                                  setDonationNftAddress(e.target.value)
+                                }
+                                placeholder="0x..."
+                                disabled={isTransactionPending}
+                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm text-text-secondary">
+                                NFT Token ID
+                              </label>
+                              <input
+                                type="text"
+                                value={donationNftTokenId}
+                                onChange={(e) =>
+                                  setDonationNftTokenId(e.target.value)
+                                }
+                                placeholder="0"
+                                disabled={isTransactionPending}
+                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ERC20 Token Donation Fields */}
+                        {donationType === "token" && (
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <label className="text-sm text-text-secondary">
+                                Token Contract Address
+                              </label>
+                              <input
+                                type="text"
+                                value={donationTokenAddress}
+                                onChange={(e) =>
+                                  setDonationTokenAddress(e.target.value)
+                                }
+                                placeholder="0x..."
+                                disabled={isTransactionPending}
+                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm text-text-secondary">
+                                Token Amount
+                              </label>
+                              <input
+                                type="text"
+                                value={donationTokenAmount}
+                                onChange={(e) =>
+                                  setDonationTokenAmount(e.target.value)
+                                }
+                                placeholder="0.0"
+                                disabled={isTransactionPending}
+                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
+                              />
+                              <p className="text-xs text-text-muted">
+                                Enter the amount in token's base unit (e.g., 1.5
+                                for 1.5 tokens)
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Submit Button */}
                   {!isConnected ? (
                     <div className="p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
@@ -698,7 +911,9 @@ export default function PlayPage() {
                       {bidType === "ETH" &&
                         ` (${discountedEthPrice.toFixed(6)} ETH)`}
                       {bidType === "CST" && cstBidPrice === 0 && " (FREE)"}
-                      {bidType === "CST" && cstBidPrice > 0 && ` (${cstBidPrice.toFixed(2)} CST)`}
+                      {bidType === "CST" &&
+                        cstBidPrice > 0 &&
+                        ` (${cstBidPrice.toFixed(2)} CST)`}
                     </Button>
                   )}
 
@@ -790,17 +1005,23 @@ export default function PlayPage() {
                       </p>
                     )}
                   </div>
-                  <div className={`p-4 rounded-lg ${
-                    cstBidPrice === 0 
-                      ? "bg-status-success/5 border border-status-success/10"
-                      : "bg-status-info/5 border border-status-info/10"
-                  }`}>
+                  <div
+                    className={`p-4 rounded-lg ${
+                      cstBidPrice === 0
+                        ? "bg-status-success/5 border border-status-success/10"
+                        : "bg-status-info/5 border border-status-info/10"
+                    }`}
+                  >
                     <p className="text-xs text-text-secondary mb-2 uppercase tracking-wide">
                       CST Bid
                     </p>
-                    <p className={`font-mono text-2xl font-semibold ${
-                      cstBidPrice === 0 ? "text-status-success" : "text-status-info"
-                    }`}>
+                    <p
+                      className={`font-mono text-2xl font-semibold ${
+                        cstBidPrice === 0
+                          ? "text-status-success"
+                          : "text-status-info"
+                      }`}
+                    >
                       {cstBidPrice === 0
                         ? "FREE"
                         : `${cstBidPrice.toFixed(2)} CST`}
