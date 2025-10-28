@@ -1,13 +1,25 @@
 [
   {
     "type": "constructor",
-    "inputs": [{ "name": "game_", "type": "address", "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "game_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "claimDonatedNft",
-    "inputs": [{ "name": "index", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -15,9 +27,21 @@
     "type": "function",
     "name": "claimDonatedToken",
     "inputs": [
-      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-      { "name": "tokenAddress", "type": "address", "internalType": "address" },
-      { "name": "amount", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -25,7 +49,13 @@
   {
     "type": "function",
     "name": "claimManyDonatedNfts",
-    "inputs": [{ "name": "indexes", "type": "uint256[]", "internalType": "uint256[]" }],
+    "inputs": [
+      {
+        "name": "indexes",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -38,9 +68,21 @@
         "type": "tuple[]",
         "internalType": "struct PrizesWallet.DonatedTokenClaim[]",
         "components": [
-          { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-          { "name": "tokenAddress", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "roundNum",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
         ]
       }
     ],
@@ -51,8 +93,16 @@
     "type": "function",
     "name": "depositEth",
     "inputs": [
-      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-      { "name": "beneficiary", "type": "address", "internalType": "address" }
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
     "outputs": [],
     "stateMutability": "payable"
@@ -60,11 +110,29 @@
   {
     "type": "function",
     "name": "donatedNfts",
-    "inputs": [{ "name": "index", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [
-      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-      { "name": "nftAddress", "type": "address", "internalType": "address" },
-      { "name": "tokenId", "type": "uint256", "internalType": "uint256" }
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "nftAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
     "stateMutability": "view"
   },
@@ -72,17 +140,37 @@
     "type": "function",
     "name": "game",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "getDonatedTokenAmount",
     "inputs": [
-      { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-      { "name": "tokenAddress", "type": "address", "internalType": "address" }
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "tokenAddress",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
@@ -95,8 +183,16 @@
         "type": "tuple",
         "internalType": "struct PrizesWallet.EthBalance",
         "components": [
-          { "name": "balance", "type": "uint256", "internalType": "uint256" },
-          { "name": "roundNum", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "balance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "roundNum",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
         ]
       }
     ],
@@ -105,15 +201,29 @@
   {
     "type": "function",
     "name": "getEthBalanceInfo",
-    "inputs": [{ "name": "user", "type": "address", "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [
       {
         "name": "",
         "type": "tuple",
         "internalType": "struct PrizesWallet.EthBalance",
         "components": [
-          { "name": "balance", "type": "uint256", "internalType": "uint256" },
-          { "name": "roundNum", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "balance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "roundNum",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
         ]
       }
     ],
@@ -122,35 +232,82 @@
   {
     "type": "function",
     "name": "mainPrizeBeneficiaryAddresses",
-    "inputs": [{ "name": "roundNum", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "numDonatedNfts",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "roundTimeoutTimesToWithdrawPrizes",
-    "inputs": [{ "name": "roundNum", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "inputs": [
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "withdrawEth",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "withdrawEth",
-    "inputs": [{ "name": "user", "type": "address", "internalType": "address" }],
+    "inputs": [
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -158,18 +315,38 @@
     "type": "function",
     "name": "withdrawEverything",
     "inputs": [
-      { "name": "withdrawEthFlag", "type": "bool", "internalType": "bool" },
+      {
+        "name": "ethPrizeRoundNums",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
       {
         "name": "donatedTokens",
         "type": "tuple[]",
         "internalType": "struct PrizesWallet.DonatedTokenClaim[]",
         "components": [
-          { "name": "roundNum", "type": "uint256", "internalType": "uint256" },
-          { "name": "tokenAddress", "type": "address", "internalType": "address" },
-          { "name": "amount", "type": "uint256", "internalType": "uint256" }
+          {
+            "name": "roundNum",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "tokenAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
         ]
       },
-      { "name": "donatedNftIndexes", "type": "uint256[]", "internalType": "uint256[]" }
+      {
+        "name": "donatedNftIndexes",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
@@ -178,9 +355,24 @@
     "type": "event",
     "name": "EthWithdrawn",
     "inputs": [
-      { "name": "user", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "beneficiary", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "beneficiary",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   },
@@ -188,11 +380,36 @@
     "type": "event",
     "name": "DonatedNftClaimed",
     "inputs": [
-      { "name": "roundNum", "type": "uint256", "indexed": true, "internalType": "uint256" },
-      { "name": "claimer", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "nftAddress", "type": "address", "indexed": true, "internalType": "address" },
-      { "name": "tokenId", "type": "uint256", "indexed": false, "internalType": "uint256" },
-      { "name": "index", "type": "uint256", "indexed": false, "internalType": "uint256" }
+      {
+        "name": "roundNum",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "nftAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
     ],
     "anonymous": false
   }

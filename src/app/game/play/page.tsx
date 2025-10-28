@@ -11,24 +11,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { CountdownTimer } from "@/components/game/CountdownTimer";
 import { useCosmicGame } from "@/hooks/useCosmicGameContract";
+import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
+import { api } from "@/services/api";
 
 export default function PlayPage() {
   const { address, isConnected } = useAccount();
   const { read, write, isTransactionPending, transactionHash } =
     useCosmicGame();
+  const { read: readRandomWalk } = useRandomWalkNFT();
   const { dashboardData, refresh: refreshDashboard } = useApiData();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
 
   // UI State
   const [bidType, setBidType] = useState<"ETH" | "CST">("ETH");
   const [useRandomWalkNft, setUseRandomWalkNft] = useState(false);
+  const [selectedNftId, setSelectedNftId] = useState<bigint | null>(null);
   const [bidMessage, setBidMessage] = useState("");
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2); // % buffer for price collision prevention
+  const [usedNfts, setUsedNfts] = useState<number[]>([]); // List of used NFT IDs
 
   // Get blockchain data
   const { data: roundNum } = read.useRoundNum();
@@ -37,6 +42,80 @@ export default function PlayPage() {
   const { data: ethBidPriceRaw } = read.useEthBidPrice();
   const { data: cstBidPriceRaw } = read.useCstBidPrice();
   const { data: prizeAmount } = read.useMainPrizeAmount();
+
+  // Get user's Random Walk NFTs
+  const { data: userNfts } = readRandomWalk.useWalletOfOwner(address);
+  const ownedNfts = (userNfts as bigint[] | undefined) || [];
+
+  // Fetch used NFTs from API
+  useEffect(() => {
+    const fetchUsedNfts = async () => {
+      try {
+        const response = await api.getUsedRWLKNfts();
+        console.log("Raw API response for used NFTs:", response);
+
+        // Handle different possible response formats
+        let normalizedList: number[] = [];
+        if (Array.isArray(response)) {
+          normalizedList = response.map((item) => {
+            // If item is an object with RWalkTokenId property
+            if (
+              typeof item === "object" &&
+              item !== null &&
+              "RWalkTokenId" in item
+            ) {
+              return Number(item.RWalkTokenId);
+            }
+            // If item is already a number or can be converted to number
+            return Number(item);
+          });
+        }
+
+        console.log("Normalized used NFTs list:", normalizedList);
+        setUsedNfts(normalizedList);
+      } catch (error) {
+        console.error("Failed to fetch used NFTs:", error);
+      }
+    };
+
+    fetchUsedNfts();
+  }, []);
+
+  // Filter out used NFTs from owned NFTs
+  const availableNfts = ownedNfts.filter((nftId) => {
+    const nftIdNumber = Number(nftId);
+    const isUsed = usedNfts.includes(nftIdNumber);
+    if (ownedNfts.length > 0 && usedNfts.length > 0) {
+      console.log(`Checking NFT #${nftIdNumber}: isUsed=${isUsed}, type=${typeof nftIdNumber}`);
+    }
+    // Special logging for tokenId 0
+    if (nftIdNumber === 0) {
+      console.log("⚠️ TokenId 0 detected:", { nftId, nftIdNumber, isUsed, usedNfts });
+    }
+    return !isUsed;
+  });
+
+  // Log filtering results
+  useEffect(() => {
+    if (ownedNfts.length > 0) {
+      console.log(
+        "Owned NFTs:",
+        ownedNfts.map((n) => Number(n))
+      );
+      console.log("Used NFTs:", usedNfts);
+      console.log(
+        "Available NFTs:",
+        availableNfts.map((n) => Number(n))
+      );
+    }
+  }, [ownedNfts, usedNfts, availableNfts]);
+
+  // Clear selected NFT if it's no longer available
+  useEffect(() => {
+    if (selectedNftId !== null && !availableNfts.some((id) => id === selectedNftId)) {
+      setSelectedNftId(null);
+    }
+  }, [availableNfts, selectedNftId]);
 
   // Calculate timer
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -74,6 +153,12 @@ export default function PlayPage() {
     ? adjustedEthPrice * 0.5
     : adjustedEthPrice;
 
+  // Handle NFT selection with logging
+  const handleNftSelection = (nftId: bigint) => {
+    console.log("NFT selected:", { nftId, nftIdNumber: Number(nftId) });
+    setSelectedNftId(nftId);
+  };
+
   // Handle ETH bid
   const handleEthBid = async () => {
     if (!isConnected) {
@@ -93,9 +178,24 @@ export default function PlayPage() {
         ((ethBidPriceRaw as bigint) * BigInt(priceBuffer)) / BigInt(100);
       const finalValue = useRandomWalkNft ? valueInWei / BigInt(2) : valueInWei;
 
+      // Validate NFT selection if using Random Walk
+      if (useRandomWalkNft && selectedNftId === null) {
+        showWarning("Please select a Random Walk NFT to use");
+        return;
+      }
+
+      // Determine NFT ID to send
+      const nftIdToSend = useRandomWalkNft && selectedNftId !== null ? selectedNftId : BigInt(-1);
+      console.log("Submitting bid with:", {
+        useRandomWalkNft,
+        selectedNftId,
+        nftIdToSend,
+        finalValue: finalValue.toString(),
+      });
+
       // Submit bid
       await write.bidWithEth(
-        useRandomWalkNft ? BigInt(0) : BigInt(-1), // RandomWalk NFT ID (0 for now, -1 for none)
+        nftIdToSend, // RandomWalk NFT ID or -1 for none
         bidMessage,
         finalValue
       );
@@ -160,11 +260,43 @@ export default function PlayPage() {
         setBidMessage("");
       }
       // Refresh data after short delay
-      setTimeout(() => {
+      setTimeout(async () => {
         refreshDashboard();
+        // Refresh used NFTs list if RandomWalk NFT was used
+        if (useRandomWalkNft && selectedNftId !== null) {
+          try {
+            const response = await api.getUsedRWLKNfts();
+            // Normalize the response format
+            let normalizedList: number[] = [];
+            if (Array.isArray(response)) {
+              normalizedList = response.map((item) => {
+                if (
+                  typeof item === "object" &&
+                  item !== null &&
+                  "RWalkTokenId" in item
+                ) {
+                  return Number(item.RWalkTokenId);
+                }
+                return Number(item);
+              });
+            }
+            console.log("Refreshed used NFTs:", normalizedList);
+            setUsedNfts(normalizedList);
+            setSelectedNftId(null);
+          } catch (error) {
+            console.error("Failed to refresh used NFTs:", error);
+          }
+        }
       }, 2000);
     }
-  }, [write.status.isSuccess, showSuccess, refreshDashboard, canClaimMainPrize]);
+  }, [
+    write.status.isSuccess,
+    showSuccess,
+    refreshDashboard,
+    canClaimMainPrize,
+    useRandomWalkNft,
+    selectedNftId,
+  ]);
 
   // Prepare display data
   const currentRound = {
@@ -225,7 +357,11 @@ export default function PlayPage() {
                 <span className="text-primary font-semibold">
                   {(currentRound.prizePool * 0.25).toFixed(4)} ETH
                 </span>{" "}
-                and a <span className="text-primary font-semibold">Cosmic Signature NFT</span>!
+                and a{" "}
+                <span className="text-primary font-semibold">
+                  Cosmic Signature NFT
+                </span>
+                !
               </p>
               {isTransactionPending ? (
                 <Button size="xl" disabled className="shadow-luxury-lg">
@@ -357,9 +493,12 @@ export default function PlayPage() {
                           <input
                             type="checkbox"
                             checked={useRandomWalkNft}
-                            onChange={(e) =>
-                              setUseRandomWalkNft(e.target.checked)
-                            }
+                            onChange={(e) => {
+                              setUseRandomWalkNft(e.target.checked);
+                              if (!e.target.checked) {
+                                setSelectedNftId(null);
+                              }
+                            }}
                             disabled={isTransactionPending}
                             className="h-5 w-5 rounded border-text-muted/30 bg-background-elevated text-primary"
                           />
@@ -367,16 +506,78 @@ export default function PlayPage() {
                             Use Random Walk NFT (50% discount)
                           </span>
                         </label>
+
+                        {/* NFT List */}
                         {useRandomWalkNft && (
-                          <div className="ml-8 p-3 rounded-lg bg-status-warning/10 border border-status-warning/20">
-                            <p className="text-xs text-text-secondary flex items-start">
-                              <AlertCircle
-                                size={14}
-                                className="mr-2 mt-0.5 flex-shrink-0 text-status-warning"
-                              />
-                              Warning: Each Random Walk NFT can only be used
-                              once, ever. This action is permanent.
-                            </p>
+                          <div className="ml-8 space-y-3">
+                            {ownedNfts.length === 0 ? (
+                              <div className="p-4 rounded-lg bg-status-error/10 border border-status-error/20">
+                                <p className="text-sm text-text-secondary flex items-start">
+                                  <AlertCircle
+                                    size={16}
+                                    className="mr-2 mt-0.5 flex-shrink-0 text-status-error"
+                                  />
+                                  You don&apos;t own any Random Walk NFTs.
+                                </p>
+                              </div>
+                            ) : availableNfts.length === 0 ? (
+                              <div className="p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
+                                <p className="text-sm text-text-secondary flex items-start">
+                                  <AlertCircle
+                                    size={16}
+                                    className="mr-2 mt-0.5 flex-shrink-0 text-status-warning"
+                                  />
+                                  All your Random Walk NFTs ({ownedNfts.length})
+                                  have already been used.
+                                </p>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="space-y-2">
+                                  <label className="text-sm text-text-secondary">
+                                    Select Random Walk NFT (
+                                    {availableNfts.length} available
+                                    {ownedNfts.length > availableNfts.length &&
+                                      `, ${
+                                        ownedNfts.length - availableNfts.length
+                                      } used`}
+                                    )
+                                  </label>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 rounded-lg bg-background-elevated border border-text-muted/10">
+                                    {availableNfts.map((nftId) => (
+                                      <button
+                                        key={nftId.toString()}
+                                        onClick={() => handleNftSelection(nftId)}
+                                        disabled={isTransactionPending}
+                                        className={`p-3 rounded-lg border-2 transition-all text-left ${
+                                          selectedNftId === nftId
+                                            ? "border-primary bg-primary/10 shadow-lg"
+                                            : "border-text-muted/20 bg-background-surface hover:border-primary/40"
+                                        }`}
+                                      >
+                                        <div className="text-xs text-text-secondary">
+                                          Token ID
+                                        </div>
+                                        <div className="font-mono text-lg font-semibold text-primary">
+                                          #{nftId.toString()}
+                                        </div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                <div className="p-3 rounded-lg bg-status-warning/10 border border-status-warning/20">
+                                  <p className="text-xs text-text-secondary flex items-start">
+                                    <AlertCircle
+                                      size={14}
+                                      className="mr-2 mt-0.5 flex-shrink-0 text-status-warning"
+                                    />
+                                    Warning: Each Random Walk NFT can only be
+                                    used once, ever. This action is permanent.
+                                  </p>
+                                </div>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
