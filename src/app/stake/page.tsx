@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap } from "lucide-react";
 import Image from "next/image";
@@ -13,7 +13,7 @@ import { StatCard } from "@/components/game/StatCard";
 import { GAME_CONSTANTS, MOCK_NFTS } from "@/lib/constants";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
-import type { CSTToken } from "@/types";
+import type { CSTToken, StakedCSTToken } from "@/types";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { CONTRACTS } from "@/lib/web3/contracts";
@@ -41,13 +41,25 @@ export default function StakePage() {
   const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
   const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
-  const [stakedTokens, setStakedTokens] = useState<CSTToken[]>([]);
+  const [stakedTokens, setStakedTokens] = useState<StakedCSTToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
-  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(new Set());
+  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(
+    new Set()
+  );
   const [isStakingMultiple, setIsStakingMultiple] = useState(false);
+  const [unstakingActionId, setUnstakingActionId] = useState<number | null>(
+    null
+  );
+  const [stakingRewards, setStakingRewards] = useState<any[]>([]);
+  const [loadingRewards, setLoadingRewards] = useState(false);
+  const [selectedStakedIds, setSelectedStakedIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [stakedCurrentPage, setStakedCurrentPage] = useState(1);
   const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
+  const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
 
   // Hooks
   const { showSuccess, showError } = useNotification();
@@ -66,14 +78,11 @@ export default function StakePage() {
     const fetchTokens = async () => {
       setLoading(true);
       try {
-        // Get all tokens for the user
-        const allTokens = await api.getCSTTokensByUser(address);
-
-        // Separate into staked and available
-        const staked = allTokens.filter((token: CSTToken) => token.Staked);
-        const available = allTokens.filter(
-          (token: CSTToken) => !token.Staked && !token.WasUnstaked
-        );
+        // Fetch staked and available tokens separately using dedicated API methods
+        const [staked, available] = await Promise.all([
+          api.getStakedCSTTokensByUser(address),
+          getAvailableCSTTokensByUser(address),
+        ]);
 
         setStakedTokens(staked);
         setAvailableTokens(available);
@@ -102,19 +111,44 @@ export default function StakePage() {
     if (!address || !isConnected) return;
 
     try {
-      const allTokens = await api.getCSTTokensByUser(address);
-      const staked = allTokens.filter((token: CSTToken) => token.Staked);
-      const available = allTokens.filter(
-        (token: CSTToken) => !token.Staked && !token.WasUnstaked
-      );
+      // Fetch staked and available tokens separately using dedicated API methods
+      const [staked, available] = await Promise.all([
+        api.getStakedCSTTokensByUser(address),
+        getAvailableCSTTokensByUser(address),
+      ]);
+
       setStakedTokens(staked);
       setAvailableTokens(available);
       // Clear selections after refresh
       setSelectedTokenIds(new Set());
+      setSelectedStakedIds(new Set());
     } catch (error) {
       console.error("Failed to refresh token data:", error);
     }
   }, [address, isConnected]);
+
+  // Fetch staking rewards
+  const fetchStakingRewards = useCallback(async () => {
+    if (!address || !isConnected) return;
+
+    try {
+      setLoadingRewards(true);
+      const rewards = await api.getStakingRewardsByUser(address);
+      setStakingRewards(rewards);
+    } catch (error) {
+      console.error("Failed to fetch staking rewards:", error);
+      setStakingRewards([]);
+    } finally {
+      setLoadingRewards(false);
+    }
+  }, [address, isConnected]);
+
+  // Fetch rewards when staked tokens change
+  useEffect(() => {
+    if (stakedTokens.length > 0) {
+      fetchStakingRewards();
+    }
+  }, [stakedTokens.length, fetchStakingRewards]);
 
   // Watch for transaction success and refresh data
   useEffect(() => {
@@ -122,19 +156,24 @@ export default function StakePage() {
       // Transaction completed successfully
       const timer = setTimeout(async () => {
         await refreshTokenData();
-        
+
         // Show success message
         if (isStakingMultiple && selectedTokenIds.size > 0) {
           showSuccess(
-            `Successfully staked ${selectedTokenIds.size} NFT${selectedTokenIds.size > 1 ? "s" : ""}!`
+            `Successfully staked ${selectedTokenIds.size} NFT${
+              selectedTokenIds.size > 1 ? "s" : ""
+            }!`
           );
         } else if (stakingTokenId) {
           showSuccess(`Successfully staked token #${stakingTokenId}!`);
+        } else if (unstakingActionId) {
+          showSuccess(`Successfully unstaked NFT and claimed rewards!`);
         }
-        
-        // Clear staking states
+
+        // Clear staking/unstaking states
         setStakingTokenId(null);
         setIsStakingMultiple(false);
+        setUnstakingActionId(null);
       }, 2000); // Small delay to allow blockchain state to update
 
       return () => clearTimeout(timer);
@@ -146,8 +185,103 @@ export default function StakePage() {
     isStakingMultiple,
     selectedTokenIds.size,
     stakingTokenId,
+    unstakingActionId,
     showSuccess,
   ]);
+
+  // Get reward for a specific token
+  const getTokenReward = (tokenId: number) => {
+    const reward = stakingRewards.find((r) => r.TokenId === tokenId);
+    return reward?.RewardToCollectEth || reward?.TotalReward || 0;
+  };
+
+  // Calculate total rewards
+  const totalRewards = stakingRewards.reduce(
+    (sum, reward) => sum + (reward.RewardToCollectEth || reward?.TotalReward || 0),
+    0
+  );
+
+  // Toggle staked token selection
+  const toggleStakedTokenSelection = (stakeActionId: number) => {
+    console.log("Toggling StakeActionId:", stakeActionId);
+    console.log("Current selections:", Array.from(selectedStakedIds));
+    
+    setSelectedStakedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(stakeActionId)) {
+        console.log("Removing:", stakeActionId);
+        newSet.delete(stakeActionId);
+      } else {
+        console.log("Adding:", stakeActionId);
+        newSet.add(stakeActionId);
+      }
+      console.log("New selections:", Array.from(newSet));
+      return newSet;
+    });
+  };
+
+  // Select all staked tokens
+  const selectAllStakedTokens = () => {
+    console.log("Select all called");
+    console.log("Staked tokens:", stakedTokens);
+    const allStakeActionIds = new Set(
+      stakedTokens.map((stakedToken) => {
+        const actionId = stakedToken.TokenInfo.StakeActionId;
+        console.log("Mapping token:", stakedToken.TokenInfo.TokenId, "StakeActionId:", actionId);
+        return actionId;
+      })
+    );
+    console.log("All StakeActionIds:", Array.from(allStakeActionIds));
+    setSelectedStakedIds(allStakeActionIds);
+  };
+
+  // Select current page staked tokens
+  const selectCurrentPageStakedTokens = () => {
+    const startIdx = (stakedCurrentPage - 1) * stakedItemsPerPage;
+    const endIdx = startIdx + stakedItemsPerPage;
+    const pageTokens = stakedTokens.slice(startIdx, endIdx);
+    const pageActionIds = new Set(
+      pageTokens.map((stakedToken) => stakedToken.TokenInfo.StakeActionId)
+    );
+    setSelectedStakedIds(pageActionIds);
+  };
+
+  // Deselect all staked tokens
+  const deselectAllStakedTokens = () => {
+    setSelectedStakedIds(new Set());
+  };
+
+  // Handle unstake many selected
+  const handleUnstakeSelected = async () => {
+    if (selectedStakedIds.size === 0) {
+      showError("Please select at least one NFT to unstake.");
+      return;
+    }
+
+    try {
+      if (!stakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setIsStakingMultiple(true);
+
+      const stakeActionIds = Array.from(selectedStakedIds).map((id) =>
+        BigInt(id)
+      );
+
+      await stakingContract.write.unstakeMany(stakeActionIds);
+      showSuccess(
+        `Transaction submitted! Unstaking ${selectedStakedIds.size} NFTs and claiming rewards...`
+      );
+    } catch (error: any) {
+      console.error("Unstake selected failed:", error);
+      showError(error?.message || "Failed to unstake NFTs. Please try again.");
+      setIsStakingMultiple(false);
+    }
+  };
 
   // Toggle NFT selection
   const toggleTokenSelection = (tokenId: number) => {
@@ -222,7 +356,7 @@ export default function StakePage() {
       // Stake the NFT
       await stakingContract.write.stake(BigInt(tokenId));
       showSuccess("Transaction submitted! Waiting for confirmation...");
-      
+
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: any) {
       console.error("Staking failed:", error);
@@ -267,21 +401,81 @@ export default function StakePage() {
       // Stake multiple NFTs
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await stakingContract.write.stakeMany(tokenIdsBigInt);
-      showSuccess(
-        `Transaction submitted! Staking ${tokenIds.length} NFTs...`
-      );
+      showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: any) {
       console.error("Multi-staking failed:", error);
-      showError(
-        error?.message || "Failed to stake NFTs. Please try again."
-      );
+      showError(error?.message || "Failed to stake NFTs. Please try again.");
       setIsStakingMultiple(false);
     }
   };
 
-  // Calculate pagination
+  // Handle unstaking action
+  const handleUnstake = async (stakeActionId: number, tokenId: number) => {
+    try {
+      // Check if contracts are initialized
+      if (!stakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setUnstakingActionId(stakeActionId);
+
+      // Unstake the NFT
+      await stakingContract.write.unstake(BigInt(stakeActionId));
+      showSuccess(
+        `Transaction submitted! Unstaking token #${tokenId} and claiming rewards...`
+      );
+
+      // Note: List will auto-refresh when transaction completes (see useEffect)
+    } catch (error: any) {
+      console.error("Unstaking failed:", error);
+      showError(error?.message || "Failed to unstake NFT. Please try again.");
+      setUnstakingActionId(null);
+    }
+  };
+
+  // Handle unstaking all
+  const handleUnstakeAll = async () => {
+    try {
+      // Check if contracts are initialized
+      if (!stakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      if (stakedTokens.length === 0) {
+        showError("No staked NFTs to unstake.");
+        return;
+      }
+
+      setIsStakingMultiple(true);
+
+      // Get all stake action IDs from TokenInfo
+      const stakeActionIds = stakedTokens.map((stakedToken) =>
+        BigInt(stakedToken.TokenInfo.StakeActionId)
+      );
+
+      // Unstake all NFTs
+      await stakingContract.write.unstakeMany(stakeActionIds);
+      showSuccess(
+        `Transaction submitted! Unstaking ${stakedTokens.length} NFTs and claiming all rewards...`
+      );
+
+      // Note: List will auto-refresh when transaction completes (see useEffect)
+    } catch (error: any) {
+      console.error("Unstake all failed:", error);
+      showError(error?.message || "Failed to unstake NFTs. Please try again.");
+      setIsStakingMultiple(false);
+    }
+  };
+
+  // Calculate pagination for available tokens
   const totalPages = Math.ceil(availableTokens.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -293,6 +487,28 @@ export default function StakePage() {
     const nftSection = document.getElementById("available-nfts-section");
     if (nftSection) {
       nftSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // Calculate pagination for staked tokens
+  const stakedTotalPages = Math.ceil(
+    stakedTokens.length / stakedItemsPerPage
+  );
+  const stakedStartIndex = (stakedCurrentPage - 1) * stakedItemsPerPage;
+  const stakedEndIndex = stakedStartIndex + stakedItemsPerPage;
+  const paginatedStakedTokens = useMemo(() => {
+    // Sort by stake timestamp (oldest first, matching legacy component)
+    const sorted = [...stakedTokens].sort(
+      (a, b) => a.StakeTimeStamp - b.StakeTimeStamp
+    );
+    return sorted.slice(stakedStartIndex, stakedEndIndex);
+  }, [stakedTokens, stakedStartIndex, stakedEndIndex]);
+
+  const handleStakedPageChange = (page: number) => {
+    setStakedCurrentPage(page);
+    const stakedSection = document.getElementById("staked-nfts-section");
+    if (stakedSection) {
+      stakedSection.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -490,9 +706,9 @@ export default function StakePage() {
               <Container>
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-serif text-2xl font-semibold text-text-primary">
-                      Your Available NFTs
-                    </h2>
+                  <h2 className="font-serif text-2xl font-semibold text-text-primary">
+                    Your Available NFTs
+                  </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-text-secondary">
                         Showing {startIndex + 1}-
@@ -517,7 +733,7 @@ export default function StakePage() {
                             onClick={deselectAllTokens}
                           >
                             Deselect All
-                          </Button>
+                  </Button>
                         </>
                       ) : (
                         <Button
@@ -544,7 +760,11 @@ export default function StakePage() {
                     >
                       {isStakingMultiple
                         ? "Staking..."
-                        : `Stake Selected ${selectedTokenIds.size > 0 ? `(${selectedTokenIds.size})` : ""}`}
+                        : `Stake Selected ${
+                            selectedTokenIds.size > 0
+                              ? `(${selectedTokenIds.size})`
+                              : ""
+                          }`}
                     </Button>
                   </div>
                 </div>
@@ -555,7 +775,7 @@ export default function StakePage() {
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                       {paginatedTokens.map((token) => {
                         const isSelected = selectedTokenIds.has(token.TokenId);
                         return (
@@ -567,16 +787,20 @@ export default function StakePage() {
                               isSelected ? "ring-2 ring-primary" : ""
                             }`}
                           >
-                            <div className="aspect-square bg-background-elevated relative">
-                              <Image
+                      <div className="aspect-square bg-background-elevated relative">
+                        <Image
                                 src={getNFTImageUrl(token.TokenId)}
-                                alt={token.TokenName || `Token #${token.TokenId}`}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                              />
+                                alt={
+                                  token.TokenName || `Token #${token.TokenId}`
+                                }
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        />
                               <div className="absolute top-3 left-3 flex items-center gap-2">
-                                <Badge variant="default">#{token.TokenId}</Badge>
+                                <Badge variant="default">
+                                  #{token.TokenId}
+                                </Badge>
                               </div>
                               {/* Selection Checkbox */}
                               <div className="absolute top-3 right-3">
@@ -589,10 +813,10 @@ export default function StakePage() {
                                   className="w-5 h-5 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
                                   onClick={(e) => e.stopPropagation()}
                                 />
-                              </div>
-                            </div>
-                            <div className="p-4">
-                              <p className="font-serif font-semibold text-text-primary mb-2 truncate">
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <p className="font-serif font-semibold text-text-primary mb-2 truncate">
                                 {token.TokenName || `Token #${token.TokenId}`}
                               </p>
                               <p className="text-xs text-text-secondary mb-3">
@@ -612,12 +836,12 @@ export default function StakePage() {
                                 {stakingTokenId === token.TokenId
                                   ? "Staking..."
                                   : "Stake NFT"}
-                              </Button>
-                            </div>
-                          </Card>
+                        </Button>
+                      </div>
+                    </Card>
                         );
                       })}
-                    </div>
+                </div>
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
@@ -696,15 +920,103 @@ export default function StakePage() {
 
           {/* Staked NFTs */}
           {isConnected && yourStakedCount > 0 && (
-            <section className="py-12 bg-background-surface/50">
+            <section id="staked-nfts-section" className="py-12 bg-background-surface/50">
               <Container>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex items-center justify-between">
                   <h2 className="font-serif text-2xl font-semibold text-text-primary">
                     Your Staked NFTs
                   </h2>
-                  <Button size="sm" variant="secondary" disabled={loading}>
-                    Unstake All & Claim ({yourStakedCount})
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-text-secondary">
+                        Showing {stakedStartIndex + 1}-
+                        {Math.min(stakedEndIndex, yourStakedCount)} of{" "}
+                        {yourStakedCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rewards Summary */}
+                  <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-text-secondary mb-1">
+                          Total Claimable Rewards
+                        </p>
+                        {loadingRewards ? (
+                          <p className="text-sm text-text-muted">Loading...</p>
+                        ) : (
+                          <p className="font-mono text-2xl font-semibold text-primary">
+                            {formatEth(totalRewards)} ETH
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-text-secondary mb-1">
+                          NFTs Staked
+                        </p>
+                        <p className="font-mono text-2xl font-semibold text-text-primary">
+                          {yourStakedCount}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Selection Controls */}
+                  {yourStakedCount > 0 && (
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                      <div className="flex items-center gap-4">
+                        {selectedStakedIds.size > 0 ? (
+                          <>
+                            <span className="text-sm font-medium text-text-primary">
+                              {selectedStakedIds.size} NFT
+                              {selectedStakedIds.size > 1 ? "s" : ""} selected
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={deselectAllStakedTokens}
+                            >
+                              Deselect All
                   </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={selectAllStakedTokens}
+                            >
+                              Select All ({yourStakedCount})
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={selectCurrentPageStakedTokens}
+                            >
+                              Select Current Page
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                      {selectedStakedIds.size > 0 && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleUnstakeSelected}
+                          disabled={
+                            isStakingMultiple ||
+                            stakingContract.status.isPending ||
+                            stakingContract.status.isConfirming
+                          }
+                        >
+                          {isStakingMultiple
+                            ? "Unstaking..."
+                            : `Unstake Selected & Claim (${selectedStakedIds.size})`}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Card glass>
@@ -713,8 +1025,38 @@ export default function StakePage() {
                       <table className="w-full">
                         <thead className="border-b border-text-muted/10">
                           <tr className="text-left">
+                            <th className="p-4 text-sm font-medium text-text-secondary w-12">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  stakedTokens.length > 0 &&
+                                  selectedStakedIds.size === stakedTokens.length
+                                }
+                                ref={(input) => {
+                                  if (input) {
+                                    input.indeterminate =
+                                      selectedStakedIds.size > 0 &&
+                                      selectedStakedIds.size < stakedTokens.length;
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    selectAllStakedTokens();
+                                  } else {
+                                    deselectAllStakedTokens();
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
+                              />
+                            </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
                               NFT
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Token ID
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Stake Action ID
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
                               Staked On
@@ -728,20 +1070,42 @@ export default function StakePage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-text-muted/10">
-                          {stakedTokens.map((token) => (
-                            <tr
-                              key={token.TokenId}
-                              className="hover:bg-background-elevated/50 transition-colors"
-                            >
+                          {paginatedStakedTokens.map((stakedToken) => {
+                            const token = stakedToken.TokenInfo;
+                            // Use TokenInfo.StakeActionId as the unique identifier
+                            const actionId = token.StakeActionId;
+                            const isSelected = selectedStakedIds.has(actionId);
+                            
+                            console.log(`Rendering row for Token #${token.TokenId}, StakeActionId: ${actionId} (root: ${stakedToken.StakeActionId}), isSelected: ${isSelected}`);
+                            
+                            return (
+                              <tr
+                                key={`staked-${actionId}-${token.TokenId}`}
+                                className={`hover:bg-background-elevated/50 transition-colors ${
+                                  isSelected ? "bg-primary/5" : ""
+                                }`}
+                              >
+                                <td className="p-4">
+                                  <input
+                                    type="checkbox"
+                                    id={`checkbox-${actionId}`}
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      console.log(`Checkbox ${actionId} changed, checked:`, e.target.checked);
+                                      toggleStakedTokenSelection(actionId);
+                                    }}
+                                    className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
+                                  />
+                                </td>
                               <td className="p-4">
                                 <div className="flex items-center space-x-3">
                                   <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
                                     <Image
-                                      src={getNFTImageUrl(token.TokenId)}
-                                      alt={
-                                        token.TokenName ||
-                                        `Token #${token.TokenId}`
-                                      }
+                                        src={getNFTImageUrl(token.TokenId)}
+                                        alt={
+                                          token.TokenName ||
+                                          `Token #${token.TokenId}`
+                                        }
                                       fill
                                       className="object-cover"
                                       sizes="48px"
@@ -749,42 +1113,160 @@ export default function StakePage() {
                                   </div>
                                   <div>
                                     <p className="font-serif font-semibold text-text-primary">
-                                      #{token.TokenId}
+                                        {token.TokenName ||
+                                          `Token #${token.TokenId}`}
                                     </p>
                                     <p className="text-xs text-text-secondary">
-                                      {token.TokenName ||
-                                        `Round ${token.RoundNum}`}
+                                        Round {token.RoundNum}
                                     </p>
                                   </div>
                                 </div>
                               </td>
+                                <td className="p-4 text-center">
+                                  <p className="font-mono text-text-primary">
+                                    #{token.TokenId}
+                                  </p>
+                                </td>
+                                <td className="p-4 text-center">
+                                  <p className="font-mono text-text-primary">
+                                    {actionId}
+                                  </p>
+                              </td>
                               <td className="p-4">
                                 <p className="text-sm text-text-primary">
-                                  {token.StakeDateTime
-                                    ? new Date(
-                                        token.StakeDateTime
-                                      ).toLocaleDateString()
-                                    : "N/A"}
-                                </p>
+                                    {stakedToken.StakeDateTime
+                                      ? new Date(
+                                          stakedToken.StakeDateTime
+                                        ).toLocaleDateString()
+                                      : "N/A"}
+                                  </p>
+                                  {stakedToken.StakeDateTime && (
+                                    <p className="text-xs text-text-muted">
+                                      {Math.floor(
+                                        (Date.now() -
+                                          new Date(
+                                            stakedToken.StakeDateTime
+                                          ).getTime()) /
+                                          (1000 * 60 * 60 * 24)
+                                      )}{" "}
+                                      days ago
+                                    </p>
+                                  )}
                               </td>
                               <td className="p-4">
+                                  {loadingRewards ? (
+                                    <p className="text-sm text-text-muted">
+                                      Loading...
+                                    </p>
+                                  ) : (
+                                    <>
                                 <p className="font-mono text-primary font-semibold">
-                                  {formatEth(rewardPerNFT)} ETH
+                                        {formatEth(getTokenReward(token.TokenId))}{" "}
+                                  ETH
                                 </p>
-                                <p className="text-xs text-text-muted">
-                                  (Estimated)
-                                </p>
+                                      <p className="text-xs text-text-muted">
+                                        Claimable
+                                      </p>
+                                    </>
+                                  )}
                               </td>
                               <td className="p-4">
-                                <Button size="sm" variant="outline">
-                                  Unstake & Claim
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleUnstake(actionId, token.TokenId)
+                                    }
+                                    disabled={
+                                      unstakingActionId === actionId ||
+                                      stakingContract.status.isPending ||
+                                      stakingContract.status.isConfirming
+                                    }
+                                  >
+                                    {unstakingActionId === actionId
+                                      ? "Unstaking..."
+                                      : "Unstake"}
                                 </Button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Pagination for Staked Tokens */}
+                    {stakedTotalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 p-4 border-t border-text-muted/10">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleStakedPageChange(stakedCurrentPage - 1)
+                          }
+                          disabled={stakedCurrentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex gap-1">
+                          {Array.from(
+                            { length: stakedTotalPages },
+                            (_, i) => i + 1
+                          ).map((page) => {
+                            const showPage =
+                              page === 1 ||
+                              page === stakedTotalPages ||
+                              (page >= stakedCurrentPage - 1 &&
+                                page <= stakedCurrentPage + 1);
+
+                            if (!showPage) {
+                              if (
+                                page === stakedCurrentPage - 2 ||
+                                page === stakedCurrentPage + 2
+                              ) {
+                                return (
+                                  <span
+                                    key={page}
+                                    className="px-3 py-2 text-text-muted"
+                                  >
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            }
+
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant={
+                                  stakedCurrentPage === page
+                                    ? "primary"
+                                    : "outline"
+                                }
+                                onClick={() => handleStakedPageChange(page)}
+                                className="min-w-[40px]"
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleStakedPageChange(stakedCurrentPage + 1)
+                          }
+                          disabled={stakedCurrentPage === stakedTotalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Container>

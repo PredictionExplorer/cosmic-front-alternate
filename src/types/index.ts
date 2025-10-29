@@ -101,3 +101,14 @@ export interface CSTToken {
 	ActualUnstakeDateTime: string;
 }
 
+export interface StakedCSTToken {
+	TokenInfo: CSTToken;
+	StakeEvtLogId: number;
+	StakeBlockNum: number;
+	StakeActionId: number;
+	StakeTimeStamp: number;
+	StakeDateTime: string;
+	UserAddr: string;
+	UserAid: number;
+}
+

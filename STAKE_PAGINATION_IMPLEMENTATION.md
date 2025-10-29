@@ -8,10 +8,14 @@ Successfully implemented full staking functionality including:
 - **Multi-NFT staking** (stake multiple NFTs at once)
 - NFT selection with checkboxes
 - Select all / deselect all functionality
+- **Staked NFTs list with real rewards data**
+- Single NFT unstaking
+- **Unstake all functionality**
+- Real-time rewards fetching from API
 - NFT approval and staking actions
 - Transaction status tracking
 - Success/error notifications
-- Automatic list refresh after staking
+- Automatic list refresh after staking/unstaking
 
 ## Implementation Details
 
@@ -23,14 +27,17 @@ const nftContract = useCosmicSignatureNFT();
 const stakingContract = useStakingWalletCST();
 ```
 
+#### API Methods Used
+- `api.getStakedCSTTokensByUser(address)` - Fetches user's staked tokens
+- `getAvailableCSTTokensByUser(address)` - Fetches user's unstaked tokens
+- `api.getStakingRewardsByUser(address)` - Fetches claimable rewards
+
 #### Approval Check
 ```typescript
-const { data: isApprovedForAll } = address
-  ? nftContract.read.useIsApprovedForAll(
-      address as `0x${string}`,
-      CONTRACTS.STAKING_WALLET_CST
-    )
-  : { data: false };
+const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
+  (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
+  CONTRACTS.STAKING_WALLET_CST
+);
 ```
 
 #### Staking Flow
@@ -116,7 +123,108 @@ const [isStakingMultiple, setIsStakingMultiple] = useState(false);
 - Automatic deselection after successful staking
 - Error handling for batch operations
 
-### 3. **Pagination**
+### 3. **Staked NFTs List**
+
+#### Data Fetching
+Uses dedicated API methods for better performance:
+```typescript
+const [staked, available] = await Promise.all([
+  api.getStakedCSTTokensByUser(address),      // Returns StakedCSTToken[] with nested TokenInfo
+  getAvailableCSTTokensByUser(address),       // Fetch only available tokens
+]);
+```
+
+**Nested Data Structure:**
+```typescript
+interface StakedCSTToken {
+  TokenInfo: CSTToken;          // Nested token details
+  StakeActionId: number;        // Unique stake action ID
+  StakeTimeStamp: number;       // Unix timestamp
+  StakeDateTime: string;        // ISO datetime
+  // ... other fields
+}
+```
+
+**Benefits:**
+- ✅ More efficient - only fetches needed data
+- ✅ Parallel requests with `Promise.all`
+- ✅ Uses dedicated API endpoints
+- ✅ Includes stake action metadata
+- ✅ Proper typing with `StakedCSTToken` interface
+
+#### Features
+- **Table Display**: Shows all staked NFTs in a sortable table format (sorted by stake time)
+- **Pagination**: 5 items per page with navigation controls
+- **Selection System**: Checkboxes to select individual or multiple NFTs
+- **Bulk Actions**: Select All, Select Current Page, Deselect All
+- **Real Rewards Data**: Fetches actual claimable rewards from `api.getStakingRewardsByUser()`
+- **Staking Duration**: Shows stake date and "X days ago"
+- **Total Rewards Summary**: Displays total claimable ETH across all staked NFTs
+- **Individual Unstake**: Unstake single NFT and claim its rewards
+- **Batch Unstake Selected**: Unstake multiple selected NFTs
+- **Visual Feedback**: Selected rows highlighted
+
+#### Table Columns
+1. **Checkbox**: Select/deselect individual NFTs
+2. **NFT**: Image thumbnail + Name + Round number
+3. **Token ID**: Numeric token identifier
+4. **Stake Action ID**: Unique staking action ID
+5. **Staked On**: Date + duration
+6. **Rewards Earned**: Real claimable ETH amount
+7. **Action**: Unstake button
+
+#### Rewards Fetching
+```typescript
+const fetchStakingRewards = useCallback(async () => {
+  if (!address || !isConnected) return;
+  
+  try {
+    setLoadingRewards(true);
+    const rewards = await api.getStakingRewardsByUser(address);
+    setStakingRewards(rewards);
+  } catch (error) {
+    console.error("Failed to fetch staking rewards:", error);
+    setStakingRewards([]);
+  } finally {
+    setLoadingRewards(false);
+  }
+}, [address, isConnected]);
+```
+
+#### Unstaking Functions
+- `handleUnstake(stakeActionId, tokenId)`: Unstakes single NFT and claims its rewards
+- `handleUnstakeAll()`: Batch unstakes all staked NFTs and claims all rewards
+- `handleUnstakeSelected()`: Unstakes selected NFTs and claims their rewards
+- `getTokenReward(tokenId)`: Helper to get reward amount for specific token
+
+#### Selection Functions for Staked Tokens
+- `toggleStakedTokenSelection(stakeActionId)`: Toggle selection for individual NFT
+- `selectAllStakedTokens()`: Select all staked NFTs
+- `selectCurrentPageStakedTokens()`: Select only NFTs on current page
+- `deselectAllStakedTokens()`: Clear all selections
+
+#### Pagination for Staked Table
+- **Items Per Page**: 5 staked NFTs per page
+- **Sorting**: Automatically sorted by stake timestamp (oldest first)
+- **Navigation**: Previous/Next buttons + page numbers
+- **Selection Persistence**: Selections work across pages
+- **Auto-scroll**: Scrolls to table when changing pages
+
+#### Display Information
+Each staked NFT shows:
+- NFT image and token ID
+- Token name (if custom) or round number
+- Stake date and duration
+- **Real-time claimable rewards** (not estimated)
+- Unstake button with loading states
+
+#### Summary Card
+Shows:
+- Total claimable rewards across all staked NFTs
+- Total number of NFTs staked
+- Updates in real-time as rewards accumulate
+
+### 4. **Pagination**
 
 #### State Management
 ```typescript
