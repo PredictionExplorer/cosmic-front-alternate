@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap } from "lucide-react";
 import Image from "next/image";
+import { useAccount } from "wagmi";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -11,18 +12,78 @@ import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/game/StatCard";
 import { GAME_CONSTANTS, MOCK_NFTS } from "@/lib/constants";
 import { formatEth } from "@/lib/utils";
+import { api } from "@/services/api";
+import type { CSTToken } from "@/types";
+
+/**
+ * Get user's available (unstaked) Cosmic Signature NFTs
+ * Filters tokens where Staked === false
+ */
+async function getAvailableCSTTokensByUser(
+  address: string
+): Promise<CSTToken[]> {
+  const tokens = await api.getCSTTokensByUser(address);
+  return tokens.filter((token: CSTToken) => !token.Staked);
+}
+
+/**
+ * Get NFT image URL from token ID
+ */
+function getNFTImageUrl(tokenId: number): string {
+  return `/nfts/${tokenId}.jpg`;
+}
 
 export default function StakePage() {
+  const { address, isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
+  const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
+  const [stakedTokens, setStakedTokens] = useState<CSTToken[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock staking data
-  const cosmicNFTs = MOCK_NFTS.slice(0, 8);
-  const stakedCosmicNFTs = cosmicNFTs.slice(0, 3);
-  const unstakedCosmicNFTs = cosmicNFTs.slice(3);
+  // Fetch user's CST tokens
+  useEffect(() => {
+    if (!address || !isConnected) {
+      setAvailableTokens([]);
+      setStakedTokens([]);
+      return;
+    }
 
-  const totalStaked = 147;
-  const rewardPerNFT = 0.084;
-  const yourStakedCount = stakedCosmicNFTs.length;
+    const fetchTokens = async () => {
+      setLoading(true);
+      try {
+        // Get all tokens for the user
+        const allTokens = await api.getCSTTokensByUser(address);
+
+        // Separate into staked and available
+        const staked = allTokens.filter((token: CSTToken) => token.Staked);
+        const available = allTokens.filter(
+          (token: CSTToken) => !token.Staked && !token.WasUnstaked
+        );
+
+        setStakedTokens(staked);
+        setAvailableTokens(available);
+      } catch (error) {
+        console.error("Failed to fetch CST tokens:", error);
+        // Fall back to empty arrays on error
+        setAvailableTokens([]);
+        setStakedTokens([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTokens();
+  }, [address, isConnected]);
+
+  // Calculate stats from real data
+  const yourNFTCount = isConnected
+    ? availableTokens.length + stakedTokens.length
+    : 0;
+  const yourStakedCount = isConnected ? stakedTokens.length : 0;
+  const yourAvailableCount = isConnected ? availableTokens.length : 0;
+
+  const totalStaked = 147; // TODO: Fetch from global staking stats API
+  const rewardPerNFT = 0.084; // TODO: Fetch from staking rewards API
   const yourTotalRewards = yourStakedCount * rewardPerNFT;
 
   return (
@@ -86,17 +147,17 @@ export default function StakePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                   label="Your NFTs"
-                  value={cosmicNFTs.length}
+                  value={loading ? "..." : yourNFTCount}
                   icon={Gem}
                 />
                 <StatCard
                   label="Currently Staked"
-                  value={yourStakedCount}
+                  value={loading ? "..." : yourStakedCount}
                   icon={Award}
                 />
                 <StatCard
                   label="Total Rewards"
-                  value={`${formatEth(yourTotalRewards)} ETH`}
+                  value={loading ? "..." : `${formatEth(yourTotalRewards)} ETH`}
                   icon={TrendingUp}
                 />
                 <StatCard
@@ -187,58 +248,88 @@ export default function StakePage() {
           </section>
 
           {/* Your Unstaked NFTs */}
-          {unstakedCosmicNFTs.length > 0 && (
+          {!isConnected && (
+            <section className="py-12">
+              <Container>
+                <Card glass className="p-8">
+                  <div className="text-center py-12">
+                    <Gem size={48} className="text-text-muted mx-auto mb-4" />
+                    <p className="text-text-secondary mb-6">
+                      Connect your wallet to view and stake your Cosmic
+                      Signature NFTs
+                    </p>
+                  </div>
+                </Card>
+              </Container>
+            </section>
+          )}
+
+          {isConnected && yourAvailableCount > 0 && (
             <section className="py-12">
               <Container>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-serif text-2xl font-semibold text-text-primary">
                     Your Available NFTs
                   </h2>
-                  <Button size="sm" variant="primary">
-                    Stake All ({unstakedCosmicNFTs.length})
+                  <Button size="sm" variant="primary" disabled={loading}>
+                    Stake All ({yourAvailableCount})
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {unstakedCosmicNFTs.map((nft) => (
-                    <Card key={nft.id} glass hover className="overflow-hidden">
-                      <div className="aspect-square bg-background-elevated relative">
-                        <Image
-                          src={nft.imageUrl}
-                          alt={nft.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        />
-                        <div className="absolute top-3 left-3">
-                          <Badge variant="default">#{nft.tokenId}</Badge>
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-text-secondary">Loading your NFTs...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {availableTokens.map((token) => (
+                      <Card
+                        key={token.TokenId}
+                        glass
+                        hover
+                        className="overflow-hidden"
+                      >
+                        <div className="aspect-square bg-background-elevated relative">
+                          <Image
+                            src={getNFTImageUrl(token.TokenId)}
+                            alt={token.TokenName || `Token #${token.TokenId}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <Badge variant="default">#{token.TokenId}</Badge>
+                          </div>
                         </div>
-                      </div>
-                      <div className="p-4">
-                        <p className="font-serif font-semibold text-text-primary mb-2 truncate">
-                          {nft.customName || nft.name}
-                        </p>
-                        <Button size="sm" className="w-full">
-                          Stake NFT
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                        <div className="p-4">
+                          <p className="font-serif font-semibold text-text-primary mb-2 truncate">
+                            {token.TokenName || `Token #${token.TokenId}`}
+                          </p>
+                          <p className="text-xs text-text-secondary mb-3">
+                            Round {token.RoundNum}
+                          </p>
+                          <Button size="sm" className="w-full">
+                            Stake NFT
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </Container>
             </section>
           )}
 
           {/* Staked NFTs */}
-          {stakedCosmicNFTs.length > 0 && (
+          {isConnected && yourStakedCount > 0 && (
             <section className="py-12 bg-background-surface/50">
               <Container>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-serif text-2xl font-semibold text-text-primary">
                     Your Staked NFTs
                   </h2>
-                  <Button size="sm" variant="secondary">
-                    Unstake All & Claim ({stakedCosmicNFTs.length})
+                  <Button size="sm" variant="secondary" disabled={loading}>
+                    Unstake All & Claim ({yourStakedCount})
                   </Button>
                 </div>
 
@@ -263,17 +354,20 @@ export default function StakePage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-text-muted/10">
-                          {stakedCosmicNFTs.map((nft, index) => (
+                          {stakedTokens.map((token) => (
                             <tr
-                              key={nft.id}
+                              key={token.TokenId}
                               className="hover:bg-background-elevated/50 transition-colors"
                             >
                               <td className="p-4">
                                 <div className="flex items-center space-x-3">
                                   <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
                                     <Image
-                                      src={nft.imageUrl}
-                                      alt={nft.name}
+                                      src={getNFTImageUrl(token.TokenId)}
+                                      alt={
+                                        token.TokenName ||
+                                        `Token #${token.TokenId}`
+                                      }
                                       fill
                                       className="object-cover"
                                       sizes="48px"
@@ -281,23 +375,30 @@ export default function StakePage() {
                                   </div>
                                   <div>
                                     <p className="font-serif font-semibold text-text-primary">
-                                      #{nft.tokenId}
+                                      #{token.TokenId}
                                     </p>
                                     <p className="text-xs text-text-secondary">
-                                      Round {nft.round}
+                                      {token.TokenName ||
+                                        `Round ${token.RoundNum}`}
                                     </p>
                                   </div>
                                 </div>
                               </td>
                               <td className="p-4">
                                 <p className="text-sm text-text-primary">
-                                  {((index * 3 + 1) % 30) + 1} days ago
+                                  {token.StakeDateTime
+                                    ? new Date(
+                                        token.StakeDateTime
+                                      ).toLocaleDateString()
+                                    : "N/A"}
                                 </p>
                               </td>
                               <td className="p-4">
                                 <p className="font-mono text-primary font-semibold">
-                                  {formatEth(rewardPerNFT * (index + 1) * 0.7)}{" "}
-                                  ETH
+                                  {formatEth(rewardPerNFT)} ETH
+                                </p>
+                                <p className="text-xs text-text-muted">
+                                  (Estimated)
                                 </p>
                               </td>
                               <td className="p-4">

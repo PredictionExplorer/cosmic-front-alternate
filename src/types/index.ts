@@ -71,3 +71,33 @@ export interface UserStats {
 	cstBalance: number;
 }
 
+export interface CSTToken {
+	RecordId: number;
+	EvtLogId: number;
+	BlockNum: number;
+	TimeStamp: number;
+	DateTime: string;
+	TxId: number;
+	TxHash: string;
+	ContractAddr: string;
+	TokenId: number;
+	WinnerAid: number;
+	WinnerAddr: string;
+	CurOwnerAid: number;
+	CurOwnerAddr: string;
+	Seed: string;
+	RoundNum: number;
+	RecordType: number;
+	TokenName: string;
+	Staked: boolean;
+	StakedOwnerAid: number;
+	StakedOwnerAddr: string;
+	StakeActionId: number;
+	StakeTimeStamp: number;
+	StakeDateTime: string;
+	UnstakeActionId: number;
+	WasUnstaked: boolean;
+	ActualUnstakeTimeStamp: number;
+	ActualUnstakeDateTime: string;
+}
+
