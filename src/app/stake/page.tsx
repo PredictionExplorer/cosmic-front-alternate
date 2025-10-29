@@ -39,12 +39,15 @@ export default function StakePage() {
   const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
   const [stakedTokens, setStakedTokens] = useState<CSTToken[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
 
   // Fetch user's CST tokens
   useEffect(() => {
     if (!address || !isConnected) {
       setAvailableTokens([]);
       setStakedTokens([]);
+      setCurrentPage(1);
       return;
     }
 
@@ -62,6 +65,7 @@ export default function StakePage() {
 
         setStakedTokens(staked);
         setAvailableTokens(available);
+        setCurrentPage(1); // Reset to first page when data changes
       } catch (error) {
         console.error("Failed to fetch CST tokens:", error);
         // Fall back to empty arrays on error
@@ -74,6 +78,21 @@ export default function StakePage() {
 
     fetchTokens();
   }, [address, isConnected]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(availableTokens.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTokens = availableTokens.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to the NFT section
+    const nftSection = document.getElementById("available-nfts-section");
+    if (nftSection) {
+      nftSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Calculate stats from real data
   const yourNFTCount = isConnected
@@ -265,15 +284,20 @@ export default function StakePage() {
           )}
 
           {isConnected && yourAvailableCount > 0 && (
-            <section className="py-12">
+            <section id="available-nfts-section" className="py-12">
               <Container>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-serif text-2xl font-semibold text-text-primary">
                     Your Available NFTs
                   </h2>
-                  <Button size="sm" variant="primary" disabled={loading}>
-                    Stake All ({yourAvailableCount})
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-text-secondary">
+                      Showing {startIndex + 1}-{Math.min(endIndex, yourAvailableCount)} of {yourAvailableCount}
+                    </span>
+                    <Button size="sm" variant="primary" disabled={loading}>
+                      Stake All ({yourAvailableCount})
+                    </Button>
+                  </div>
                 </div>
 
                 {loading ? (
@@ -281,40 +305,105 @@ export default function StakePage() {
                     <p className="text-text-secondary">Loading your NFTs...</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {availableTokens.map((token) => (
-                      <Card
-                        key={token.TokenId}
-                        glass
-                        hover
-                        className="overflow-hidden"
-                      >
-                        <div className="aspect-square bg-background-elevated relative">
-                          <Image
-                            src={getNFTImageUrl(token.TokenId)}
-                            alt={token.TokenName || `Token #${token.TokenId}`}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                          />
-                          <div className="absolute top-3 left-3">
-                            <Badge variant="default">#{token.TokenId}</Badge>
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {paginatedTokens.map((token) => (
+                        <Card
+                          key={token.TokenId}
+                          glass
+                          hover
+                          className="overflow-hidden"
+                        >
+                          <div className="aspect-square bg-background-elevated relative">
+                            <Image
+                              src={getNFTImageUrl(token.TokenId)}
+                              alt={token.TokenName || `Token #${token.TokenId}`}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            />
+                            <div className="absolute top-3 left-3">
+                              <Badge variant="default">#{token.TokenId}</Badge>
+                            </div>
                           </div>
+                          <div className="p-4">
+                            <p className="font-serif font-semibold text-text-primary mb-2 truncate">
+                              {token.TokenName || `Token #${token.TokenId}`}
+                            </p>
+                            <p className="text-xs text-text-secondary mb-3">
+                              Round {token.RoundNum}
+                            </p>
+                            <Button size="sm" className="w-full">
+                              Stake NFT
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 mt-8">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                            // Show first page, last page, current page, and pages around current
+                            const showPage =
+                              page === 1 ||
+                              page === totalPages ||
+                              (page >= currentPage - 1 && page <= currentPage + 1);
+
+                            const showEllipsisBefore =
+                              page === currentPage - 2 && currentPage > 3;
+                            const showEllipsisAfter =
+                              page === currentPage + 2 && currentPage < totalPages - 2;
+
+                            if (showEllipsisBefore || showEllipsisAfter) {
+                              return (
+                                <span
+                                  key={page}
+                                  className="px-3 py-2 text-text-muted"
+                                >
+                                  ...
+                                </span>
+                              );
+                            }
+
+                            if (!showPage) return null;
+
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant={currentPage === page ? "primary" : "outline"}
+                                onClick={() => handlePageChange(page)}
+                                className="min-w-[40px]"
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
                         </div>
-                        <div className="p-4">
-                          <p className="font-serif font-semibold text-text-primary mb-2 truncate">
-                            {token.TokenName || `Token #${token.TokenId}`}
-                          </p>
-                          <p className="text-xs text-text-secondary mb-3">
-                            Round {token.RoundNum}
-                          </p>
-                          <Button size="sm" className="w-full">
-                            Stake NFT
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </Container>
             </section>
