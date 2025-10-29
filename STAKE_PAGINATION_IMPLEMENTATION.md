@@ -1,17 +1,130 @@
-# Stake Page Pagination Implementation
+# Stake Page Complete Implementation
 
 ## Overview
-Successfully implemented pagination for the available NFTs list in the stake page, allowing users to browse through their NFT collection in manageable pages.
+Successfully implemented full staking functionality including:
+- Real-time data fetching from API
+- Pagination for available NFTs list (8 per page)
+- Single NFT staking
+- **Multi-NFT staking** (stake multiple NFTs at once)
+- NFT selection with checkboxes
+- Select all / deselect all functionality
+- NFT approval and staking actions
+- Transaction status tracking
+- Success/error notifications
+- Automatic list refresh after staking
 
 ## Implementation Details
 
-### 1. **State Management**
+### 1. **Staking Functionality**
+
+#### Contract Hooks
+```typescript
+const nftContract = useCosmicSignatureNFT();
+const stakingContract = useStakingWalletCST();
+```
+
+#### Approval Check
+```typescript
+const { data: isApprovedForAll } = address
+  ? nftContract.read.useIsApprovedForAll(
+      address as `0x${string}`,
+      CONTRACTS.STAKING_WALLET_CST
+    )
+  : { data: false };
+```
+
+#### Staking Flow
+1. **Check Approval**: Verify if staking contract is approved
+2. **Request Approval**: If not approved, request approval first
+3. **Stake NFT**: Once approved, stake the NFT
+4. **Monitor Transaction**: useEffect watches `stakingContract.status.isSuccess`
+5. **Auto-Refresh**: When transaction confirms, automatically refresh data
+6. **Show Success**: Display success notification with staking details
+7. **Clean Up**: Clear selections and reset staking states
+
+#### Key Functions
+- `handleApprove()`: Requests approval for staking contract
+- `handleStake(tokenId)`: Stakes a single NFT (no manual refresh needed)
+- `handleStakeMany(tokenIds[])`: Stakes multiple NFTs at once (no manual refresh needed)
+- `refreshTokenData()`: Fetches updated token data from API and clears selections
+- `toggleTokenSelection(tokenId)`: Adds/removes NFT from selection
+- `selectAllTokens()`: Selects all available NFTs
+- `deselectAllTokens()`: Clears all selections
+
+#### Automatic List Refresh
+The list automatically updates after transaction completion using a `useEffect` hook:
+
+```typescript
+useEffect(() => {
+  if (stakingContract.status.isSuccess && address) {
+    // Transaction completed successfully
+    const timer = setTimeout(async () => {
+      await refreshTokenData();
+      
+      // Show success message
+      if (isStakingMultiple && selectedTokenIds.size > 0) {
+        showSuccess(`Successfully staked ${selectedTokenIds.size} NFT(s)!`);
+      } else if (stakingTokenId) {
+        showSuccess(`Successfully staked token #${stakingTokenId}!`);
+      }
+      
+      // Clear staking states
+      setStakingTokenId(null);
+      setIsStakingMultiple(false);
+    }, 2000); // Small delay to allow blockchain state to update
+
+    return () => clearTimeout(timer);
+  }
+}, [stakingContract.status.isSuccess, address, ...]);
+```
+
+**Benefits:**
+- ✅ No manual setTimeout management in staking functions
+- ✅ Centralized refresh logic
+- ✅ Works for both single and multi-stake
+- ✅ Proper cleanup on unmount
+- ✅ Watches actual transaction status from wagmi
+
+### 2. **Multi-Stake Functionality**
+
+#### Selection State
+```typescript
+const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(new Set());
+const [isStakingMultiple, setIsStakingMultiple] = useState(false);
+```
+
+#### Selection UI
+- **Checkbox on each NFT card**: Click to select/deselect
+- **Visual feedback**: Selected NFTs show a primary ring border
+- **Select All button**: Selects all available NFTs (not just current page)
+- **Deselect All button**: Clears all selections
+- **Selection counter**: Shows how many NFTs are selected
+
+#### Batch Staking Process
+1. User selects multiple NFTs via checkboxes
+2. Click "Stake Selected (X)" button
+3. System checks approval (requests if needed)
+4. Calls `stakingContract.write.stakeMany(tokenIdsBigInt)`
+5. Shows transaction confirmation
+6. Refreshes data and clears selections
+7. Updates available NFT list automatically
+
+#### Features
+- Select NFTs across multiple pages
+- Visual selection count in header
+- Disabled state during transactions
+- Automatic deselection after successful staking
+- Error handling for batch operations
+
+### 3. **Pagination**
+
+#### State Management
 ```typescript
 const [currentPage, setCurrentPage] = useState(1);
 const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
 ```
 
-### 2. **Pagination Logic**
+#### Pagination Logic
 ```typescript
 // Calculate pagination
 const totalPages = Math.ceil(availableTokens.length / itemsPerPage);
