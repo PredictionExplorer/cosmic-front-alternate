@@ -112,3 +112,21 @@ export interface StakedCSTToken {
 	UserAid: number;
 }
 
+export interface RWLKToken {
+	TokenId: number;
+	TokenName?: string;
+	IsUsed: boolean;
+	IsStaked: boolean;
+	StakeActionId?: number;
+}
+
+export interface StakedRWLKToken {
+	TokenId: number;
+	TokenName?: string;
+	StakeActionId: number;
+	StakeTimeStamp: number;
+	StakeDateTime: string;
+	UserAddr: string;
+	UserAid: number;
+}
+

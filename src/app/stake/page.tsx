@@ -13,9 +13,18 @@ import { StatCard } from "@/components/game/StatCard";
 import { GAME_CONSTANTS, MOCK_NFTS } from "@/lib/constants";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
-import type { CSTToken, StakedCSTToken } from "@/types";
+import type {
+  CSTToken,
+  StakedCSTToken,
+  RWLKToken,
+  StakedRWLKToken,
+} from "@/types";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
-import { useStakingWalletCST } from "@/hooks/useStakingWallet";
+import {
+  useStakingWalletCST,
+  useStakingWalletRWLK,
+} from "@/hooks/useStakingWallet";
+import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { useNotification } from "@/contexts/NotificationContext";
 
@@ -27,7 +36,9 @@ async function getAvailableCSTTokensByUser(
   address: string
 ): Promise<CSTToken[]> {
   const tokens = await api.getCSTTokensByUser(address);
-  return tokens.filter((token: CSTToken) => !token.Staked);
+  return tokens.filter(
+    (token: CSTToken) => !token.Staked && !token.WasUnstaked
+  );
 }
 
 /**
@@ -61,10 +72,36 @@ export default function StakePage() {
   const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
   const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
 
+  // Random Walk NFT state
+  const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(
+    []
+  );
+  const [stakedRWLKTokens, setStakedRWLKTokens] = useState<StakedRWLKToken[]>(
+    []
+  );
+  const [rwlkLoading, setRwlkLoading] = useState(false);
+  const [rwlkCurrentPage, setRwlkCurrentPage] = useState(1);
+  const [stakedRwlkCurrentPage, setStakedRwlkCurrentPage] = useState(1);
+  const [selectedRWLKTokenIds, setSelectedRWLKTokenIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [selectedStakedRWLKIds, setSelectedStakedRWLKIds] = useState<
+    Set<number>
+  >(new Set());
+  const [stakingRWLKTokenId, setStakingRWLKTokenId] = useState<number | null>(
+    null
+  );
+  const [isStakingRWLKMultiple, setIsStakingRWLKMultiple] = useState(false);
+  const [unstakingRWLKActionId, setUnstakingRWLKActionId] = useState<
+    number | null
+  >(null);
+
   // Hooks
   const { showSuccess, showError } = useNotification();
   const nftContract = useCosmicSignatureNFT();
+  const rwlkNftContract = useRandomWalkNFT();
   const stakingContract = useStakingWalletCST();
+  const rwlkStakingContract = useStakingWalletRWLK();
 
   // Fetch user's CST tokens
   useEffect(() => {
@@ -83,7 +120,6 @@ export default function StakePage() {
           api.getStakedCSTTokensByUser(address),
           getAvailableCSTTokensByUser(address),
         ]);
-
         setStakedTokens(staked);
         setAvailableTokens(available);
         setCurrentPage(1); // Reset to first page when data changes
@@ -100,10 +136,22 @@ export default function StakePage() {
     fetchTokens();
   }, [address, isConnected]);
 
-  // Check if NFT contract is approved for staking
+  // Check if NFT contracts are approved for staking
   const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
     (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
     CONTRACTS.STAKING_WALLET_CST
+  );
+
+  const { data: isRWLKApprovedForAll } =
+    rwlkNftContract.read.useIsApprovedForAll(
+      (address as `0x${string}`) ||
+        "0x0000000000000000000000000000000000000000",
+      CONTRACTS.STAKING_WALLET_RWLK
+    );
+
+  // Get user's Random Walk NFT token IDs
+  const { data: rwlkTokenIds } = rwlkNftContract.read.useWalletOfOwner(
+    address as `0x${string}` | undefined
   );
 
   // Refresh token data
@@ -126,6 +174,113 @@ export default function StakePage() {
       console.error("Failed to refresh token data:", error);
     }
   }, [address, isConnected]);
+
+  // Refresh Random Walk NFT data
+  const refreshRWLKTokenData = useCallback(async () => {
+    if (!address || !isConnected || !rwlkTokenIds) return;
+
+    try {
+      // Fetch staked tokens and staking actions
+      const [stakedTokens, rwalkActions] = await Promise.all([
+        api.getStakedRWLKTokensByUser(address),
+        api.getStakingRWLKActionsByUser(address),
+      ]);
+
+      // Convert BigInt array to number array and sort
+      const ownedTokenIds = (rwlkTokenIds as bigint[])
+        .map((id) => Number(id))
+        .sort((a, b) => a - b);
+
+      // Create set of staked token IDs for quick lookup
+      const stakedTokenIdsSet = new Set(
+        stakedTokens.map((token: any) => token.TokenId)
+      );
+
+      // Filter available tokens (owned, not staked, and not in partial action)
+      // Exclude tokens that have ActionType !== 1 (partial/incomplete actions)
+      const available: RWLKToken[] = ownedTokenIds
+        .filter(
+          (tokenId) =>
+            !stakedTokenIdsSet.has(tokenId) &&
+            !rwalkActions.some(
+              (action: any) =>
+                action.ActionType !== 1 && action.TokenId === tokenId
+            )
+        )
+        .map((tokenId) => ({
+          TokenId: tokenId,
+          IsUsed: false,
+          IsStaked: false,
+        }));
+
+      setStakedRWLKTokens(stakedTokens);
+      setAvailableRWLKTokens(available);
+      setSelectedRWLKTokenIds(new Set());
+      setSelectedStakedRWLKIds(new Set());
+    } catch (error) {
+      console.error("Failed to refresh Random Walk token data:", error);
+    }
+  }, [address, isConnected, rwlkTokenIds]);
+
+  // Fetch user's Random Walk NFTs
+  useEffect(() => {
+    if (!address || !isConnected || !rwlkTokenIds) {
+      setAvailableRWLKTokens([]);
+      setStakedRWLKTokens([]);
+      setRwlkCurrentPage(1);
+      return;
+    }
+
+    const fetchRWLKTokens = async () => {
+      setRwlkLoading(true);
+      try {
+        // Fetch staked tokens and staking actions
+        const [stakedTokens, rwalkActions] = await Promise.all([
+          api.getStakedRWLKTokensByUser(address),
+          api.getStakingRWLKActionsByUser(address),
+        ]);
+
+        // Convert BigInt array to number array and sort
+        const ownedTokenIds = (rwlkTokenIds as bigint[])
+          .map((id) => Number(id))
+          .sort((a, b) => a - b);
+
+        // Create set of staked token IDs for quick lookup
+        const stakedTokenIdsSet = new Set(
+          stakedTokens.map((token: any) => token.TokenId)
+        );
+
+        // Filter available tokens (owned, not staked, and not in partial action)
+        // Exclude tokens that have ActionType !== 1 (partial/incomplete actions)
+        const available: RWLKToken[] = ownedTokenIds
+          .filter(
+            (tokenId) =>
+              !stakedTokenIdsSet.has(tokenId) &&
+              !rwalkActions.some(
+                (action: any) =>
+                  action.ActionType !== 1 && action.TokenId === tokenId
+              )
+          )
+          .map((tokenId) => ({
+            TokenId: tokenId,
+            IsUsed: false,
+            IsStaked: false,
+          }));
+
+        setStakedRWLKTokens(stakedTokens);
+        setAvailableRWLKTokens(available);
+        setRwlkCurrentPage(1); // Reset to first page when data changes
+      } catch (error) {
+        console.error("Failed to fetch Random Walk tokens:", error);
+        setAvailableRWLKTokens([]);
+        setStakedRWLKTokens([]);
+      } finally {
+        setRwlkLoading(false);
+      }
+    };
+
+    fetchRWLKTokens();
+  }, [address, isConnected, rwlkTokenIds]);
 
   // Fetch staking rewards
   const fetchStakingRewards = useCallback(async () => {
@@ -197,7 +352,8 @@ export default function StakePage() {
 
   // Calculate total rewards
   const totalRewards = stakingRewards.reduce(
-    (sum, reward) => sum + (reward.RewardToCollectEth || reward?.TotalReward || 0),
+    (sum, reward) =>
+      sum + (reward.RewardToCollectEth || reward?.TotalReward || 0),
     0
   );
 
@@ -227,7 +383,12 @@ export default function StakePage() {
     const allStakeActionIds = new Set(
       stakedTokens.map((stakedToken) => {
         const actionId = stakedToken.TokenInfo.StakeActionId;
-        console.log("Mapping token:", stakedToken.TokenInfo.TokenId, "StakeActionId:", actionId);
+        console.log(
+          "Mapping token:",
+          stakedToken.TokenInfo.TokenId,
+          "StakeActionId:",
+          actionId
+        );
         return actionId;
       })
     );
@@ -475,6 +636,193 @@ export default function StakePage() {
     }
   };
 
+  // === Random Walk NFT Handlers ===
+
+  // Handle RWLK approve action
+  const handleRWLKApprove = useCallback(async () => {
+    if (!rwlkNftContract) return false;
+
+    try {
+      await rwlkNftContract.write.setApprovalForAll(
+        CONTRACTS.STAKING_WALLET_RWLK,
+        true
+      );
+      showSuccess("Approval requested! Please confirm the transaction.");
+      return true;
+    } catch (error: any) {
+      console.error("RWLK Approval failed:", error);
+      showError(error?.message || "Failed to approve. Please try again.");
+      return false;
+    }
+  }, [rwlkNftContract, showSuccess, showError]);
+
+  // Handle RWLK staking action
+  const handleRWLKStake = async (tokenId: number) => {
+    try {
+      if (!rwlkNftContract || !rwlkStakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setStakingRWLKTokenId(tokenId);
+
+      // Check if approval is needed
+      if (!isRWLKApprovedForAll) {
+        const approved = await handleRWLKApprove();
+        if (!approved) {
+          setStakingRWLKTokenId(null);
+          return;
+        }
+        showSuccess(
+          "Waiting for approval confirmation... You can then stake your NFT."
+        );
+        setStakingRWLKTokenId(null);
+        return;
+      }
+
+      // Stake the NFT
+      await rwlkStakingContract.write.stake(BigInt(tokenId));
+      showSuccess("Transaction submitted! Waiting for confirmation...");
+    } catch (error: any) {
+      console.error("RWLK Staking failed:", error);
+      showError(error?.message || "Failed to stake NFT. Please try again.");
+      setStakingRWLKTokenId(null);
+    }
+  };
+
+  // Handle staking multiple RWLK NFTs
+  const handleRWLKStakeMany = async (tokenIds: number[]) => {
+    try {
+      if (!rwlkNftContract || !rwlkStakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      if (tokenIds.length === 0) {
+        showError("Please select at least one NFT to stake.");
+        return;
+      }
+
+      setIsStakingRWLKMultiple(true);
+
+      // Check if approval is needed
+      if (!isRWLKApprovedForAll) {
+        const approved = await handleRWLKApprove();
+        if (!approved) {
+          setIsStakingRWLKMultiple(false);
+          return;
+        }
+        showSuccess(
+          "Waiting for approval confirmation... You can then stake your NFTs."
+        );
+        setIsStakingRWLKMultiple(false);
+        return;
+      }
+
+      // Stake multiple NFTs
+      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
+      await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
+      showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
+    } catch (error: any) {
+      console.error("RWLK Multi-staking failed:", error);
+      showError(error?.message || "Failed to stake NFTs. Please try again.");
+      setIsStakingRWLKMultiple(false);
+    }
+  };
+
+  // Handle RWLK unstaking action
+  const handleRWLKUnstake = async (stakeActionId: number, tokenId: number) => {
+    try {
+      if (!rwlkStakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setUnstakingRWLKActionId(stakeActionId);
+
+      await rwlkStakingContract.write.unstake(BigInt(stakeActionId));
+      showSuccess(`Transaction submitted! Unstaking token #${tokenId}...`);
+    } catch (error: any) {
+      console.error("RWLK Unstaking failed:", error);
+      showError(error?.message || "Failed to unstake NFT. Please try again.");
+      setUnstakingRWLKActionId(null);
+    }
+  };
+
+  // Handle unstaking selected RWLK NFTs
+  const handleRWLKUnstakeSelected = async () => {
+    if (selectedStakedRWLKIds.size === 0) {
+      showError("Please select at least one NFT to unstake.");
+      return;
+    }
+
+    try {
+      if (!rwlkStakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setIsStakingRWLKMultiple(true);
+
+      const stakeActionIds = Array.from(selectedStakedRWLKIds).map((id) =>
+        BigInt(id)
+      );
+
+      await rwlkStakingContract.write.unstakeMany(stakeActionIds);
+      showSuccess(
+        `Transaction submitted! Unstaking ${selectedStakedRWLKIds.size} NFTs...`
+      );
+    } catch (error: any) {
+      console.error("RWLK Unstake selected failed:", error);
+      showError(error?.message || "Failed to unstake NFTs. Please try again.");
+      setIsStakingRWLKMultiple(false);
+    }
+  };
+
+  // Watch for RWLK transaction success and refresh data
+  useEffect(() => {
+    if (rwlkStakingContract.status.isSuccess && address) {
+      const timer = setTimeout(async () => {
+        await refreshRWLKTokenData();
+
+        if (isStakingRWLKMultiple && selectedRWLKTokenIds.size > 0) {
+          showSuccess(
+            `Successfully staked ${selectedRWLKTokenIds.size} NFT${
+              selectedRWLKTokenIds.size > 1 ? "s" : ""
+            }!`
+          );
+        } else if (stakingRWLKTokenId) {
+          showSuccess(`Successfully staked token #${stakingRWLKTokenId}!`);
+        } else if (unstakingRWLKActionId) {
+          showSuccess(`Successfully unstaked NFT!`);
+        }
+
+        setStakingRWLKTokenId(null);
+        setIsStakingRWLKMultiple(false);
+        setUnstakingRWLKActionId(null);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    rwlkStakingContract.status.isSuccess,
+    address,
+    refreshRWLKTokenData,
+    isStakingRWLKMultiple,
+    selectedRWLKTokenIds.size,
+    stakingRWLKTokenId,
+    unstakingRWLKActionId,
+    showSuccess,
+  ]);
+
   // Calculate pagination for available tokens
   const totalPages = Math.ceil(availableTokens.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -491,9 +839,7 @@ export default function StakePage() {
   };
 
   // Calculate pagination for staked tokens
-  const stakedTotalPages = Math.ceil(
-    stakedTokens.length / stakedItemsPerPage
-  );
+  const stakedTotalPages = Math.ceil(stakedTokens.length / stakedItemsPerPage);
   const stakedStartIndex = (stakedCurrentPage - 1) * stakedItemsPerPage;
   const stakedEndIndex = stakedStartIndex + stakedItemsPerPage;
   const paginatedStakedTokens = useMemo(() => {
@@ -920,7 +1266,10 @@ export default function StakePage() {
 
           {/* Staked NFTs */}
           {isConnected && yourStakedCount > 0 && (
-            <section id="staked-nfts-section" className="py-12 bg-background-surface/50">
+            <section
+              id="staked-nfts-section"
+              className="py-12 bg-background-surface/50"
+            >
               <Container>
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center justify-between">
@@ -1036,7 +1385,8 @@ export default function StakePage() {
                                   if (input) {
                                     input.indeterminate =
                                       selectedStakedIds.size > 0 &&
-                                      selectedStakedIds.size < stakedTokens.length;
+                                      selectedStakedIds.size <
+                                        stakedTokens.length;
                                   }
                                 }}
                                 onChange={(e) => {
@@ -1076,8 +1426,6 @@ export default function StakePage() {
                             const actionId = token.StakeActionId;
                             const isSelected = selectedStakedIds.has(actionId);
                             
-                            console.log(`Rendering row for Token #${token.TokenId}, StakeActionId: ${actionId} (root: ${stakedToken.StakeActionId}), isSelected: ${isSelected}`);
-                            
                             return (
                               <tr
                                 key={`staked-${actionId}-${token.TokenId}`}
@@ -1091,7 +1439,10 @@ export default function StakePage() {
                                     id={`checkbox-${actionId}`}
                                     checked={isSelected}
                                     onChange={(e) => {
-                                      console.log(`Checkbox ${actionId} changed, checked:`, e.target.checked);
+                                      console.log(
+                                        `Checkbox ${actionId} changed, checked:`,
+                                        e.target.checked
+                                      );
                                       toggleStakedTokenSelection(actionId);
                                     }}
                                     className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
@@ -1161,7 +1512,9 @@ export default function StakePage() {
                                   ) : (
                                     <>
                                 <p className="font-mono text-primary font-semibold">
-                                        {formatEth(getTokenReward(token.TokenId))}{" "}
+                                        {formatEth(
+                                          getTokenReward(token.TokenId)
+                                        )}{" "}
                                   ETH
                                 </p>
                                       <p className="text-xs text-text-muted">
@@ -1395,23 +1748,645 @@ export default function StakePage() {
             </Container>
           </section>
 
-          {/* Staking Interface */}
+          {/* Not Connected State */}
+          {!isConnected && (
           <section className="py-12">
             <Container>
               <Card glass className="p-8">
-                <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
-                  Your Random Walk NFTs
-                </h3>
                 <div className="text-center py-12">
                   <Gem size={48} className="text-text-muted mx-auto mb-4" />
                   <p className="text-text-secondary mb-6">
-                    Connect your wallet to view and stake your Random Walk NFTs
+                      Connect your wallet to view and stake your Random Walk
+                      NFTs
                   </p>
-                  <Button size="lg">Connect Wallet</Button>
                 </div>
               </Card>
             </Container>
           </section>
+          )}
+
+          {/* Your Available Random Walk NFTs */}
+          {isConnected && availableRWLKTokens.length > 0 && (
+            <section id="available-rwlk-nfts-section" className="py-12">
+              <Container>
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-serif text-2xl font-semibold text-text-primary">
+                      Your Available Random Walk NFTs
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-text-secondary">
+                        Showing {(rwlkCurrentPage - 1) * itemsPerPage + 1}-
+                        {Math.min(
+                          rwlkCurrentPage * itemsPerPage,
+                          availableRWLKTokens.length
+                        )}{" "}
+                        of {availableRWLKTokens.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Selection Controls */}
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                    <div className="flex items-center gap-4">
+                      {selectedRWLKTokenIds.size > 0 ? (
+                        <>
+                          <span className="text-sm font-medium text-text-primary">
+                            {selectedRWLKTokenIds.size} NFT
+                            {selectedRWLKTokenIds.size > 1 ? "s" : ""} selected
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setSelectedRWLKTokenIds(new Set())}
+                          >
+                            Deselect All
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setSelectedRWLKTokenIds(
+                              new Set(availableRWLKTokens.map((t) => t.TokenId))
+                            )
+                          }
+                        >
+                          Select All ({availableRWLKTokens.length})
+                        </Button>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() =>
+                        handleRWLKStakeMany(Array.from(selectedRWLKTokenIds))
+                      }
+                      disabled={
+                        selectedRWLKTokenIds.size === 0 ||
+                        isStakingRWLKMultiple ||
+                        rwlkStakingContract.status.isPending ||
+                        rwlkStakingContract.status.isConfirming
+                      }
+                    >
+                      {isStakingRWLKMultiple
+                        ? "Staking..."
+                        : `Stake Selected ${
+                            selectedRWLKTokenIds.size > 0
+                              ? `(${selectedRWLKTokenIds.size})`
+                              : ""
+                          }`}
+                    </Button>
+                  </div>
+                </div>
+
+                {rwlkLoading ? (
+                  <div className="text-center py-12">
+                    <p className="text-text-secondary">Loading your NFTs...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {availableRWLKTokens
+                        .slice(
+                          (rwlkCurrentPage - 1) * itemsPerPage,
+                          rwlkCurrentPage * itemsPerPage
+                        )
+                        .map((token) => {
+                          const isSelected = selectedRWLKTokenIds.has(
+                            token.TokenId
+                          );
+                          return (
+                            <Card
+                              key={token.TokenId}
+                              glass
+                              hover
+                              className={`overflow-hidden transition-all ${
+                                isSelected ? "ring-2 ring-primary" : ""
+                              }`}
+                            >
+                              <div className="aspect-square bg-background-elevated relative">
+                                <Image
+                                  src={getNFTImageUrl(token.TokenId)}
+                                  alt={
+                                    token.TokenName ||
+                                    `Random Walk #${token.TokenId}`
+                                  }
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                />
+                                <div className="absolute top-3 left-3 flex items-center gap-2">
+                                  <Badge variant="default">
+                                    #{token.TokenId}
+                                  </Badge>
+                                </div>
+                                {/* Selection Checkbox */}
+                                <div className="absolute top-3 right-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => {
+                                      const newSet = new Set(
+                                        selectedRWLKTokenIds
+                                      );
+                                      if (newSet.has(token.TokenId)) {
+                                        newSet.delete(token.TokenId);
+                                      } else {
+                                        newSet.add(token.TokenId);
+                                      }
+                                      setSelectedRWLKTokenIds(newSet);
+                                    }}
+                                    className="w-5 h-5 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                              </div>
+                              <div className="p-4">
+                                <p className="font-serif font-semibold text-text-primary mb-2 truncate">
+                                  {token.TokenName ||
+                                    `Random Walk #${token.TokenId}`}
+                                </p>
+                                <Button
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => handleRWLKStake(token.TokenId)}
+                                  disabled={
+                                    stakingRWLKTokenId === token.TokenId ||
+                                    isStakingRWLKMultiple ||
+                                    rwlkStakingContract.status.isPending ||
+                                    rwlkStakingContract.status.isConfirming
+                                  }
+                                >
+                                  {stakingRWLKTokenId === token.TokenId
+                                    ? "Staking..."
+                                    : "Stake NFT"}
+                                </Button>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {Math.ceil(availableRWLKTokens.length / itemsPerPage) >
+                      1 && (
+                      <div className="flex justify-center items-center gap-2 mt-8">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setRwlkCurrentPage(rwlkCurrentPage - 1)
+                          }
+                          disabled={rwlkCurrentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex gap-1">
+                          {Array.from(
+                            {
+                              length: Math.ceil(
+                                availableRWLKTokens.length / itemsPerPage
+                              ),
+                            },
+                            (_, i) => i + 1
+                          ).map((page) => {
+                            const totalPages = Math.ceil(
+                              availableRWLKTokens.length / itemsPerPage
+                            );
+                            const showPage =
+                              page === 1 ||
+                              page === totalPages ||
+                              (page >= rwlkCurrentPage - 1 &&
+                                page <= rwlkCurrentPage + 1);
+
+                            if (!showPage) {
+                              if (
+                                page === rwlkCurrentPage - 2 ||
+                                page === rwlkCurrentPage + 2
+                              ) {
+                                return (
+                                  <span
+                                    key={page}
+                                    className="px-3 py-2 text-text-muted"
+                                  >
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            }
+
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant={
+                                  rwlkCurrentPage === page
+                                    ? "primary"
+                                    : "outline"
+                                }
+                                onClick={() => setRwlkCurrentPage(page)}
+                                className="min-w-[40px]"
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setRwlkCurrentPage(rwlkCurrentPage + 1)
+                          }
+                          disabled={
+                            rwlkCurrentPage ===
+                            Math.ceil(availableRWLKTokens.length / itemsPerPage)
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </Container>
+            </section>
+          )}
+
+          {/* Staked Random Walk NFTs */}
+          {isConnected && stakedRWLKTokens.length > 0 && (
+            <section
+              id="staked-rwlk-nfts-section"
+              className="py-12 bg-background-surface/50"
+            >
+              <Container>
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-serif text-2xl font-semibold text-text-primary">
+                      Your Staked Random Walk NFTs
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-text-secondary">
+                        Showing{" "}
+                        {(stakedRwlkCurrentPage - 1) * stakedItemsPerPage + 1}-
+                        {Math.min(
+                          stakedRwlkCurrentPage * stakedItemsPerPage,
+                          stakedRWLKTokens.length
+                        )}{" "}
+                        of {stakedRWLKTokens.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Selection Controls */}
+                  {stakedRWLKTokens.length > 0 && (
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-background-elevated border border-text-muted/10">
+                      <div className="flex items-center gap-4">
+                        {selectedStakedRWLKIds.size > 0 ? (
+                          <>
+                            <span className="text-sm font-medium text-text-primary">
+                              {selectedStakedRWLKIds.size} NFT
+                              {selectedStakedRWLKIds.size > 1 ? "s" : ""}{" "}
+                              selected
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setSelectedStakedRWLKIds(new Set())
+                              }
+                            >
+                              Deselect All
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setSelectedStakedRWLKIds(
+                                  new Set(
+                                    stakedRWLKTokens.map((t) => t.StakeActionId)
+                                  )
+                                )
+                              }
+                            >
+                              Select All ({stakedRWLKTokens.length})
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const startIdx =
+                                  (stakedRwlkCurrentPage - 1) *
+                                  stakedItemsPerPage;
+                                const endIdx = startIdx + stakedItemsPerPage;
+                                const pageTokens = stakedRWLKTokens.slice(
+                                  startIdx,
+                                  endIdx
+                                );
+                                setSelectedStakedRWLKIds(
+                                  new Set(
+                                    pageTokens.map((t) => t.StakeActionId)
+                                  )
+                                );
+                              }}
+                            >
+                              Select Current Page
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                      {selectedStakedRWLKIds.size > 0 && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleRWLKUnstakeSelected}
+                          disabled={
+                            isStakingRWLKMultiple ||
+                            rwlkStakingContract.status.isPending ||
+                            rwlkStakingContract.status.isConfirming
+                          }
+                        >
+                          {isStakingRWLKMultiple
+                            ? "Unstaking..."
+                            : `Unstake Selected (${selectedStakedRWLKIds.size})`}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <Card glass>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-text-muted/10">
+                          <tr className="text-left">
+                            <th className="p-4 text-sm font-medium text-text-secondary w-12">
+                              <input
+                                type="checkbox"
+                                checked={
+                                  stakedRWLKTokens.length > 0 &&
+                                  selectedStakedRWLKIds.size ===
+                                    stakedRWLKTokens.length
+                                }
+                                ref={(input) => {
+                                  if (input) {
+                                    input.indeterminate =
+                                      selectedStakedRWLKIds.size > 0 &&
+                                      selectedStakedRWLKIds.size <
+                                        stakedRWLKTokens.length;
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedStakedRWLKIds(
+                                      new Set(
+                                        stakedRWLKTokens.map(
+                                          (t) => t.StakeActionId
+                                        )
+                                      )
+                                    );
+                                  } else {
+                                    setSelectedStakedRWLKIds(new Set());
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
+                              />
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              NFT
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Token ID
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Stake Action ID
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Staked On
+                            </th>
+                            <th className="p-4 text-sm font-medium text-text-secondary">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-text-muted/10">
+                          {stakedRWLKTokens
+                            .slice(
+                              (stakedRwlkCurrentPage - 1) * stakedItemsPerPage,
+                              stakedRwlkCurrentPage * stakedItemsPerPage
+                            )
+                            .map((stakedToken) => {
+                              const actionId = stakedToken.StakeActionId;
+                              const isSelected =
+                                selectedStakedRWLKIds.has(actionId);
+
+                              return (
+                                <tr
+                                  key={`staked-rwlk-${actionId}-${stakedToken.TokenId}`}
+                                  className={`hover:bg-background-elevated/50 transition-colors ${
+                                    isSelected ? "bg-primary/5" : ""
+                                  }`}
+                                >
+                                  <td className="p-4">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        const newSet = new Set(
+                                          selectedStakedRWLKIds
+                                        );
+                                        if (newSet.has(actionId)) {
+                                          newSet.delete(actionId);
+                                        } else {
+                                          newSet.add(actionId);
+                                        }
+                                        setSelectedStakedRWLKIds(newSet);
+                                      }}
+                                      className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
+                                    />
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
+                                        <Image
+                                          src={getNFTImageUrl(
+                                            stakedToken.TokenId
+                                          )}
+                                          alt={
+                                            stakedToken.TokenName ||
+                                            `Random Walk #${stakedToken.TokenId}`
+                                          }
+                                          fill
+                                          className="object-cover"
+                                          sizes="48px"
+                                        />
+                                      </div>
+                                      <div>
+                                        <p className="font-serif font-semibold text-text-primary">
+                                          {stakedToken.TokenName ||
+                                            `Random Walk #${stakedToken.TokenId}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    <p className="font-mono text-text-primary">
+                                      #{stakedToken.TokenId}
+                                    </p>
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    <p className="font-mono text-text-primary">
+                                      {actionId}
+                                    </p>
+                                  </td>
+                                  <td className="p-4">
+                                    <p className="text-sm text-text-primary">
+                                      {stakedToken.StakeDateTime
+                                        ? new Date(
+                                            stakedToken.StakeDateTime
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                    </p>
+                                    {stakedToken.StakeDateTime && (
+                                      <p className="text-xs text-text-muted">
+                                        {Math.floor(
+                                          (Date.now() -
+                                            new Date(
+                                              stakedToken.StakeDateTime
+                                            ).getTime()) /
+                                            (1000 * 60 * 60 * 24)
+                                        )}{" "}
+                                        days ago
+                                      </p>
+                                    )}
+                                  </td>
+                                  <td className="p-4">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleRWLKUnstake(
+                                          actionId,
+                                          stakedToken.TokenId
+                                        )
+                                      }
+                                      disabled={
+                                        unstakingRWLKActionId === actionId ||
+                                        rwlkStakingContract.status.isPending ||
+                                        rwlkStakingContract.status.isConfirming
+                                      }
+                                    >
+                                      {unstakingRWLKActionId === actionId
+                                        ? "Unstaking..."
+                                        : "Unstake"}
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination for Staked Tokens */}
+                    {Math.ceil(stakedRWLKTokens.length / stakedItemsPerPage) >
+                      1 && (
+                      <div className="flex justify-center items-center gap-2 p-4 border-t border-text-muted/10">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setStakedRwlkCurrentPage(stakedRwlkCurrentPage - 1)
+                          }
+                          disabled={stakedRwlkCurrentPage === 1}
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex gap-1">
+                          {Array.from(
+                            {
+                              length: Math.ceil(
+                                stakedRWLKTokens.length / stakedItemsPerPage
+                              ),
+                            },
+                            (_, i) => i + 1
+                          ).map((page) => {
+                            const totalPages = Math.ceil(
+                              stakedRWLKTokens.length / stakedItemsPerPage
+                            );
+                            const showPage =
+                              page === 1 ||
+                              page === totalPages ||
+                              (page >= stakedRwlkCurrentPage - 1 &&
+                                page <= stakedRwlkCurrentPage + 1);
+
+                            if (!showPage) {
+                              if (
+                                page === stakedRwlkCurrentPage - 2 ||
+                                page === stakedRwlkCurrentPage + 2
+                              ) {
+                                return (
+                                  <span
+                                    key={page}
+                                    className="px-3 py-2 text-text-muted"
+                                  >
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            }
+
+                            return (
+                              <Button
+                                key={page}
+                                size="sm"
+                                variant={
+                                  stakedRwlkCurrentPage === page
+                                    ? "primary"
+                                    : "outline"
+                                }
+                                onClick={() => setStakedRwlkCurrentPage(page)}
+                                className="min-w-[40px]"
+                              >
+                                {page}
+                              </Button>
+                            );
+                          })}
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setStakedRwlkCurrentPage(stakedRwlkCurrentPage + 1)
+                          }
+                          disabled={
+                            stakedRwlkCurrentPage ===
+                            Math.ceil(
+                              stakedRWLKTokens.length / stakedItemsPerPage
+                            )
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Container>
+            </section>
+          )}
         </>
       )}
 

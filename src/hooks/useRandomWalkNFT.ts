@@ -1,13 +1,14 @@
 /**
  * Random Walk NFT Hook
  * 
- * Provides read functionality for RandomWalk NFT contract
+ * Provides read and write functionality for RandomWalk NFT contract
  */
 
-import { useReadContract, useAccount } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { getContractAddresses } from '@/lib/web3/contracts';
 import { useChainId } from 'wagmi';
 import RandomWalkNFTABI from '@/contracts/RandomWalkNFT.json';
+import { defaultChain } from '@/lib/web3/chains';
 
 export function useRandomWalkNFT() {
 	const chainId = useChainId();
@@ -89,6 +90,31 @@ export function useRandomWalkNFT() {
 		});
 	};
 
+	/**
+	 * Check if operator is approved for all tokens of owner
+	 */
+	const useIsApprovedForAll = (ownerAddress?: `0x${string}`, operatorAddress?: `0x${string}`) => {
+		return useReadContract({
+			address: contractAddress,
+			abi: RandomWalkNFTABI,
+			functionName: 'isApprovedForAll',
+			args: ownerAddress && operatorAddress ? [ownerAddress, operatorAddress] : undefined,
+			query: {
+				enabled: !!ownerAddress && !!operatorAddress,
+			}
+		});
+	};
+
+	// Write operations
+	const { data: hash, writeContract, isPending, error } = useWriteContract();
+	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+
+	const contractConfig = {
+		address: contractAddress,
+		abi: RandomWalkNFTABI,
+		chainId: defaultChain.id
+	} as const;
+
 	return {
 		// Contract info
 		contractAddress,
@@ -100,6 +126,30 @@ export function useRandomWalkNFT() {
 			useTokenOfOwnerByIndex,
 			useOwnerOf,
 			useTokenName,
+			useIsApprovedForAll,
+		},
+
+		// Write operations
+		write: {
+			/**
+			 * Set approval for all tokens to an operator
+			 */
+			setApprovalForAll: (operator: `0x${string}`, approved: boolean) => {
+				return writeContract({
+					...contractConfig,
+					functionName: 'setApprovalForAll',
+					args: [operator, approved]
+				});
+			}
+		},
+
+		// Transaction status
+		status: {
+			hash,
+			isPending,
+			isConfirming,
+			isSuccess,
+			error
 		}
 	};
 }
