@@ -14,22 +14,24 @@ interface StatCardProps {
 		isPositive: boolean;
 	};
 	className?: string;
+	valueClassName?: string;
 	delay?: number;
 }
 
-export function StatCard({ label, value, icon: Icon, trend, className, delay = 0 }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, trend, className, valueClassName, delay = 0 }: StatCardProps) {
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 20 }}
 			whileInView={{ opacity: 1, y: 0 }}
 			viewport={{ once: true }}
 			transition={{ duration: 0.5, delay }}
+			className="h-full"
 		>
-			<Card glass hover className={cn('p-6', className)}>
+			<Card glass hover className={cn('p-6 h-full', className)}>
 				<div className="flex items-start justify-between">
 					<div className="flex-1">
 						<p className="text-sm font-medium text-text-secondary mb-2">{label}</p>
-						<p className="font-mono text-3xl md:text-4xl font-semibold text-primary">{value}</p>
+						<p className={cn("font-mono text-3xl md:text-4xl font-semibold text-primary", valueClassName)}>{value}</p>
 						{trend && (
 							<div className="mt-2 flex items-center space-x-1">
 								<span

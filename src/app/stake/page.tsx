@@ -96,12 +96,33 @@ export default function StakePage() {
     number | null
   >(null);
 
+  // Dashboard data state
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+
   // Hooks
   const { showSuccess, showError } = useNotification();
   const nftContract = useCosmicSignatureNFT();
   const rwlkNftContract = useRandomWalkNFT();
   const stakingContract = useStakingWalletCST();
   const rwlkStakingContract = useStakingWalletRWLK();
+
+  // Fetch dashboard data for global staking stats
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setDashboardLoading(true);
+      try {
+        const data = await api.getDashboardInfo();
+        setDashboardData(data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setDashboardLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   // Fetch user's CST tokens
   useEffect(() => {
@@ -865,9 +886,10 @@ export default function StakePage() {
   const yourStakedCount = isConnected ? stakedTokens.length : 0;
   const yourAvailableCount = isConnected ? availableTokens.length : 0;
 
-  const totalStaked = 147; // TODO: Fetch from global staking stats API
-  const rewardPerNFT = 0.084; // TODO: Fetch from staking rewards API
-  const yourTotalRewards = yourStakedCount * rewardPerNFT;
+  // Get totalStaked and rewardPerNFT from API data
+  const totalStaked = dashboardData?.MainStats?.StakeStatisticsCST?.TotalTokensStaked || 0;
+  const stakingAmountEth = dashboardData?.MainStats?.StakeStatisticsCST?.TotalRewardEth || 0;
+  const rewardPerNFT = totalStaked > 0 ? stakingAmountEth / totalStaked : 0;
 
   return (
     <div className="min-h-screen">
@@ -932,21 +954,27 @@ export default function StakePage() {
                   label="Your NFTs"
                   value={loading ? "..." : yourNFTCount}
                   icon={Gem}
+                  className="h-full"
                 />
                 <StatCard
                   label="Currently Staked"
                   value={loading ? "..." : yourStakedCount}
                   icon={Award}
+                  className="h-full"
                 />
                 <StatCard
-                  label="Total Rewards"
-                  value={loading ? "..." : `${formatEth(yourTotalRewards)} ETH`}
+                  label="Total Rewards (Global)"
+                  value={loading ? "..." : `${formatEth(stakingAmountEth)} ETH`}
+                  valueClassName="text-xl md:text-2xl"
                   icon={TrendingUp}
+                  className="h-full"
                 />
                 <StatCard
                   label="Reward Per NFT"
                   value={`${formatEth(rewardPerNFT)} ETH`}
+                  valueClassName="text-xl md:text-2xl"
                   icon={Zap}
+                  className="h-full"
                 />
               </div>
             </Container>
