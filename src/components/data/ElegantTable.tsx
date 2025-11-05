@@ -34,6 +34,9 @@ export function ElegantTable<T extends Record<string, unknown>>({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  // Ensure data is always an array
+  const safeData = Array.isArray(data) ? data : [];
+
   const handleSort = (key: string) => {
     if (sortKey === key) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -43,7 +46,7 @@ export function ElegantTable<T extends Record<string, unknown>>({
     }
   };
 
-  const sortedData = [...data].sort((a, b) => {
+  const sortedData = [...safeData].sort((a, b) => {
     if (!sortKey) return 0;
 
     const aVal = a[sortKey];
@@ -60,7 +63,7 @@ export function ElegantTable<T extends Record<string, unknown>>({
       : bStr.localeCompare(aStr);
   });
 
-  if (data.length === 0) {
+  if (safeData.length === 0) {
     return (
       <Card glass className="p-12 text-center">
         <p className="text-text-secondary">{emptyMessage}</p>
@@ -71,39 +74,43 @@ export function ElegantTable<T extends Record<string, unknown>>({
   if (mode === "cards") {
     return (
       <div className={cn("space-y-4", className)}>
-        {sortedData.map((item, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: Math.min(index * 0.05, 0.3) }}
-          >
-            <Card
-              glass
-              hover
-              className={cn("p-6", onRowClick && "cursor-pointer")}
-              onClick={() => onRowClick?.(item)}
+        {sortedData.map((item, index) => {
+          // Try to use id field if available, otherwise fall back to index
+          const key = item.id ? `card-${item.id}` : `card-idx-${index}`;
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: Math.min(index * 0.05, 0.3) }}
             >
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                {columns.map((col) => (
-                  <div
-                    key={col.key}
-                    className={cn("flex-1 min-w-0", col.className)}
-                  >
-                    <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
-                      {col.label}
-                    </p>
-                    <div className="text-text-primary">
-                      {col.render
-                        ? col.render(item[col.key], item)
-                        : String(item[col.key])}
+              <Card
+                glass
+                hover
+                className={cn("p-6", onRowClick && "cursor-pointer")}
+                onClick={() => onRowClick?.(item)}
+              >
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  {columns.map((col) => (
+                    <div
+                      key={col.key}
+                      className={cn("flex-1 min-w-0", col.className)}
+                    >
+                      <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
+                        {col.label}
+                      </p>
+                      <div className="text-text-primary">
+                        {col.render
+                          ? col.render(item[col.key], item)
+                          : String(item[col.key] ?? "")}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
     );
   }
@@ -139,27 +146,31 @@ export function ElegantTable<T extends Record<string, unknown>>({
             </tr>
           </thead>
           <tbody className="divide-y divide-text-muted/10">
-            {sortedData.map((item, index) => (
-              <motion.tr
-                key={index}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: Math.min(index * 0.02, 0.2) }}
-                className={cn(
-                  "hover:bg-background-elevated/50 transition-colors",
-                  onRowClick && "cursor-pointer"
-                )}
-                onClick={() => onRowClick?.(item)}
-              >
-                {columns.map((col) => (
-                  <td key={col.key} className={cn("p-4", col.className)}>
-                    {col.render
-                      ? col.render(item[col.key], item)
-                      : String(item[col.key])}
-                  </td>
-                ))}
-              </motion.tr>
-            ))}
+            {sortedData.map((item, index) => {
+              // Try to use id field if available, otherwise fall back to index
+              const key = item.id ? `row-${item.id}` : `row-idx-${index}`;
+              return (
+                <motion.tr
+                  key={key}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.2) }}
+                  className={cn(
+                    "hover:bg-background-elevated/50 transition-colors",
+                    onRowClick && "cursor-pointer"
+                  )}
+                  onClick={() => onRowClick?.(item)}
+                >
+                  {columns.map((col) => (
+                    <td key={col.key} className={cn("p-4", col.className)}>
+                      {col.render
+                        ? col.render(item[col.key], item)
+                        : String(item[col.key] ?? "")}
+                    </td>
+                  ))}
+                </motion.tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

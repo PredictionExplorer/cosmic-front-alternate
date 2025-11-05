@@ -130,6 +130,11 @@ export default function Home() {
     async function fetchNFTs() {
       try {
         const nfts = await api.getCSTList();
+        // Check if nfts is null or not an array
+        if (!nfts || !Array.isArray(nfts)) {
+          setFeaturedNFTs([]);
+          return;
+        }
         // Get the 6 most recent NFTs
         const recent = nfts
           .sort(
@@ -167,6 +172,11 @@ export default function Home() {
     async function fetchBannedBids() {
       try {
         const bids = await api.getBannedBids();
+        // Check if bids is null or not an array
+        if (!bids || !Array.isArray(bids)) {
+          setBannedBids([]);
+          return;
+        }
         const bannedIds = bids.map(
           (x: Record<string, unknown>) => x.bid_id as number
         );
@@ -190,6 +200,12 @@ export default function Home() {
             "desc"
           );
 
+          // Check if bids is null or not an array
+          if (!bids || !Array.isArray(bids)) {
+            setCurrentBids([]);
+            return;
+          }
+
           // Get the 10 most recent bids and calculate durations
           const recentBids = bids
             .slice(0, 10)
@@ -210,8 +226,9 @@ export default function Home() {
               }
 
               // For CST bids, use NumCSTTokensEth field; for ETH/RWLK bids, use BidPrice
-              const amount =
-                bidTypeNum === 2 ? bid.NumCSTTokensEth : bid.BidPriceEth;
+              const amount = (bidTypeNum === 2
+                ? bid.NumCSTTokensEth
+                : bid.BidPriceEth) as number || 0;
 
               const processedBid = {
                 id: (bid.EvtLogId as number) || 0,
@@ -538,7 +555,7 @@ export default function Home() {
                   <p className="text-text-secondary">Loading bids...</p>
                 </div>
               </Card>
-            ) : currentBids.length > 0 ? (
+            ) : Array.isArray(currentBids) && currentBids.length > 0 ? (
               <ElegantTable
                 data={currentBids}
                 mode="table"
@@ -870,7 +887,7 @@ export default function Home() {
             {isLoadingNFTs ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, index) => (
-                  <div key={index} className="animate-pulse">
+                  <div key={`skeleton-${index}`} className="animate-pulse">
                     <Card glass className="overflow-hidden">
                       <div className="aspect-square bg-background-elevated" />
                       <div className="p-4 space-y-3">
@@ -881,11 +898,11 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            ) : featuredNFTs.length > 0 ? (
+            ) : Array.isArray(featuredNFTs) && featuredNFTs.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {featuredNFTs.map((nft, index) => (
                   <NFTCard
-                    key={nft.id}
+                    key={`nft-${nft.id}`}
                     nft={nft}
                     delay={index * 0.1}
                     priority={index < 3}
