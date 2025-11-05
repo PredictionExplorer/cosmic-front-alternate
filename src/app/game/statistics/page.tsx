@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   TrendingUp,
   Users,
@@ -15,6 +16,9 @@ import {
   Heart,
   Zap,
   BarChart3,
+  Calendar,
+  Timer,
+  Coins,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
@@ -25,7 +29,9 @@ import { ElegantTable } from "@/components/data/ElegantTable";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
 import api from "@/services/api";
-import { formatEth, formatCst } from "@/lib/utils";
+import { formatEth, formatCst, formatDate } from "@/lib/utils";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 interface GlobalStats {
   totalRounds: number;
@@ -50,6 +56,54 @@ interface TopWinner {
   totalWon: number;
 }
 
+interface CSTBidData {
+  CSTPrice: number;
+  SecondsElapsed: number;
+  AuctionDuration: number;
+}
+
+// Helper function to format seconds into readable time
+const formatSeconds = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${Math.floor(seconds)}s`;
+  } else if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}m ${secs}s`;
+  } else if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  } else {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    return `${days}d ${hours}h`;
+  }
+};
+
+// Helper function to format CST value
+const formatCSTValue = (value: number): string => {
+  return `${formatCst(value)} CST`;
+};
+
+// Helper function to format ETH value
+const formatEthValue = (value: number): string => {
+  return `${formatEth(value)} ETH`;
+};
+
+// Helper function to convert timestamp to date/time string
+const convertTimestampToDateTime = (
+  timestamp: number,
+  includeTime = false
+): string => {
+  if (timestamp === 0) return "N/A";
+  const date = new Date(timestamp * 1000);
+  if (includeTime) {
+    return formatDate(date);
+  }
+  return formatDate(date);
+};
+
 export default function StatisticsPage() {
   const { dashboardData } = useApiData();
   const [globalStats, setGlobalStats] = useState<GlobalStats>({
@@ -67,6 +121,11 @@ export default function StatisticsPage() {
   const [topBidders, setTopBidders] = useState<TopBidder[]>([]);
   const [topWinners, setTopWinners] = useState<TopWinner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cstBidData, setCstBidData] = useState<CSTBidData>({
+    CSTPrice: 0,
+    SecondsElapsed: 0,
+    AuctionDuration: 0,
+  });
 
   // Fetch all statistics data
   useEffect(() => {
@@ -172,13 +231,147 @@ export default function StatisticsPage() {
     fetchStatistics();
   }, []);
 
-  // Current round stats from dashboard
-  const currentRound = {
-    roundNumber: dashboardData?.CurRoundNum || 0,
-    prizePool: (dashboardData?.PrizeAmountEth as number) || 0,
-    totalBids: (dashboardData?.CurNumBids as number) || 0,
-    contractBalance: (dashboardData?.CosmicGameBalanceEth as number) || 0,
+  // Fetch CST bid price data
+  useEffect(() => {
+    async function fetchCSTBidData() {
+      try {
+        const data = await api.getCSTPrice();
+        if (data) {
+          setCstBidData({
+            CSTPrice: data.CSTPrice || 0,
+            SecondsElapsed: data.SecondsElapsed || 0,
+            AuctionDuration: data.AuctionDuration || 0,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch CST bid price:", error);
+      }
+    }
+    fetchCSTBidData();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchCSTBidData, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Ensure dashboardData is available
+  const data = dashboardData || {
+    CurRoundNum: 0,
+    TsRoundStart: 0,
+    BidPriceEth: 0,
+    CurNumBids: 0,
+    PrizeAmountEth: 0,
+    PrizeClaimTs: 0,
+    LastBidderAddr: ZERO_ADDRESS,
+    CosmicGameBalanceEth: 0,
+    CurRoundStats: {
+      TotalDonatedNFTs: 0,
+      TotalDonatedAmountEth: 0,
+    },
   };
+
+  // Current round stats - comprehensive data
+  const currentRoundStats: Array<{
+    title: string;
+    value: React.ReactNode;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+  }> = [
+    { title: "Current Round", value: String(data.CurRoundNum), icon: Target },
+    {
+      title: "Round Start Date",
+      value:
+        data.LastBidderAddr === ZERO_ADDRESS
+          ? "Round isn't started yet."
+          : convertTimestampToDateTime(data.TsRoundStart as number),
+      icon: Calendar,
+    },
+    {
+      title: "Current Bid Price",
+      value: formatEthValue(data.BidPriceEth as number),
+      icon: DollarSign,
+    },
+    {
+      title: "Current Bid Price using RandomWalk",
+      value: formatEthValue((data.BidPriceEth as number) / 2),
+      icon: Gem,
+    },
+    {
+      title: "Current Bid Price using CST",
+      value:
+        cstBidData?.CSTPrice > 0 ? formatCSTValue(cstBidData.CSTPrice) : "FREE",
+      icon: Coins,
+    },
+    {
+      title: "CST Auction Elapsed Time",
+      value: formatSeconds(cstBidData.SecondsElapsed),
+      icon: Timer,
+    },
+    {
+      title: "CST Auction Duration",
+      value: formatSeconds(cstBidData.AuctionDuration),
+      icon: Clock,
+    },
+    {
+      title: "Number of Bids Since Round Start",
+      value: String(data.CurNumBids),
+      icon: Activity,
+    },
+    {
+      title: "Total Donated NFTs",
+      value: String(
+        (data.CurRoundStats as Record<string, unknown>)?.TotalDonatedNFTs || 0
+      ),
+      icon: Gem,
+    },
+    {
+      title: "Total Donated ETH",
+      value: (
+        <Link
+          href={`/eth-donation/round/${data.CurRoundNum}`}
+          target="_blank"
+          className="font-mono text-primary hover:underline"
+        >
+          {formatEthValue(
+            ((data.CurRoundStats as Record<string, unknown>)
+              ?.TotalDonatedAmountEth as number) || 0
+          )}
+        </Link>
+      ),
+      icon: Heart,
+    },
+    {
+      title: "Prize Amount",
+      value: formatEthValue(data.PrizeAmountEth as number),
+      icon: Trophy,
+    },
+    {
+      title: "Prize Claim Date",
+      value:
+        (data.PrizeClaimTs as number) === 0
+          ? "Round isn't started yet."
+          : convertTimestampToDateTime(data.PrizeClaimTs as number, true),
+      icon: Calendar,
+    },
+    {
+      title: "Last Bidder",
+      value:
+        data.LastBidderAddr === ZERO_ADDRESS ? (
+          "Round isn't started yet."
+        ) : (
+          <Link
+            href={`/user/${data.LastBidderAddr}`}
+            className="font-mono text-primary hover:underline break-all"
+          >
+            {data.LastBidderAddr}
+          </Link>
+        ),
+      icon: Users,
+    },
+    {
+      title: "Contract Balance",
+      value: formatEthValue(data.CosmicGameBalanceEth as number),
+      icon: DollarSign,
+    },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -213,34 +406,46 @@ export default function StatisticsPage() {
       {/* Current Round Overview */}
       <section className="py-12">
         <Container>
-          <div className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
             <h2 className="font-serif text-2xl font-semibold text-text-primary mb-2">
               Current Round Status
             </h2>
-            <p className="text-text-secondary">Live metrics for Round {currentRound.roundNumber}</p>
-          </div>
+            <p className="text-text-secondary">
+              Live metrics for Round {data.CurRoundNum}
+            </p>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard
-              label="Round Number"
-              value={currentRound.roundNumber.toString()}
-              icon={Target}
-            />
-            <StatCard
-              label="Prize Pool"
-              value={`${currentRound.prizePool.toFixed(2)} ETH`}
-              icon={Trophy}
-            />
-            <StatCard
-              label="Total Bids"
-              value={currentRound.totalBids.toString()}
-              icon={Activity}
-            />
-            <StatCard
-              label="Contract Balance"
-              value={`${currentRound.contractBalance.toFixed(2)} ETH`}
-              icon={DollarSign}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentRoundStats.map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card glass hover className="p-6 h-full">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <stat.icon size={24} className="text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm text-text-secondary mb-2 uppercase tracking-wide">
+                        {stat.title}
+                      </h3>
+                      <div className="text-lg font-semibold text-text-primary break-words">
+                        {stat.value}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </div>
         </Container>
       </section>
