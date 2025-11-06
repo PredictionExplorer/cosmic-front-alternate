@@ -263,9 +263,29 @@ export default function StatisticsPage() {
     PrizeClaimTs: 0,
     LastBidderAddr: ZERO_ADDRESS,
     CosmicGameBalanceEth: 0,
+    TotalPrizes: 0,
+    TotalPrizesPaidAmountEth: 0,
+    NumRwalkTokensUsed: 0,
+    CharityBalanceEth: 0,
+    NumDonatedNFTs: 0,
     CurRoundStats: {
       TotalDonatedNFTs: 0,
       TotalDonatedAmountEth: 0,
+    },
+    MainStats: {
+      NumCSTokenMints: 0,
+      TotalRaffleEthDeposits: 0,
+      TotalCSTConsumedEth: 0,
+      TotalMktRewardsEth: 0,
+      NumMktRewards: 0,
+      TotalRaffleEthWithdrawn: 0,
+      NumBidsCST: 0,
+      NumUniqueBidders: 0,
+      NumUniqueWinners: 0,
+      NumUniqueDonors: 0,
+      TotalNamedTokens: 0,
+      NumUniqueStakersCST: 0,
+      NumUniqueStakersRWalk: 0,
     },
   };
 
@@ -373,6 +393,168 @@ export default function StatisticsPage() {
     },
   ];
 
+  // Overall statistics - comprehensive all-time data
+  const overallStats: Array<{
+    title: string;
+    value: React.ReactNode;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+  }> = [
+    {
+      title: "CosmicGame contract balance",
+      value: formatEthValue(data.CosmicGameBalanceEth as number),
+      icon: DollarSign,
+    },
+    {
+      title: "Num Prizes Given",
+      value: (
+        <Link href="/prize" className="font-mono text-primary hover:underline">
+          {(data.TotalPrizes as number) || 0}
+        </Link>
+      ),
+      icon: Trophy,
+    },
+    {
+      title: "Total Cosmic Signature Tokens minted",
+      value: (
+        <Link
+          href="/gallery"
+          className="font-mono text-primary hover:underline"
+        >
+          {((data.MainStats as Record<string, unknown>)?.NumCSTokenMints as number) || 0}
+        </Link>
+      ),
+      icon: Gem,
+    },
+    {
+      title: "Total Amount Paid in Main Prizes",
+      value: formatEthValue((data.TotalPrizesPaidAmountEth as number) || 0),
+      icon: Award,
+    },
+    {
+      title: "Total Amount Paid in ETH Raffles",
+      value: formatEthValue(
+        ((data.MainStats as Record<string, unknown>)?.TotalRaffleEthDeposits as number) || 0
+      ),
+      icon: TrendingUp,
+    },
+    {
+      title: "Total CST Consumed",
+      value: formatCSTValue(
+        ((data.MainStats as Record<string, unknown>)?.TotalCSTConsumedEth as number) || 0
+      ),
+      icon: Coins,
+    },
+    {
+      title: "Total Reward Paid to Marketing Agents with CST",
+      value: formatCSTValue(
+        ((data.MainStats as Record<string, unknown>)?.TotalMktRewardsEth as number) || 0
+      ),
+      icon: Zap,
+    },
+    {
+      title: "Number of Marketing Reward Transactions",
+      value: (
+        <Link
+          href="/marketing"
+          className="font-mono text-primary hover:underline"
+        >
+          {((data.MainStats as Record<string, unknown>)?.NumMktRewards as number) || 0}
+        </Link>
+      ),
+      icon: Activity,
+    },
+    {
+      title: "Amount of ETH collected by the winners from raffles",
+      value: formatEthValue(
+        ((data.MainStats as Record<string, unknown>)?.TotalRaffleEthWithdrawn as number) || 0
+      ),
+      icon: TrendingUp,
+    },
+    {
+      title: "RandomWalk Tokens Used",
+      value: (
+        <Link
+          href="/used-rwlk-nfts"
+          className="font-mono text-primary hover:underline"
+        >
+          {(data.NumRwalkTokensUsed as number) || 0}
+        </Link>
+      ),
+      icon: Gem,
+    },
+    {
+      title: "Charity Balance",
+      value: formatEthValue((data.CharityBalanceEth as number) || 0),
+      icon: Heart,
+    },
+    {
+      title: "Number of Bids with CST",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumBidsCST as number) || 0
+      ),
+      icon: Coins,
+    },
+    {
+      title: "Number of Unique Bidders",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumUniqueBidders as number) || 0
+      ),
+      icon: Users,
+    },
+    {
+      title: "Number of Unique Winners",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumUniqueWinners as number) || 0
+      ),
+      icon: Trophy,
+    },
+    {
+      title: "Number of Unique ETH Donors",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumUniqueDonors as number) || 0
+      ),
+      icon: Heart,
+    },
+    {
+      title: "Number of Donated NFTs",
+      value: (
+        <Link
+          href="/nft-donations"
+          className="font-mono text-primary hover:underline"
+        >
+          {(data.NumDonatedNFTs as number) || 0}
+        </Link>
+      ),
+      icon: Gem,
+    },
+    {
+      title: "Amount of Cosmic Signature Tokens with assigned name",
+      value: (
+        <Link
+          href="/named-nfts"
+          className="font-mono text-primary hover:underline"
+        >
+          {((data.MainStats as Record<string, unknown>)?.TotalNamedTokens as number) || 0}
+        </Link>
+      ),
+      icon: Award,
+    },
+    {
+      title: "Number of Unique CST Stakers",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumUniqueStakersCST as number) || 0
+      ),
+      icon: Users,
+    },
+    {
+      title: "Number of Unique Random Walk Stakers",
+      value: String(
+        ((data.MainStats as Record<string, unknown>)?.NumUniqueStakersRWalk as number) || 0
+      ),
+      icon: Users,
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -462,62 +644,34 @@ export default function StatisticsPage() {
             </p>
           </div>
 
-          {isLoading ? (
-            <Card glass className="p-12 text-center">
-              <div className="flex items-center justify-center space-x-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-text-secondary">Loading statistics...</p>
-              </div>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <StatCard
-                label="Total Rounds Played"
-                value={globalStats.totalRounds.toLocaleString()}
-                icon={Clock}
-              />
-              <StatCard
-                label="Total Bids Placed"
-                value={globalStats.totalBids.toLocaleString()}
-                icon={Zap}
-              />
-              <StatCard
-                label="Total ETH Collected"
-                value={`${formatEth(globalStats.totalETHCollected)} ETH`}
-                icon={DollarSign}
-              />
-              <StatCard
-                label="Total NFTs Minted"
-                value={globalStats.totalNFTsMinted.toLocaleString()}
-                icon={Gem}
-              />
-              <StatCard
-                label="CST Tokens Distributed"
-                value={formatCst(globalStats.totalCSTDistributed)}
-                icon={Award}
-              />
-              <StatCard
-                label="Unique Players"
-                value={globalStats.uniqueBidders.toLocaleString()}
-                icon={Users}
-              />
-              <StatCard
-                label="Unique Winners"
-                value={globalStats.uniqueWinners.toLocaleString()}
-                icon={Trophy}
-              />
-              <StatCard
-                label="Charity Donations"
-                value={`${formatEth(globalStats.totalCharityDonations)} ETH`}
-                icon={Heart}
-              />
-              <StatCard
-                label="Voluntary Contributions"
-                value={`${formatEth(globalStats.totalVoluntaryDonations)} ETH`}
-                icon={TrendingUp}
-              />
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {overallStats.map((stat, index) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+              >
+                <Card glass hover className="p-6 h-full">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="p-3 rounded-lg bg-primary/10">
+                        <stat.icon size={24} className="text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm text-text-secondary mb-2 uppercase tracking-wide">
+                        {stat.title}
+                      </h3>
+                      <div className="text-lg font-semibold text-text-primary break-words">
+                        {stat.value}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
         </Container>
       </section>
 
