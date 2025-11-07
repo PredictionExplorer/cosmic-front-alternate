@@ -4,7 +4,7 @@
  * Provides read and write functionality for RandomWalk NFT contract
  */
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { getContractAddresses } from '@/lib/web3/contracts';
 import { useChainId } from 'wagmi';
 import RandomWalkNFTABI from '@/contracts/RandomWalkNFT.json';
@@ -12,7 +12,6 @@ import { defaultChain } from '@/lib/web3/chains';
 
 export function useRandomWalkNFT() {
 	const chainId = useChainId();
-	const { address } = useAccount();
 	const contractAddress = getContractAddresses(chainId).RANDOM_WALK_NFT;
 
 	/**

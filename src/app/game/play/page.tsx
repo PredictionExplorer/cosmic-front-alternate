@@ -877,7 +877,7 @@ export default function PlayPage() {
                                 className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
                               />
                               <p className="text-xs text-text-muted">
-                                Enter the amount in token's base unit (e.g., 1.5
+                                Enter the amount in token&apos;s base unit (e.g., 1.5
                                 for 1.5 tokens)
                               </p>
                             </div>

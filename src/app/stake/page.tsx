@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/game/StatCard";
-import { GAME_CONSTANTS, MOCK_NFTS } from "@/lib/constants";
+import { GAME_CONSTANTS } from "@/lib/constants";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
 import type {
@@ -27,6 +27,15 @@ import {
 import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { useNotification } from "@/contexts/NotificationContext";
+
+/**
+ * Type for staking rewards from API
+ */
+interface StakingReward {
+  TokenId: number;
+  RewardToCollectEth?: number;
+  TotalReward?: number;
+}
 
 /**
  * Get user's available (unstaked) Cosmic Signature NFTs
@@ -63,7 +72,7 @@ export default function StakePage() {
   const [unstakingActionId, setUnstakingActionId] = useState<number | null>(
     null
   );
-  const [stakingRewards, setStakingRewards] = useState<any[]>([]);
+  const [stakingRewards, setStakingRewards] = useState<StakingReward[]>([]);
   const [loadingRewards, setLoadingRewards] = useState(false);
   const [selectedStakedIds, setSelectedStakedIds] = useState<Set<number>>(
     new Set()
@@ -97,8 +106,16 @@ export default function StakePage() {
   >(null);
 
   // Dashboard data state
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardData, setDashboardData] = useState<{
+    CosmicSignatureTokenStakingTotalSupply?: number;
+    RandomWalkNFTStakingTotalSupply?: number;
+    MainStats?: {
+      StakeStatisticsCST?: {
+        TotalTokensStaked?: number;
+        TotalRewardEth?: number;
+      };
+    };
+  } | null>(null);
 
   // Hooks
   const { showSuccess, showError } = useNotification();
@@ -110,14 +127,11 @@ export default function StakePage() {
   // Fetch dashboard data for global staking stats
   useEffect(() => {
     const fetchDashboardData = async () => {
-      setDashboardLoading(true);
       try {
         const data = await api.getDashboardInfo();
         setDashboardData(data);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setDashboardLoading(false);
       }
     };
 
@@ -214,7 +228,7 @@ export default function StakePage() {
 
       // Create set of staked token IDs for quick lookup
       const stakedTokenIdsSet = new Set(
-        stakedTokens.map((token: any) => token.TokenId)
+        stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
       );
 
       // Filter available tokens (owned, not staked, and not in partial action)
@@ -224,8 +238,8 @@ export default function StakePage() {
           (tokenId) =>
             !stakedTokenIdsSet.has(tokenId) &&
             !rwalkActions.some(
-              (action: any) =>
-                action.ActionType !== 1 && action.TokenId === tokenId
+              (action: StakedRWLKToken) =>
+                action.StakeActionId !== tokenId
             )
         )
         .map((tokenId) => ({
@@ -268,7 +282,7 @@ export default function StakePage() {
 
         // Create set of staked token IDs for quick lookup
         const stakedTokenIdsSet = new Set(
-          stakedTokens.map((token: any) => token.TokenId)
+          stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
         );
 
         // Filter available tokens (owned, not staked, and not in partial action)
@@ -278,8 +292,8 @@ export default function StakePage() {
             (tokenId) =>
               !stakedTokenIdsSet.has(tokenId) &&
               !rwalkActions.some(
-                (action: any) =>
-                  action.ActionType !== 1 && action.TokenId === tokenId
+                (action: StakedRWLKToken) =>
+                  action.StakeActionId !== tokenId
               )
           )
           .map((tokenId) => ({
@@ -458,9 +472,9 @@ export default function StakePage() {
       showSuccess(
         `Transaction submitted! Unstaking ${selectedStakedIds.size} NFTs and claiming rewards...`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Unstake selected failed:", error);
-      showError(error?.message || "Failed to unstake NFTs. Please try again.");
+      showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
       setIsStakingMultiple(false);
     }
   };
@@ -500,9 +514,9 @@ export default function StakePage() {
       );
       showSuccess("Approval requested! Please confirm the transaction.");
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Approval failed:", error);
-      showError(error?.message || "Failed to approve. Please try again.");
+      showError((error as Error)?.message || "Failed to approve. Please try again.");
       return false;
     }
   }, [nftContract, showSuccess, showError]);
@@ -540,9 +554,9 @@ export default function StakePage() {
       showSuccess("Transaction submitted! Waiting for confirmation...");
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Staking failed:", error);
-      showError(error?.message || "Failed to stake NFT. Please try again.");
+      showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
       setStakingTokenId(null);
     }
   };
@@ -586,9 +600,9 @@ export default function StakePage() {
       showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Multi-staking failed:", error);
-      showError(error?.message || "Failed to stake NFTs. Please try again.");
+      showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
       setIsStakingMultiple(false);
     }
   };
@@ -613,47 +627,10 @@ export default function StakePage() {
       );
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Unstaking failed:", error);
-      showError(error?.message || "Failed to unstake NFT. Please try again.");
+      showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
       setUnstakingActionId(null);
-    }
-  };
-
-  // Handle unstaking all
-  const handleUnstakeAll = async () => {
-    try {
-      // Check if contracts are initialized
-      if (!stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      if (stakedTokens.length === 0) {
-        showError("No staked NFTs to unstake.");
-        return;
-      }
-
-      setIsStakingMultiple(true);
-
-      // Get all stake action IDs from TokenInfo
-      const stakeActionIds = stakedTokens.map((stakedToken) =>
-        BigInt(stakedToken.TokenInfo.StakeActionId)
-      );
-
-      // Unstake all NFTs
-      await stakingContract.write.unstakeMany(stakeActionIds);
-      showSuccess(
-        `Transaction submitted! Unstaking ${stakedTokens.length} NFTs and claiming all rewards...`
-      );
-
-      // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: any) {
-      console.error("Unstake all failed:", error);
-      showError(error?.message || "Failed to unstake NFTs. Please try again.");
-      setIsStakingMultiple(false);
     }
   };
 
@@ -670,9 +647,9 @@ export default function StakePage() {
       );
       showSuccess("Approval requested! Please confirm the transaction.");
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("RWLK Approval failed:", error);
-      showError(error?.message || "Failed to approve. Please try again.");
+      showError((error as Error)?.message || "Failed to approve. Please try again.");
       return false;
     }
   }, [rwlkNftContract, showSuccess, showError]);
@@ -706,9 +683,9 @@ export default function StakePage() {
       // Stake the NFT
       await rwlkStakingContract.write.stake(BigInt(tokenId));
       showSuccess("Transaction submitted! Waiting for confirmation...");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("RWLK Staking failed:", error);
-      showError(error?.message || "Failed to stake NFT. Please try again.");
+      showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
       setStakingRWLKTokenId(null);
     }
   };
@@ -748,9 +725,9 @@ export default function StakePage() {
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
       showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("RWLK Multi-staking failed:", error);
-      showError(error?.message || "Failed to stake NFTs. Please try again.");
+      showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
       setIsStakingRWLKMultiple(false);
     }
   };
@@ -769,9 +746,9 @@ export default function StakePage() {
 
       await rwlkStakingContract.write.unstake(BigInt(stakeActionId));
       showSuccess(`Transaction submitted! Unstaking token #${tokenId}...`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("RWLK Unstaking failed:", error);
-      showError(error?.message || "Failed to unstake NFT. Please try again.");
+      showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
       setUnstakingRWLKActionId(null);
     }
   };
@@ -801,9 +778,9 @@ export default function StakePage() {
       showSuccess(
         `Transaction submitted! Unstaking ${selectedStakedRWLKIds.size} NFTs...`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("RWLK Unstake selected failed:", error);
-      showError(error?.message || "Failed to unstake NFTs. Please try again.");
+      showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
       setIsStakingRWLKMultiple(false);
     }
   };

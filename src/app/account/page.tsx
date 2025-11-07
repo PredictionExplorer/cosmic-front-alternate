@@ -79,8 +79,6 @@ export default function AccountDashboardPage() {
   const { address, isConnected } = useAccount();
   const [userInfo, setUserInfo] = useState<UserInfoAPI>(DEFAULT_USER_INFO);
   const [winnings, setWinnings] = useState<UserWinningsAPI>(DEFAULT_WINNINGS);
-  const [isLoadingWinnings, setIsLoadingWinnings] = useState(false);
-  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(false);
   const recentActivities = MOCK_USER_ACTIVITIES.slice(0, 5);
   const userNFTs = MOCK_NFTS.slice(0, 6); // Preview of user's NFTs
 
@@ -93,7 +91,6 @@ export default function AccountDashboardPage() {
       }
 
       try {
-        setIsLoadingUserInfo(true);
         const data = await api.getUserInfo(address);
         console.log("User info data:", data);
         if (data && data.UserInfo) {
@@ -118,8 +115,6 @@ export default function AccountDashboardPage() {
       } catch (error) {
         console.error("Failed to fetch user info:", error);
         setUserInfo(DEFAULT_USER_INFO);
-      } finally {
-        setIsLoadingUserInfo(false);
       }
     }
 
@@ -135,7 +130,6 @@ export default function AccountDashboardPage() {
       }
 
       try {
-        setIsLoadingWinnings(true);
         const data = await api.getUserWinnings(address);
 
         if (data) {
@@ -150,8 +144,6 @@ export default function AccountDashboardPage() {
       } catch (error) {
         console.error("Failed to fetch user winnings:", error);
         setWinnings(DEFAULT_WINNINGS);
-      } finally {
-        setIsLoadingWinnings(false);
       }
     }
 
