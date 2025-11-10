@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Users, Clock, TrendingUp, ArrowLeft } from "lucide-react";
+import { Trophy, Users, Clock, TrendingUp, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
@@ -11,9 +11,107 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
-import { getRoundInfo } from "@/lib/mockData/rounds";
 import { formatEth, formatCst, formatDate, formatDuration } from "@/lib/utils";
 import api from "@/services/api";
+
+// API Response Interfaces
+interface RoundStats {
+  RoundNum: number;
+  TotalBids: number;
+  TotalDonatedNFTs: number;
+  NumERC20Donations: number;
+  TotalRaffleEthDeposits: string;
+  TotalRaffleEthDepositsEth: number;
+  TotalRaffleNFTs: number;
+  TotalDonatedCount: number;
+  TotalDonatedAmount: string;
+  TotalDonatedAmountEth: number;
+}
+
+interface RaffleNFTWinner {
+  RecordId: number;
+  EvtLogId: number;
+  BlockNum: number;
+  TxId: number;
+  TxHash: string;
+  TimeStamp: number;
+  DateTime: string;
+  WinnerAddr: string;
+  WinnerAid: number;
+  RoundNum: number;
+  TokenId: number;
+  CstAmount: string;
+  CstAmountEth: number;
+  WinnerIndex: number;
+  IsRWalk: boolean;
+  IsStaker: boolean;
+}
+
+interface RaffleETHDeposit {
+  RecordId: number;
+  EvtLogId: number;
+  BlockNum: number;
+  TxId: number;
+  TxHash: string;
+  TimeStamp: number;
+  DateTime: string;
+  RecordType: number;
+  WinnerAddr: string;
+  WinnerAid: number;
+  WinnerIndex: number;
+  RoundNum: number;
+  Amount: number;
+  Claimed: boolean;
+  ClaimTimeStamp: number;
+  ClaimDateTime: string;
+}
+
+interface ApiRoundInfo {
+  EvtLogId: number;
+  BlockNum: number;
+  TxId: number;
+  TxHash: string;
+  TimeStamp: number;
+  DateTime: string;
+  WinnerAid: number;
+  WinnerAddr: string;
+  TimeoutTs: number;
+  Amount: string;
+  AmountEth: number;
+  RoundNum: number;
+  TokenId: number;
+  Seed: string;
+  CharityAddress: string;
+  CharityAmount: string;
+  CharityAmountETH: number;
+  StakingDepositId: number;
+  StakingDepositAmount: string;
+  StakingDepositAmountEth: number;
+  StakingPerToken: string;
+  StakingPerTokenEth: number;
+  StakingNumStakedTokens: number;
+  MainPrizeCstAmount: string;
+  MainPrizeCstAmountEth: number;
+  EnduranceWinnerAddr: string;
+  EnduranceERC721TokenId: number;
+  LastCstBidderAddr: string;
+  LastCstBidderERC721TokenId: number;
+  EnduranceERC20Amount: string;
+  EnduranceERC20AmountEth: number;
+  LastCstBidderERC20Amount: string;
+  LastCstBidderERC20AmountEth: number;
+  ChronoWarriorAddr: string;
+  ChronoWarriorEthAmount: string;
+  ChronoWarriorEthAmountEth: number;
+  ChronoWarriorCstAmount: string;
+  ChronoWarriorCstAmountEth: number;
+  ChronoWarriorNftId: number;
+  RoundStats: RoundStats;
+  RaffleNFTWinners: RaffleNFTWinner[] | null;
+  StakingNFTWinners: RaffleNFTWinner[] | null;
+  RaffleETHDeposits: RaffleETHDeposit[] | null;
+  AllPrizes: any[] | null;
+}
 
 export default function RoundDetailPage({
   params,
@@ -21,7 +119,11 @@ export default function RoundDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const round = getRoundInfo(parseInt(id));
+  const roundNum = parseInt(id);
+  
+  const [round, setRound] = useState<ApiRoundInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "overview" | "winners" | "stats" | "bids" | "donations"
   >("overview");
@@ -60,12 +162,31 @@ export default function RoundDetailPage({
   >([]);
   const [isLoadingDonations, setIsLoadingDonations] = useState(true);
 
+  // Fetch round data from API
+  useEffect(() => {
+    async function fetchRoundData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.getRoundInfo(roundNum);
+        setRound(response);
+      } catch (err) {
+        console.error("Error fetching round data:", err);
+        setError("Failed to load round data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchRoundData();
+  }, [roundNum]);
+
   // Fetch bids for this round
   useEffect(() => {
     async function fetchBids() {
       if (!round) return;
       try {
-        const bidsData = await api.getBidListByRound(round.roundNum, "desc");
+        const bidsData = await api.getBidListByRound(round.RoundNum, "desc");
         const formattedBids = bidsData.map((bid: Record<string, unknown>) => ({
           id: (bid.EvtLogId as number) || 0,
           bidder: (bid.BidderAddr as string) || "0x0",
@@ -91,8 +212,8 @@ export default function RoundDetailPage({
       if (!round) return;
       try {
         const [ethDonationsData, nftDonationsData] = await Promise.all([
-          api.getETHDonationsByRound(round.roundNum),
-          api.getNFTDonationsByRound(round.roundNum),
+          api.getETHDonationsByRound(round.RoundNum),
+          api.getNFTDonationsByRound(round.RoundNum),
         ]);
 
         // Format ETH donations
@@ -129,14 +250,32 @@ export default function RoundDetailPage({
     fetchDonations();
   }, [round]);
 
-  if (!round) {
+  // Loading state
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Container>
           <Card glass className="p-12 text-center">
-            <h1 className="heading-sm mb-4">Round Not Found</h1>
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-text-secondary">Loading round data...</p>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !round) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Container>
+          <Card glass className="p-12 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h1 className="heading-sm mb-4">
+              {error ? "Error Loading Round" : "Round Not Found"}
+            </h1>
             <p className="text-text-secondary mb-6">
-              This round doesn&apos;t exist or hasn&apos;t been played yet.
+              {error || "This round doesn't exist or hasn't been played yet."}
             </p>
             <Button asChild>
               <Link href="/game/history/rounds">
@@ -150,6 +289,10 @@ export default function RoundDetailPage({
     );
   }
 
+  // Calculate derived values
+  const duration = round.TimeoutTs - round.TimeStamp;
+  const totalPool = round.AmountEth + round.StakingDepositAmountEth + round.RoundStats.TotalRaffleEthDepositsEth;
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
@@ -160,7 +303,7 @@ export default function RoundDetailPage({
               { label: "Game", href: "/game/play" },
               { label: "History" },
               { label: "Rounds", href: "/game/history/rounds" },
-              { label: `Round ${round.roundNum}` },
+              { label: `Round ${round.RoundNum}` },
             ]}
             className="mb-8"
           />
@@ -171,10 +314,10 @@ export default function RoundDetailPage({
           >
             <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
               <div>
-                <h1 className="heading-xl mb-2">Round {round.roundNum}</h1>
+                <h1 className="heading-xl mb-2">Round {round.RoundNum}</h1>
                 <p className="text-text-secondary">
-                  Completed on {formatDate(new Date(round.claimedAt * 1000))} •
-                  Duration: {formatDuration(round.duration * 1000)}
+                  Completed on {formatDate(new Date(round.TimeStamp * 1000))} •
+                  Duration: {formatDuration(duration * 1000)}
                 </p>
               </div>
 
@@ -183,7 +326,7 @@ export default function RoundDetailPage({
                   Total Prize Pool
                 </p>
                 <p className="font-mono text-4xl font-bold text-primary">
-                  {formatEth(round.ethCollected)} ETH
+                  {totalPool.toFixed(4)} ETH
                 </p>
               </div>
             </div>
@@ -198,28 +341,28 @@ export default function RoundDetailPage({
             <div className="text-center">
               <Users size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
-                {round.totalBids}
+                {round.RoundStats.TotalBids}
               </p>
               <p className="text-sm text-text-secondary">Total Bids</p>
             </div>
             <div className="text-center">
               <Trophy size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
-                {round.numRaffleETHWinners + round.numRaffleNFTWinners + 3}
+                {round.RoundStats.TotalRaffleNFTs + 3}
               </p>
               <p className="text-sm text-text-secondary">Prize Winners</p>
             </div>
             <div className="text-center">
               <TrendingUp size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
-                {round.totalDonations}
+                {round.RoundStats.TotalDonatedCount}
               </p>
               <p className="text-sm text-text-secondary">Donations</p>
             </div>
             <div className="text-center">
               <Clock size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
-                {Math.floor(round.duration / 3600)}h
+                {Math.floor(duration / 3600)}h
               </p>
               <p className="text-sm text-text-secondary">Duration</p>
             </div>
@@ -301,9 +444,9 @@ export default function RoundDetailPage({
                       <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
                         Main Prize Winner
                       </h3>
-                      <AddressDisplay address={round.winner} />
+                      <AddressDisplay address={round.WinnerAddr} />
                       <p className="text-sm text-text-secondary mt-2">
-                        NFT #{round.mainPrizeNFTId} awarded
+                        NFT #{round.TokenId} awarded
                       </p>
                     </div>
                   </div>
@@ -312,7 +455,7 @@ export default function RoundDetailPage({
                       Prize Amount
                     </p>
                     <p className="font-mono text-4xl font-bold text-primary">
-                      {formatEth(round.mainPrizeAmount)}
+                      {round.AmountEth.toFixed(4)}
                     </p>
                     <p className="text-sm text-text-muted">ETH</p>
                   </div>
@@ -326,13 +469,19 @@ export default function RoundDetailPage({
                     Endurance Champion
                   </h4>
                   <AddressDisplay
-                    address={round.enduranceChampion}
+                    address={round.EnduranceWinnerAddr}
                     className="mb-4"
                   />
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-secondary">Prize:</span>
                     <span className="font-mono text-lg text-primary">
-                      {formatCst(round.enduranceChampionPrize)} CST
+                      {round.EnduranceERC20AmountEth.toFixed(0)} CST
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-text-secondary">NFT:</span>
+                    <span className="font-mono text-sm text-text-primary">
+                      #{round.EnduranceERC721TokenId}
                     </span>
                   </div>
                 </Card>
@@ -342,13 +491,25 @@ export default function RoundDetailPage({
                     Chrono-Warrior
                   </h4>
                   <AddressDisplay
-                    address={round.chronoWarrior}
+                    address={round.ChronoWarriorAddr}
                     className="mb-4"
                   />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-secondary">Prize:</span>
+                    <span className="text-sm text-text-secondary">ETH Prize:</span>
                     <span className="font-mono text-lg text-primary">
-                      {formatEth(round.chronoWarriorPrize)} ETH
+                      {round.ChronoWarriorEthAmountEth.toFixed(4)} ETH
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-text-secondary">CST Prize:</span>
+                    <span className="font-mono text-sm text-text-primary">
+                      {round.ChronoWarriorCstAmountEth.toFixed(0)} CST
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-text-secondary">NFT:</span>
+                    <span className="font-mono text-sm text-text-primary">
+                      #{round.ChronoWarriorNftId}
                     </span>
                   </div>
                 </Card>
@@ -366,7 +527,7 @@ export default function RoundDetailPage({
                         ETH Winners:
                       </span>
                       <span className="text-text-primary">
-                        {round.numRaffleETHWinners}
+                        {round.RaffleETHDeposits?.length || 0}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -374,7 +535,7 @@ export default function RoundDetailPage({
                         NFT Winners:
                       </span>
                       <span className="text-text-primary">
-                        {round.numRaffleNFTWinners}
+                        {round.RaffleNFTWinners?.length || 0}
                       </span>
                     </div>
                     <div className="flex justify-between pt-3 border-t border-text-muted/10">
@@ -382,7 +543,7 @@ export default function RoundDetailPage({
                         Total ETH:
                       </span>
                       <span className="font-mono text-primary">
-                        {formatEth(round.raffleTotalETH)} ETH
+                        {round.RoundStats.TotalRaffleEthDepositsEth.toFixed(4)} ETH
                       </span>
                     </div>
                   </div>
@@ -398,7 +559,7 @@ export default function RoundDetailPage({
                         To Stakers:
                       </span>
                       <span className="font-mono text-status-success">
-                        {formatEth(round.stakingTotalETH)} ETH
+                        {round.StakingDepositAmountEth.toFixed(4)} ETH
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -406,7 +567,7 @@ export default function RoundDetailPage({
                         To Charity:
                       </span>
                       <span className="font-mono text-status-error">
-                        {formatEth(round.charityDonation)} ETH
+                        {round.CharityAmountETH.toFixed(4)} ETH
                       </span>
                     </div>
                   </div>
@@ -427,10 +588,10 @@ export default function RoundDetailPage({
                       <p className="text-sm text-text-secondary mb-1">
                         Main Prize
                       </p>
-                      <AddressDisplay address={round.winner} />
+                      <AddressDisplay address={round.WinnerAddr} />
                     </div>
                     <span className="font-mono text-xl text-primary">
-                      {formatEth(round.mainPrizeAmount)} ETH
+                      {round.AmountEth.toFixed(4)} ETH
                     </span>
                   </div>
                 </div>
@@ -441,10 +602,10 @@ export default function RoundDetailPage({
                       <p className="text-sm text-text-secondary mb-1">
                         Endurance Champion
                       </p>
-                      <AddressDisplay address={round.enduranceChampion} />
+                      <AddressDisplay address={round.EnduranceWinnerAddr} />
                     </div>
                     <span className="font-mono text-xl text-primary">
-                      {formatCst(round.enduranceChampionPrize)} CST
+                      {round.EnduranceERC20AmountEth.toFixed(0)} CST
                     </span>
                   </div>
                 </div>
@@ -455,10 +616,10 @@ export default function RoundDetailPage({
                       <p className="text-sm text-text-secondary mb-1">
                         Chrono-Warrior
                       </p>
-                      <AddressDisplay address={round.chronoWarrior} />
+                      <AddressDisplay address={round.ChronoWarriorAddr} />
                     </div>
                     <span className="font-mono text-xl text-primary">
-                      {formatEth(round.chronoWarriorPrize)} ETH
+                      {round.ChronoWarriorEthAmountEth.toFixed(4)} ETH
                     </span>
                   </div>
                 </div>
@@ -468,8 +629,8 @@ export default function RoundDetailPage({
                     Raffle Winners
                   </p>
                   <p className="text-text-primary">
-                    {round.numRaffleETHWinners} ETH winners +{" "}
-                    {round.numRaffleNFTWinners} NFT winners
+                    {round.RaffleETHDeposits?.length || 0} ETH winners +{" "}
+                    {round.RaffleNFTWinners?.length || 0} NFT winners
                   </p>
                 </div>
               </div>
@@ -486,13 +647,13 @@ export default function RoundDetailPage({
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
                     <span className="text-text-secondary">Total Bids</span>
                     <span className="font-mono text-text-primary font-semibold">
-                      {round.totalBids}
+                      {round.RoundStats.TotalBids}
                     </span>
                   </div>
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
                     <span className="text-text-secondary">Duration</span>
                     <span className="font-mono text-text-primary font-semibold">
-                      {formatDuration(round.duration * 1000)}
+                      {formatDuration(duration * 1000)}
                     </span>
                   </div>
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
@@ -500,15 +661,15 @@ export default function RoundDetailPage({
                       Total ETH Collected
                     </span>
                     <span className="font-mono text-primary font-semibold">
-                      {formatEth(round.ethCollected)} ETH
+                      {totalPool.toFixed(4)} ETH
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-secondary">
-                      Total CST Activity
+                      Main Prize CST
                     </span>
                     <span className="font-mono text-primary font-semibold">
-                      {formatCst(round.cstCollected)} CST
+                      {round.MainPrizeCstAmountEth.toFixed(0)} CST
                     </span>
                   </div>
                 </div>
@@ -520,14 +681,14 @@ export default function RoundDetailPage({
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Main Prize (25%)", value: round.mainPrizeAmount },
+                    { label: "Main Prize", value: round.AmountEth },
                     {
-                      label: "Chrono-Warrior (8%)",
-                      value: round.chronoWarriorPrize,
+                      label: "Chrono-Warrior",
+                      value: round.ChronoWarriorEthAmountEth,
                     },
-                    { label: "Raffle (4%)", value: round.raffleTotalETH },
-                    { label: "Staking (6%)", value: round.stakingTotalETH },
-                    { label: "Charity (7%)", value: round.charityDonation },
+                    { label: "Raffle", value: round.RoundStats.TotalRaffleEthDepositsEth },
+                    { label: "Staking", value: round.StakingDepositAmountEth },
+                    { label: "Charity", value: round.CharityAmountETH },
                   ].map((item, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -535,18 +696,14 @@ export default function RoundDetailPage({
                           {item.label}
                         </span>
                         <span className="font-mono text-primary">
-                          {formatEth(item.value)} ETH
+                          {item.value.toFixed(4)} ETH
                         </span>
                       </div>
                       <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-gold rounded-full transition-all duration-1000"
                           style={{
-                            width: `${
-                              (parseFloat(item.value) /
-                                parseFloat(round.ethCollected)) *
-                              100
-                            }%`,
+                            width: `${(item.value / totalPool) * 100}%`,
                           }}
                         />
                       </div>
@@ -561,7 +718,7 @@ export default function RoundDetailPage({
             <div className="space-y-6">
               <div>
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                  All Bids for Round {round.roundNum}
+                  All Bids for Round {round.RoundNum}
                 </h3>
                 <p className="text-text-secondary mb-6">
                   Complete bidding history for this round ({bids.length} total
@@ -659,7 +816,7 @@ export default function RoundDetailPage({
             <div className="space-y-8">
               <div>
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                  Donations for Round {round.roundNum}
+                  Donations for Round {round.RoundNum}
                 </h3>
                 <p className="text-text-secondary mb-6">
                   All ETH and NFT donations received during this round
