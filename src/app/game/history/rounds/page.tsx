@@ -1,33 +1,127 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Trophy, Users, Clock } from 'lucide-react';
+import { Search, Trophy, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
-import { MOCK_ROUNDS, getRounds } from '@/lib/mockData/rounds';
 import { formatEth, formatDate, formatDuration } from '@/lib/utils';
+import api from '@/services/api';
+
+// API Response Interface
+interface RoundStats {
+	RoundNum: number;
+	TotalBids: number;
+	TotalDonatedNFTs: number;
+	NumERC20Donations: number;
+	TotalRaffleEthDeposits: string;
+	TotalRaffleEthDepositsEth: number;
+	TotalRaffleNFTs: number;
+	TotalDonatedCount: number;
+	TotalDonatedAmount: string;
+	TotalDonatedAmountEth: number;
+}
+
+interface ApiRoundData {
+	EvtLogId: number;
+	BlockNum: number;
+	TxId: number;
+	TxHash: string;
+	TimeStamp: number;
+	DateTime: string;
+	WinnerAid: number;
+	WinnerAddr: string;
+	TimeoutTs: number;
+	Amount: string;
+	AmountEth: number;
+	RoundNum: number;
+	TokenId: number;
+	Seed: string;
+	CharityAddress: string;
+	CharityAmount: string;
+	CharityAmountETH: number;
+	StakingDepositId: number;
+	StakingDepositAmount: string;
+	StakingDepositAmountEth: number;
+	StakingPerToken: string;
+	StakingPerTokenEth: number;
+	StakingNumStakedTokens: number;
+	MainPrizeCstAmount: string;
+	MainPrizeCstAmountEth: number;
+	EnduranceWinnerAddr: string;
+	EnduranceERC721TokenId: number;
+	LastCstBidderAddr: string;
+	LastCstBidderERC721TokenId: number;
+	EnduranceERC20Amount: string;
+	EnduranceERC20AmountEth: number;
+	LastCstBidderERC20Amount: string;
+	LastCstBidderERC20AmountEth: number;
+	ChronoWarriorAddr: string;
+	ChronoWarriorEthAmount: string;
+	ChronoWarriorEthAmountEth: number;
+	ChronoWarriorCstAmount: string;
+	ChronoWarriorCstAmountEth: number;
+	ChronoWarriorNftId: number;
+	RoundStats: RoundStats;
+	RaffleNFTWinners: any;
+	StakingNFTWinners: any;
+	RaffleETHDeposits: any;
+	AllPrizes: any;
+}
 
 export default function RoundsArchivePage() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [page, setPage] = useState(0);
-	const perPage = 20;
+	const [perPage, setPerPage] = useState(20);
+	const [rounds, setRounds] = useState<ApiRoundData[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-	const rounds = getRounds(page * perPage, perPage);
+	// Fetch rounds data from API
+	useEffect(() => {
+		const fetchRounds = async () => {
+			setLoading(true);
+			setError(null);
+			try {
+				const data = await api.getRoundList();
+				// Sort by timestamp (most recent first)
+				const sortedData = data.sort((a: any, b: any) => b.TimeStamp - a.TimeStamp);
+				setRounds(sortedData);
+			} catch (err) {
+				console.error('Error fetching rounds:', err);
+				setError('Failed to load rounds data. Please try again later.');
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchRounds();
+	}, []);
+
+	// Reset page to 0 when search query or perPage changes
+	useEffect(() => {
+		setPage(0);
+	}, [searchQuery, perPage]);
+
+	// Scroll to top when page changes
+	useEffect(() => {
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}, [page]);
 
 	const filteredRounds = rounds.filter(round => {
 		if (!searchQuery) return true;
 		const q = searchQuery.toLowerCase();
 		return (
-			round.roundNum.toString().includes(q) ||
-			round.winner.toLowerCase().includes(q) ||
-			round.winnerENS?.toLowerCase().includes(q)
+			round.RoundNum.toString().includes(q) ||
+			round.WinnerAddr.toLowerCase().includes(q)
 		);
 	});
+
+	const paginatedRounds = filteredRounds.slice(page * perPage, (page + 1) * perPage);
 
 	return (
 		<div className="min-h-screen">
@@ -42,8 +136,14 @@ export default function RoundsArchivePage() {
 					<motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
 						<h1 className="heading-xl mb-4">Round Archive</h1>
 						<p className="body-lg">
-							Explore all {MOCK_ROUNDS.length} completed rounds • Total prizes: ~
-							{Math.floor(MOCK_ROUNDS.length * 12.5)} ETH distributed
+							{loading ? (
+								'Loading rounds data...'
+							) : (
+								<>
+									Explore all {rounds.length} completed rounds • Total prizes: ~
+									{Math.floor(rounds.length * 12.5)} ETH distributed
+								</>
+							)}
 						</p>
 					</motion.div>
 				</Container>
@@ -68,149 +168,262 @@ export default function RoundsArchivePage() {
 			{/* Rounds Grid */}
 			<section className="section-padding">
 				<Container>
-					{filteredRounds.length === 0 ? (
+					{loading ? (
+						<Card glass className="p-12 text-center">
+							<Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+							<p className="text-text-secondary">Loading rounds data...</p>
+						</Card>
+					) : error ? (
+						<Card glass className="p-12 text-center">
+							<AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+							<p className="text-text-secondary mb-4">{error}</p>
+							<button
+								onClick={() => window.location.reload()}
+								className="px-6 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+							>
+								Retry
+							</button>
+						</Card>
+					) : paginatedRounds.length === 0 ? (
 						<Card glass className="p-12 text-center">
 							<p className="text-text-secondary">No rounds found matching your search.</p>
 						</Card>
 					) : (
 						<>
 							<div className="mb-6 text-sm text-text-secondary">
-								Showing {filteredRounds.length} round{filteredRounds.length !== 1 ? 's' : ''}
+								Showing {paginatedRounds.length} of {filteredRounds.length} round{filteredRounds.length !== 1 ? 's' : ''}
 							</div>
 
 							<div className="space-y-6">
-								{filteredRounds.map((round, index) => (
-									<motion.div
-										key={round.roundNum}
-										initial={{ opacity: 0, x: -20 }}
-										animate={{ opacity: 1, x: 0 }}
-										transition={{ delay: Math.min(index * 0.05, 0.3) }}
-									>
-										<Link href={`/game/history/rounds/${round.roundNum}`}>
-											<Card glass hover className="p-8">
-												<div className="flex items-start justify-between flex-wrap gap-6">
-													{/* Main Info */}
-													<div className="flex-1">
-														<div className="flex items-center space-x-4 mb-4">
-															<Badge variant="default" className="text-base px-4 py-1.5">
-																Round {round.roundNum}
-															</Badge>
-															<span className="text-sm text-text-muted">
-																{formatDate(new Date(round.claimedAt * 1000))}
-															</span>
+								{paginatedRounds.map((round, index) => {
+									// Calculate round duration
+									const duration = round.TimeoutTs - round.TimeStamp;
+									// Calculate total winners
+									const totalWinners = round.RoundStats.TotalRaffleNFTs + 3; // raffle NFTs + main + endurance + chrono
+									// Calculate total pool (main prize + staking + raffle)
+									const totalPool = round.AmountEth + round.StakingDepositAmountEth + round.RoundStats.TotalRaffleEthDepositsEth;
+
+									return (
+										<motion.div
+											key={round.RoundNum}
+											initial={{ opacity: 0, x: -20 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: Math.min(index * 0.05, 0.3) }}
+										>
+											<Link href={`/game/history/rounds/${round.RoundNum}`}>
+												<Card glass hover className="p-8">
+													<div className="flex items-start justify-between flex-wrap gap-6">
+														{/* Main Info */}
+														<div className="flex-1">
+															<div className="flex items-center space-x-4 mb-4">
+																<Badge variant="default" className="text-base px-4 py-1.5">
+																	Round {round.RoundNum}
+																</Badge>
+																<span className="text-sm text-text-muted">
+																	{formatDate(new Date(round.TimeStamp * 1000))}
+																</span>
+															</div>
+
+															<div className="space-y-3">
+																<div className="flex items-center space-x-3">
+																	<Trophy size={18} className="text-primary" />
+																	<span className="text-text-secondary text-sm">
+																		Winner:
+																	</span>
+																	<AddressDisplay
+																		address={round.WinnerAddr}
+																		showCopy={false}
+																		showLink={false}
+																	/>
+																</div>
+
+																<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+																	<div className="flex items-center space-x-2">
+																		<Users size={16} className="text-text-muted" />
+																		<span className="text-sm text-text-secondary">
+																			{round.RoundStats.TotalBids} bids
+																		</span>
+																	</div>
+																	<div className="flex items-center space-x-2">
+																		<Clock size={16} className="text-text-muted" />
+																		<span className="text-sm text-text-secondary">
+																			{formatDuration(duration * 1000)}
+																		</span>
+																	</div>
+																	<div className="flex items-center space-x-2">
+																		<Trophy size={16} className="text-text-muted" />
+																		<span className="text-sm text-text-secondary">
+																			{totalWinners} winners
+																		</span>
+																	</div>
+																</div>
+															</div>
 														</div>
 
-														<div className="space-y-3">
-															<div className="flex items-center space-x-3">
-																<Trophy size={18} className="text-primary" />
-																<span className="text-text-secondary text-sm">
-																	Winner:
-																</span>
+														{/* Prize Amount */}
+														<div className="text-right">
+															<p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
+																Main Prize
+															</p>
+															<p className="font-mono text-3xl font-bold text-primary mb-1">
+																{round.AmountEth.toFixed(4)}
+															</p>
+															<p className="text-xs text-text-muted">ETH</p>
+
+															<div className="mt-4 pt-4 border-t border-text-muted/10">
+																<p className="text-xs text-text-secondary">Total Pool</p>
+																<p className="font-mono text-lg text-text-primary">
+																	{totalPool.toFixed(4)} ETH
+																</p>
+															</div>
+														</div>
+													</div>
+
+													{/* Champions Preview */}
+													<div className="mt-6 pt-6 border-t border-text-muted/10 grid grid-cols-1 md:grid-cols-2 gap-4">
+														{round.EnduranceWinnerAddr && (
+															<div className="p-3 rounded-lg bg-background-elevated/50">
+																<p className="text-xs text-text-secondary mb-1">
+																	Endurance Champion
+																</p>
 																<AddressDisplay
-																	address={round.winner}
+																	address={round.EnduranceWinnerAddr}
 																	showCopy={false}
 																	showLink={false}
+																	className="text-sm"
 																/>
 															</div>
-
-															<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-																<div className="flex items-center space-x-2">
-																	<Users size={16} className="text-text-muted" />
-																	<span className="text-sm text-text-secondary">
-																		{round.totalBids} bids
-																	</span>
-																</div>
-																<div className="flex items-center space-x-2">
-																	<Clock size={16} className="text-text-muted" />
-																	<span className="text-sm text-text-secondary">
-																		{formatDuration(round.duration * 1000)}
-																	</span>
-																</div>
-																<div className="flex items-center space-x-2">
-																	<Trophy size={16} className="text-text-muted" />
-																	<span className="text-sm text-text-secondary">
-																		{round.numRaffleETHWinners +
-																			round.numRaffleNFTWinners +
-																			3}{' '}
-																		winners
-																	</span>
-																</div>
+														)}
+														{round.ChronoWarriorAddr && (
+															<div className="p-3 rounded-lg bg-background-elevated/50">
+																<p className="text-xs text-text-secondary mb-1">
+																	Chrono-Warrior
+																</p>
+																<AddressDisplay
+																	address={round.ChronoWarriorAddr}
+																	showCopy={false}
+																	showLink={false}
+																	className="text-sm"
+																/>
 															</div>
-														</div>
+														)}
 													</div>
-
-													{/* Prize Amount */}
-													<div className="text-right">
-														<p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
-															Main Prize
-														</p>
-														<p className="font-mono text-3xl font-bold text-primary mb-1">
-															{formatEth(round.mainPrizeAmount)}
-														</p>
-														<p className="text-xs text-text-muted">ETH</p>
-
-														<div className="mt-4 pt-4 border-t border-text-muted/10">
-															<p className="text-xs text-text-secondary">Total Pool</p>
-															<p className="font-mono text-lg text-text-primary">
-																{formatEth(round.ethCollected)} ETH
-															</p>
-														</div>
-													</div>
-												</div>
-
-												{/* Champions Preview */}
-												<div className="mt-6 pt-6 border-t border-text-muted/10 grid grid-cols-1 md:grid-cols-2 gap-4">
-													<div className="p-3 rounded-lg bg-background-elevated/50">
-														<p className="text-xs text-text-secondary mb-1">
-															Endurance Champion
-														</p>
-														<AddressDisplay
-															address={round.enduranceChampion}
-															showCopy={false}
-															showLink={false}
-															className="text-sm"
-														/>
-													</div>
-													<div className="p-3 rounded-lg bg-background-elevated/50">
-														<p className="text-xs text-text-secondary mb-1">
-															Chrono-Warrior
-														</p>
-														<AddressDisplay
-															address={round.chronoWarrior}
-															showCopy={false}
-															showLink={false}
-															className="text-sm"
-														/>
-													</div>
-												</div>
-											</Card>
-										</Link>
-									</motion.div>
-								))}
+												</Card>
+											</Link>
+										</motion.div>
+									);
+								})}
 							</div>
 
 							{/* Pagination */}
-							{MOCK_ROUNDS.length > perPage && (
-								<div className="mt-12 flex justify-center space-x-2">
-									<button
-										onClick={() => setPage(Math.max(0, page - 1))}
-										disabled={page === 0}
-										className="px-6 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										Previous
-									</button>
-									<div className="px-6 py-3 rounded-lg bg-primary/10 border border-primary/20 text-primary font-medium">
-										Page {page + 1} of {Math.ceil(MOCK_ROUNDS.length / perPage)}
+							{filteredRounds.length > 0 && (
+								<div className="mt-12 space-y-6">
+									{/* Page Size Selector */}
+									<div className="flex items-center justify-center gap-3">
+										<span className="text-sm text-text-secondary">Rounds per page:</span>
+										<select
+											value={perPage}
+											onChange={e => setPerPage(Number(e.target.value))}
+											className="px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+										>
+											<option value={10}>10</option>
+											<option value={20}>20</option>
+											<option value={50}>50</option>
+											<option value={100}>100</option>
+										</select>
 									</div>
-									<button
-										onClick={() =>
-											setPage(Math.min(Math.ceil(MOCK_ROUNDS.length / perPage) - 1, page + 1))
+
+									{/* Pagination Controls */}
+									{filteredRounds.length > perPage && (() => {
+										const totalPages = Math.ceil(filteredRounds.length / perPage);
+										const maxVisiblePages = 7;
+										
+										// Calculate which page numbers to show
+										let startPage = Math.max(0, page - Math.floor(maxVisiblePages / 2));
+										let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+										
+										// Adjust if we're near the end
+										if (endPage - startPage < maxVisiblePages - 1) {
+											startPage = Math.max(0, endPage - maxVisiblePages + 1);
 										}
-										disabled={page >= Math.ceil(MOCK_ROUNDS.length / perPage) - 1}
-										className="px-6 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-									>
-										Next
-									</button>
+										
+										const pageNumbers = Array.from(
+											{ length: endPage - startPage + 1 },
+											(_, i) => startPage + i
+										);
+
+										return (
+											<div className="flex items-center justify-center gap-2 flex-wrap">
+												{/* First Page */}
+												<button
+													onClick={() => setPage(0)}
+													disabled={page === 0}
+													className="px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+													title="First page"
+												>
+													«
+												</button>
+
+												{/* Previous Page */}
+												<button
+													onClick={() => setPage(Math.max(0, page - 1))}
+													disabled={page === 0}
+													className="px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+													title="Previous page"
+												>
+													‹
+												</button>
+
+												{/* Page Numbers */}
+												{startPage > 0 && (
+													<span className="px-2 text-text-muted">...</span>
+												)}
+
+												{pageNumbers.map(pageNum => (
+													<button
+														key={pageNum}
+														onClick={() => setPage(pageNum)}
+														className={`min-w-[44px] px-4 py-2 rounded-lg border transition-all ${
+															pageNum === page
+																? 'bg-primary/10 border-primary/40 text-primary font-semibold'
+																: 'bg-background-elevated border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary'
+														}`}
+													>
+														{pageNum + 1}
+													</button>
+												))}
+
+												{endPage < totalPages - 1 && (
+													<span className="px-2 text-text-muted">...</span>
+												)}
+
+												{/* Next Page */}
+												<button
+													onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+													disabled={page >= totalPages - 1}
+													className="px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+													title="Next page"
+												>
+													›
+												</button>
+
+												{/* Last Page */}
+												<button
+													onClick={() => setPage(totalPages - 1)}
+													disabled={page >= totalPages - 1}
+													className="px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary hover:border-primary/40 hover:text-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+													title="Last page"
+												>
+													»
+												</button>
+											</div>
+										);
+									})()}
+
+									{/* Pagination Info */}
+									<div className="text-center text-sm text-text-secondary">
+										Showing {page * perPage + 1} - {Math.min((page + 1) * perPage, filteredRounds.length)} of {filteredRounds.length} rounds
+									</div>
 								</div>
 							)}
 						</>
