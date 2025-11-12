@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
-import { formatEth, formatCst, formatDate, formatDuration } from "@/lib/utils";
+import { formatDate, formatDuration } from "@/lib/utils";
 import api from "@/services/api";
 
 // API Response Interfaces
@@ -110,7 +110,7 @@ interface ApiRoundInfo {
   RaffleNFTWinners: RaffleNFTWinner[] | null;
   StakingNFTWinners: RaffleNFTWinner[] | null;
   RaffleETHDeposits: RaffleETHDeposit[] | null;
-  AllPrizes: any[] | null;
+  AllPrizes: unknown[] | null;
 }
 
 export default function RoundDetailPage({

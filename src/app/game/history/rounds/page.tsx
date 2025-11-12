@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
-import { formatEth, formatDate, formatDuration } from '@/lib/utils';
+import { formatDate, formatDuration } from '@/lib/utils';
 import api from '@/services/api';
 
 // API Response Interface
@@ -67,10 +67,10 @@ interface ApiRoundData {
 	ChronoWarriorCstAmountEth: number;
 	ChronoWarriorNftId: number;
 	RoundStats: RoundStats;
-	RaffleNFTWinners: any;
-	StakingNFTWinners: any;
-	RaffleETHDeposits: any;
-	AllPrizes: any;
+	RaffleNFTWinners: unknown;
+	StakingNFTWinners: unknown;
+	RaffleETHDeposits: unknown;
+	AllPrizes: unknown;
 }
 
 export default function RoundsArchivePage() {
@@ -89,7 +89,7 @@ export default function RoundsArchivePage() {
 			try {
 				const data = await api.getRoundList();
 				// Sort by timestamp (most recent first)
-				const sortedData = data.sort((a: any, b: any) => b.TimeStamp - a.TimeStamp);
+				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => b.TimeStamp - a.TimeStamp);
 				setRounds(sortedData);
 			} catch (err) {
 				console.error('Error fetching rounds:', err);
@@ -340,7 +340,7 @@ export default function RoundsArchivePage() {
 										
 										// Calculate which page numbers to show
 										let startPage = Math.max(0, page - Math.floor(maxVisiblePages / 2));
-										let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
+										const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 1);
 										
 										// Adjust if we're near the end
 										if (endPage - startPage < maxVisiblePages - 1) {
