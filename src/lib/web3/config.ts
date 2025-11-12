@@ -9,6 +9,7 @@
 
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { supportedChains } from "./chains";
+import { createTransportsForChains } from "./transport";
 
 /**
  * Project information for WalletConnect
@@ -36,12 +37,16 @@ if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
  * - Arbitrum Sepolia (testnet) - Chain ID: 421614
  * - Arbitrum One (mainnet) - Chain ID: 42161
  * - Local Network (development) - Chain ID: 31337
+ * 
+ * Uses custom transport with proxy support to avoid mixed content errors
+ * when connecting to HTTP RPC endpoints from HTTPS pages.
  */
 export const wagmiConfig = getDefaultConfig({
   appName: "Cosmic Signature",
   projectId,
   // @ts-expect-error - Type mismatch between wagmi and RainbowKit chain types
   chains: supportedChains,
+  transports: createTransportsForChains(supportedChains),
   ssr: true, // Enable server-side rendering support
 });
 

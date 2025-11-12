@@ -21,6 +21,23 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://161.129.67.
 const ASSETS_BASE_URL = process.env.NEXT_PUBLIC_ASSETS_BASE_URL || 'https://nfts.cosmicsignature.com/';
 
 /**
+ * Check if we need to use proxy for mixed content
+ * Returns true if we're on HTTPS and trying to access HTTP
+ */
+function shouldUseProxy(url: string): boolean {
+	// Only apply in browser
+	if (typeof window === 'undefined') return false;
+	
+	// Check if page is HTTPS
+	const isPageSecure = window.location.protocol === 'https:';
+	if (!isPageSecure) return false;
+	
+	// Check if target URL is HTTP
+	const targetUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+	return targetUrl.startsWith('http://');
+}
+
+/**
  * Axios instance with default configuration
  */
 const apiClient: AxiosInstance = axios.create({
@@ -32,11 +49,20 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 /**
- * Request interceptor for logging and auth (if needed)
+ * Request interceptor for proxy routing and auth
  */
 apiClient.interceptors.request.use(
 	config => {
-		// Could add authentication tokens here if needed
+		// If we need proxy, rewrite the URL
+		if (config.url && shouldUseProxy(config.url)) {
+			const fullUrl = config.url.startsWith('http') 
+				? config.url 
+				: `${config.baseURL || API_BASE_URL}${config.url}`;
+			
+			config.url = `/api/proxy?url=${encodeURIComponent(fullUrl)}`;
+			config.baseURL = ''; // Clear baseURL since we're using absolute proxy path
+		}
+		
 		return config;
 	},
 	error => Promise.reject(error)
