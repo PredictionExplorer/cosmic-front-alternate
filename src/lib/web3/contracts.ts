@@ -48,6 +48,42 @@ export const LOCAL_TESTNET_CONTRACTS = {
 } as const;
 
 /**
+ * Arbitrum Sepolia testnet addresses
+ * Deployed contract addresses on Arbitrum Sepolia network
+ */
+export const ARBITRUM_SEPOLIA_CONTRACTS = {
+	/** Main game contract - handles bidding, prizes, and game logic */
+	COSMIC_GAME: '0xb5f8FCc2EfE6704DD37eE319b1baC9E57FAa17e4' as Address,
+
+	/** CosmicSignatureToken (CST) - ERC-20 token used for bidding and rewards */
+	COSMIC_SIGNATURE_TOKEN: '0x0f509A939aDe4fF9B23C4d6924F09D4054ED2c61' as Address,
+
+	/** CosmicSignature NFT - ERC-721 NFTs awarded as prizes */
+	COSMIC_SIGNATURE_NFT: '0xa856BE2c9f162157500B5590EE9193c3dc048e39' as Address,
+
+	/** RandomWalk NFT - Pre-existing ERC-721 NFTs used for bid discounts */
+	RANDOM_WALK_NFT: '0xbB749EfF6018a9213DFbca2a20292DB1576F530d' as Address,
+
+	/** Prizes Wallet (RaffleWallet) - Holds secondary prizes and donated items */
+	PRIZES_WALLET: '0x2040560e6EfF1D37eA02e5B79744b16BeD17cbFa' as Address,
+
+	/** CST NFT Staking Wallet - Stake Cosmic Signature NFTs for ETH rewards */
+	STAKING_WALLET_CST: '0x57186ce5DD2bB538141E7d485fc161A7C5A6A673' as Address,
+
+	/** RandomWalk Staking Wallet - Stake RandomWalk NFTs for raffle eligibility */
+	STAKING_WALLET_RWLK: '0xA0f7e96529F59aAA87574D46d302dB50A5B2FBE3' as Address,
+
+	/** Charity Wallet - Receives charity donations (7% of prizes) */
+	CHARITY_WALLET: '0x546056006E2AC504884C5bD31edB161AD855a136' as Address,
+
+	/** Marketing Wallet - Receives CST tokens for marketing activities */
+	MARKETING_WALLET: '0xeB1a8778E9b0995055c0bd8D82E1bfED314CFdAE' as Address,
+
+	/** DAO Contract - Governance contract for CST token holders */
+	COSMIC_DAO: '0x873AC8f672Ae17930358CbF40776d984e9C4b9Cc' as Address
+} as const;
+
+/**
  * Placeholder for mainnet addresses (to be filled when deploying to production)
  */
 export const MAINNET_CONTRACTS = {
@@ -69,9 +105,14 @@ export const MAINNET_CONTRACTS = {
  * Returns the appropriate contract addresses based on the connected network
  */
 export function getContractAddresses(chainId: number) {
-	// Local testnet (default)
+	// Local testnet
 	if (chainId === 31337) {
 		return LOCAL_TESTNET_CONTRACTS;
+	}
+
+	// Arbitrum Sepolia (testnet) - default
+	if (chainId === 421614) {
+		return ARBITRUM_SEPOLIA_CONTRACTS;
 	}
 
 	// Arbitrum One (mainnet)
@@ -79,13 +120,8 @@ export function getContractAddresses(chainId: number) {
 		return MAINNET_CONTRACTS;
 	}
 
-	// Arbitrum Sepolia (testnet)
-	if (chainId === 421614) {
-		return LOCAL_TESTNET_CONTRACTS; // Using same addresses for now
-	}
-
-	// Default to local testnet
-	return LOCAL_TESTNET_CONTRACTS;
+	// Default to Arbitrum Sepolia
+	return ARBITRUM_SEPOLIA_CONTRACTS;
 }
 
 /**
@@ -112,6 +148,6 @@ export const CONTRACT_NAMES = {
 } as const;
 
 /**
- * Export for convenience - defaults to local testnet
+ * Export for convenience - defaults to Arbitrum Sepolia
  */
-export const CONTRACTS = LOCAL_TESTNET_CONTRACTS;
+export const CONTRACTS = ARBITRUM_SEPOLIA_CONTRACTS;
