@@ -8,7 +8,7 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { NFTCard } from "@/components/nft/NFTCard";
-import api from "@/services/api";
+import api, { getAssetsUrl } from "@/services/api";
 
 export default function GalleryPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -46,7 +46,7 @@ export default function GalleryPage() {
           name: `Cosmic Signature #${nft.TokenId}`,
           customName: (nft.TokenName as string | null) || undefined,
           seed: `0x${nft.Seed}`,
-          imageUrl: `https://nfts.cosmicsignature.com/cosmicsignature/0x${nft.Seed}.png`,
+          imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
           owner: (nft.WinnerAddr as string) || "0x0",
           round: (nft.RoundNum as number) || 0,
           mintedAt: new Date((nft.TimeStamp as number) * 1000).toISOString(),

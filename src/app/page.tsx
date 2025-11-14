@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/Badge";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
-import api from "@/services/api";
+import api, { getAssetsUrl } from "@/services/api";
 import { shortenAddress } from "@/lib/web3/utils";
 import { formatDate } from "@/lib/utils";
 import { GAME_CONSTANTS } from "@/lib/constants";
@@ -148,7 +148,7 @@ export default function Home() {
             name: `Cosmic Signature #${nft.TokenId}`,
             customName: (nft.TokenName as string) || undefined,
             seed: `0x${nft.Seed}`,
-            imageUrl: `https://nfts.cosmicsignature.com/cosmicsignature/0x${nft.Seed}.png`,
+            imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
             owner: (nft.WinnerAddr as string) || "0x0",
             round: (nft.RoundNum as number) || 0,
             mintedAt: new Date(
