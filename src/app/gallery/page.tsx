@@ -14,6 +14,7 @@ export default function GalleryPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "id">("newest");
+  const [currentPage, setCurrentPage] = useState(1);
   const [allNFTs, setAllNFTs] = useState<
     Array<{
       id: number;
@@ -29,6 +30,7 @@ export default function GalleryPage() {
     }>
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const itemsPerPage = viewMode === "grid" ? 20 : 10; // 20 for grid view, 10 for list view
 
   // Fetch all NFTs from API
   useEffect(() => {
@@ -61,6 +63,11 @@ export default function GalleryPage() {
     fetchNFTs();
   }, []);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, viewMode]);
+
   // Filter and sort NFTs
   const filteredNFTs = allNFTs
     .filter((nft) => {
@@ -79,6 +86,21 @@ export default function GalleryPage() {
         return new Date(a.mintedAt).getTime() - new Date(b.mintedAt).getTime();
       return a.tokenId - b.tokenId;
     });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredNFTs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedNFTs = filteredNFTs.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to the NFT grid section
+    const nftSection = document.getElementById("nft-gallery-section");
+    if (nftSection) {
+      nftSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -165,7 +187,7 @@ export default function GalleryPage() {
       </section>
 
       {/* NFT Grid/List */}
-      <section className="section-padding">
+      <section className="section-padding" id="nft-gallery-section">
         <Container>
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -192,13 +214,13 @@ export default function GalleryPage() {
           ) : (
             <>
               <div className="mb-6 text-sm text-text-secondary">
-                Showing {filteredNFTs.length} NFT
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredNFTs.length)} of {filteredNFTs.length} NFT
                 {filteredNFTs.length !== 1 ? "s" : ""}
               </div>
 
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredNFTs.map((nft, index) => (
+                  {paginatedNFTs.map((nft, index) => (
                     <NFTCard
                       key={nft.id}
                       nft={nft}
@@ -208,7 +230,7 @@ export default function GalleryPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {filteredNFTs.map((nft, index) => (
+                  {paginatedNFTs.map((nft, index) => (
                     <motion.div
                       key={nft.id}
                       initial={{ opacity: 0, x: -20 }}
@@ -247,6 +269,76 @@ export default function GalleryPage() {
                       </Card>
                     </motion.div>
                   ))}
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex gap-1">
+                    {Array.from(
+                      { length: totalPages },
+                      (_, i) => i + 1
+                    ).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage =
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 &&
+                          page <= currentPage + 1);
+
+                      const showEllipsisBefore =
+                        page === currentPage - 2 && currentPage > 3;
+                      const showEllipsisAfter =
+                        page === currentPage + 2 &&
+                        currentPage < totalPages - 2;
+
+                      if (showEllipsisBefore || showEllipsisAfter) {
+                        return (
+                          <span
+                            key={page}
+                            className="px-3 py-2 text-text-muted"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      if (!showPage) return null;
+
+                      return (
+                        <Button
+                          key={page}
+                          size="sm"
+                          variant={
+                            currentPage === page ? "primary" : "outline"
+                          }
+                          onClick={() => handlePageChange(page)}
+                          className="min-w-[40px]"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
                 </div>
               )}
             </>
