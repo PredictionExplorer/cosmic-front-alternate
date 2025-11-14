@@ -17,7 +17,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
  * API Base URLs
  * Configure based on environment
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://161.129.67.42:7070/api/cosmicgame/';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://161.129.67.42:8383/api/cosmicgame/';
 const ASSETS_BASE_URL = process.env.NEXT_PUBLIC_ASSETS_BASE_URL || 'https://nfts.cosmicsignature.com/';
 
 /**
