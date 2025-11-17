@@ -1,36 +1,21 @@
 "use client";
 
+import { useState, useEffect, use, Suspense } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Gem, Award, TrendingUp, Activity } from "lucide-react";
+import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
-import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/game/StatCard";
-import { NFTCard } from "@/components/nft/NFTCard";
-import { Timeline } from "@/components/data/Timeline";
 import { AlertCard } from "@/components/features/AlertCard";
-import { MOCK_USER_ACTIVITIES } from "@/lib/mockData/activities";
-import { MOCK_NFTS } from "@/lib/constants";
-import { formatEth } from "@/lib/utils";
-import api from "@/services/api";
+import { formatEth, shortenAddress, formatTime } from "@/lib/utils";
+import { api } from "@/services/api";
+import { isAddress, formatEther } from "viem";
 
-// API response type for user winnings
-interface UserWinningsAPI {
-  DonatedERC20Tokens: Array<{
-    TokenAddress: string;
-    TokenSymbol: string;
-    Amount: string;
-  }>;
-  ETHRaffleToClaim: number;
-  ETHRaffleToClaimWei: string;
-  NumDonatedNFTToClaim: number;
-  UnclaimedStakingReward: number;
-}
-
-// API response type for user info
+// User info API response interface
 interface UserInfoAPI {
   Address: string;
   NumBids: number;
@@ -46,16 +31,44 @@ interface UserInfoAPI {
   RaffleNFTsCount: number;
   RewardNFTsCount: number;
   TotalCSTokensWon: number;
+  StakingStatistics: {
+    CSTStakingInfo: {
+      NumActiveStakers: number;
+      NumDeposits: number;
+      TotalNumStakeActions: number;
+      TotalNumUnstakeActions: number;
+      TotalRewardEth: number;
+      UnclaimedRewardEth: number;
+      TotalTokensMinted: number;
+      TotalTokensStaked: number;
+    };
+    RWalkStakingInfo: {
+      NumActiveStakers: number;
+      TotalNumStakeActions: number;
+      TotalNumUnstakeActions: number;
+      TotalTokensMinted: number;
+      TotalTokensStaked: number;
+    };
+  };
 }
 
-// Default winnings data (when not connected or loading)
-const DEFAULT_WINNINGS: UserWinningsAPI = {
-  DonatedERC20Tokens: [],
-  ETHRaffleToClaim: 0,
-  ETHRaffleToClaimWei: "0",
-  NumDonatedNFTToClaim: 0,
-  UnclaimedStakingReward: 0,
-};
+interface UserBalance {
+  CosmicTokenBalance: string;
+  ETH_Balance: string;
+}
+
+// User winnings API response interface
+interface UserWinningsAPI {
+  DonatedERC20Tokens: Array<{
+    TokenAddress: string;
+    TokenSymbol: string;
+    Amount: string;
+  }>;
+  ETHRaffleToClaim: number;
+  ETHRaffleToClaimWei: string;
+  NumDonatedNFTToClaim: number;
+  UnclaimedStakingReward: number;
+}
 
 // Default user info
 const DEFAULT_USER_INFO: UserInfoAPI = {
@@ -73,88 +86,186 @@ const DEFAULT_USER_INFO: UserInfoAPI = {
   RaffleNFTsCount: 0,
   RewardNFTsCount: 0,
   TotalCSTokensWon: 0,
+  StakingStatistics: {
+    CSTStakingInfo: {
+      NumActiveStakers: 0,
+      NumDeposits: 0,
+      TotalNumStakeActions: 0,
+      TotalNumUnstakeActions: 0,
+      TotalRewardEth: 0,
+      UnclaimedRewardEth: 0,
+      TotalTokensMinted: 0,
+      TotalTokensStaked: 0,
+    },
+    RWalkStakingInfo: {
+      NumActiveStakers: 0,
+      TotalNumStakeActions: 0,
+      TotalNumUnstakeActions: 0,
+      TotalTokensMinted: 0,
+      TotalTokensStaked: 0,
+    },
+  },
 };
 
-export default function AccountDashboardPage() {
-  const { address, isConnected } = useAccount();
+const DEFAULT_WINNINGS: UserWinningsAPI = {
+  DonatedERC20Tokens: [],
+  ETHRaffleToClaim: 0,
+  ETHRaffleToClaimWei: "0",
+  NumDonatedNFTToClaim: 0,
+  UnclaimedStakingReward: 0,
+};
+
+function AccountPageContent() {
+  const { address: connectedAddress, isConnected } = useAccount();
+  const searchParams = useSearchParams();
+  const addressParam = searchParams.get("address");
+  
+  // Use address from URL param if provided, otherwise use connected wallet
+  const viewAddress = addressParam || connectedAddress;
+  const isViewingOwnAccount = connectedAddress && viewAddress?.toLowerCase() === connectedAddress.toLowerCase();
+
   const [userInfo, setUserInfo] = useState<UserInfoAPI>(DEFAULT_USER_INFO);
+  const [balance, setBalance] = useState({ CosmicToken: 0, ETH: 0 });
   const [winnings, setWinnings] = useState<UserWinningsAPI>(DEFAULT_WINNINGS);
-  const recentActivities = MOCK_USER_ACTIVITIES.slice(0, 5);
-  const userNFTs = MOCK_NFTS.slice(0, 6); // Preview of user's NFTs
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Fetch user info from API when wallet is connected
+  const handleCopyAddress = () => {
+    if (viewAddress) {
+      navigator.clipboard.writeText(viewAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Fetch user data from API
   useEffect(() => {
-    async function fetchUserInfo() {
-      if (!address || !isConnected) {
-        setUserInfo(DEFAULT_USER_INFO);
+    async function fetchUserData() {
+      if (!viewAddress) {
+        setLoading(false);
+        return;
+      }
+
+      // Validate Ethereum address
+      if (!isAddress(viewAddress)) {
+        setError("Invalid Ethereum address");
+        setLoading(false);
         return;
       }
 
       try {
-        const data = await api.getUserInfo(address);
-        console.log("User info data:", data);
-        if (data && data.UserInfo) {
-          const userInfoData = data.UserInfo;
-          setUserInfo({
-            Address: userInfoData.Address || address,
-            NumBids: userInfoData.NumBids || 0,
-            CosmicSignatureNumTransfers: userInfoData.CosmicSignatureNumTransfers || 0,
-            CosmicTokenNumTransfers: userInfoData.CosmicTokenNumTransfers || 0,
-            MaxBidAmount: userInfoData.MaxBidAmount || 0,
-            NumPrizes: userInfoData.NumPrizes || 0,
-            MaxWinAmount: userInfoData.MaxWinAmount || 0,
-            SumRaffleEthWinnings: userInfoData.SumRaffleEthWinnings || 0,
-            SumRaffleEthWithdrawal: userInfoData.SumRaffleEthWithdrawal || 0,
-            UnclaimedNFTs: userInfoData.UnclaimedNFTs || 0,
-            NumRaffleEthWinnings: userInfoData.NumRaffleEthWinnings || 0,
-            RaffleNFTsCount: userInfoData.RaffleNFTsCount || 0,
-            RewardNFTsCount: userInfoData.RewardNFTsCount || 0,
-            TotalCSTokensWon: userInfoData.TotalCSTokensWon || 0,
+        setLoading(true);
+        setError(null);
+        
+        const [userInfoResponse, balanceResponse, winningsResponse] = await Promise.all([
+          api.getUserInfo(viewAddress),
+          api.getUserBalance(viewAddress),
+          api.getUserWinnings(viewAddress),
+        ]);
+
+        // Set user info
+        if (userInfoResponse && userInfoResponse.UserInfo) {
+          setUserInfo(userInfoResponse.UserInfo);
+        }
+
+        // Set balances
+        if (balanceResponse) {
+          setBalance({
+            CosmicToken: Number(formatEther(BigInt(balanceResponse.CosmicTokenBalance || "0"))),
+            ETH: Number(formatEther(BigInt(balanceResponse.ETH_Balance || "0"))),
           });
         }
-      } catch (error) {
-        console.error("Failed to fetch user info:", error);
-        setUserInfo(DEFAULT_USER_INFO);
-      }
-    }
 
-    fetchUserInfo();
-  }, [address, isConnected]);
-
-  // Fetch user winnings from API when wallet is connected
-  useEffect(() => {
-    async function fetchWinnings() {
-      if (!address || !isConnected) {
-        setWinnings(DEFAULT_WINNINGS);
-        return;
-      }
-
-      try {
-        const data = await api.getUserWinnings(address);
-
-        if (data) {
+        // Set winnings
+        if (winningsResponse) {
           setWinnings({
-            DonatedERC20Tokens: data.DonatedERC20Tokens || [],
-            ETHRaffleToClaim: data.ETHRaffleToClaim || 0,
-            ETHRaffleToClaimWei: data.ETHRaffleToClaimWei || "0",
-            NumDonatedNFTToClaim: data.NumDonatedNFTToClaim || 0,
-            UnclaimedStakingReward: data.UnclaimedStakingReward || 0,
+            ...winningsResponse,
+            DonatedERC20Tokens: winningsResponse.DonatedERC20Tokens || [],
           });
         }
-      } catch (error) {
-        console.error("Failed to fetch user winnings:", error);
-        setWinnings(DEFAULT_WINNINGS);
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data");
+      } finally {
+        setLoading(false);
       }
     }
 
-    fetchWinnings();
-  }, [address, isConnected]);
+    fetchUserData();
+  }, [viewAddress]);
 
   const hasUnclaimedPrizes =
     winnings.ETHRaffleToClaim > 0 ||
     winnings.UnclaimedStakingReward > 0 ||
     winnings.DonatedERC20Tokens.length > 0 ||
     winnings.NumDonatedNFTToClaim > 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Container>
+          <Card glass className="p-12 text-center">
+            <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={48} />
+            <p className="text-text-secondary">Loading account data...</p>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Container>
+          <Card glass className="p-12 text-center">
+            <h1 className="heading-sm mb-4 text-status-error">Error</h1>
+            <p className="text-text-secondary mb-6">{error}</p>
+            <Button asChild>
+              <Link href="/">Go Home</Link>
+            </Button>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+
+  if (!viewAddress) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Container>
+          <Card glass className="p-12 text-center">
+            <Trophy className="mx-auto mb-4 text-text-muted" size={64} />
+            <h1 className="heading-sm mb-4">Account Dashboard</h1>
+            <p className="text-text-secondary mb-6">
+              Connect your wallet or enter an address to view account information
+            </p>
+          </Card>
+        </Container>
+      </div>
+    );
+  }
+
+  if (userInfo.NumBids === 0 && userInfo.TotalCSTokensWon === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Container>
+          <Card glass className="p-12 text-center">
+            <Trophy className="mx-auto mb-4 text-text-muted" size={64} />
+            <h1 className="heading-sm mb-4">No Activity Yet</h1>
+            <p className="text-text-secondary mb-6">
+              This address hasn&apos;t participated in Cosmic Signature yet.
+            </p>
+            {isViewingOwnAccount && (
+              <Button asChild>
+                <Link href="/game/play">Place Your First Bid</Link>
+              </Button>
+            )}
+          </Card>
+        </Container>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -165,31 +276,50 @@ export default function AccountDashboardPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
-              <div>
-                <h1 className="heading-lg mb-2">
-                  Welcome back, {isConnected ? "Collector" : "Guest"}
-                </h1>
-                <p className="text-text-secondary">
-                  {isConnected
-                    ? `${userInfo.NumBids} bids placed • ${userInfo.NumPrizes} prizes won`
-                    : "Connect your wallet to view your stats"}
-                </p>
+            <div className="mb-6">
+              <h1 className="heading-lg mb-2">
+                {isViewingOwnAccount ? "Your Account" : "User Account"}
+              </h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-mono text-text-secondary">{viewAddress}</span>
+                <button
+                  onClick={handleCopyAddress}
+                  className="p-1.5 rounded-lg hover:bg-background-elevated transition-colors"
+                  title="Copy address"
+                >
+                  {copied ? (
+                    <CheckCircle2 size={16} className="text-status-success" />
+                  ) : (
+                    <Copy size={16} className="text-text-secondary hover:text-primary" />
+                  )}
+                </button>
+                <a
+                  href={`https://sepolia.arbiscan.io/address/${viewAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  View on Arbiscan
+                  <ExternalLink size={14} />
+                </a>
               </div>
+              <p className="text-text-secondary mt-2">
+                {userInfo.NumBids} bids placed • {userInfo.NumPrizes} prizes won
+              </p>
             </div>
           </motion.div>
         </Container>
       </section>
 
-      {/* Alert Section */}
-      {hasUnclaimedPrizes && (
+      {/* Alert for Unclaimed Prizes */}
+      {isViewingOwnAccount && hasUnclaimedPrizes && (
         <section className="py-8">
           <Container>
             <AlertCard
               severity="warning"
               title="You have prizes to claim"
               description={`${formatEth(
-                winnings.ETHRaffleToClaim + winnings.UnclaimedStakingReward
+                (Number(winnings.ETHRaffleToClaim) + Number(winnings.UnclaimedStakingReward)).toString()
               )} ETH${
                 winnings.DonatedERC20Tokens.length > 0
                   ? ` + ${winnings.DonatedERC20Tokens.length} ERC-20 token${
@@ -212,9 +342,41 @@ export default function AccountDashboardPage() {
         </section>
       )}
 
+      {/* Balances */}
+      {(balance.ETH > 0 || balance.CosmicToken > 0) && (
+        <section className="py-12">
+          <Container>
+            <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+              Balances
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {balance.ETH > 0 && (
+                <Card glass className="p-6">
+                  <p className="text-sm text-text-secondary mb-2">ETH Balance</p>
+                  <p className="font-mono text-3xl font-bold text-primary">
+                    {balance.ETH.toFixed(6)} ETH
+                  </p>
+                </Card>
+              )}
+              {balance.CosmicToken > 0 && (
+                <Card glass className="p-6">
+                  <p className="text-sm text-text-secondary mb-2">CST Balance</p>
+                  <p className="font-mono text-3xl font-bold text-status-warning">
+                    {balance.CosmicToken.toFixed(2)} CST
+                  </p>
+                </Card>
+              )}
+            </div>
+          </Container>
+        </section>
+      )}
+
       {/* Key Metrics */}
-      <section className="py-12">
+      <section className="py-12 bg-background-surface/50">
         <Container>
+          <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+            Statistics
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               label="Total NFTs Won"
@@ -234,155 +396,174 @@ export default function AccountDashboardPage() {
             <StatCard
               label="Total ETH Won"
               value={`${(
-                userInfo.SumRaffleEthWinnings + userInfo.SumRaffleEthWithdrawal
-              ).toFixed(6)} ETH`}
+                Number(userInfo.SumRaffleEthWinnings) + Number(userInfo.SumRaffleEthWithdrawal)
+              ).toFixed(4)} ETH`}
               icon={Trophy}
             />
           </div>
         </Container>
       </section>
 
-      {/* Performance Summary */}
+      {/* Detailed Statistics */}
+      <section className="py-12">
+        <Container>
+          <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+            Detailed Information
+          </h2>
+          <Card glass className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Number of Bids</span>
+                <span className="font-mono text-text-primary">{userInfo.NumBids}</span>
+              </div>
+              
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Number of Prizes</span>
+                <span className="font-mono text-text-primary">{userInfo.NumPrizes}</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Max Bid Amount</span>
+                <span className="font-mono text-text-primary">{Number(userInfo.MaxBidAmount).toFixed(6)} ETH</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Max Win Amount</span>
+                <span className="font-mono text-text-primary">{Number(userInfo.MaxWinAmount).toFixed(6)} ETH</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">ETH Raffle Winnings</span>
+                <span className="font-mono text-text-primary">{Number(userInfo.SumRaffleEthWinnings).toFixed(6)} ETH</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">ETH Withdrawn</span>
+                <span className="font-mono text-text-primary">{Number(userInfo.SumRaffleEthWithdrawal).toFixed(6)} ETH</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Raffles Participated</span>
+                <span className="font-mono text-text-primary">{userInfo.NumRaffleEthWinnings}</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Reward NFTs</span>
+                <span className="font-mono text-text-primary">{userInfo.RewardNFTsCount}</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">CS NFT Transfers</span>
+                <span className="font-mono text-text-primary">{userInfo.CosmicSignatureNumTransfers}</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">CST Token Transfers</span>
+                <span className="font-mono text-text-primary">{userInfo.CosmicTokenNumTransfers}</span>
+              </div>
+
+              <div className="flex justify-between py-3 border-b border-text-muted/10">
+                <span className="text-text-secondary">Unclaimed Donated NFTs</span>
+                <span className="font-mono text-text-primary">{userInfo.UnclaimedNFTs}</span>
+              </div>
+            </div>
+          </Card>
+        </Container>
+      </section>
+
+      {/* Staking Statistics */}
       <section className="py-12 bg-background-surface/50">
         <Container>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Raffle Winnings Stats */}
+          <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+            Staking Statistics
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CST Staking */}
             <Card glass className="p-8">
-              <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                Raffle Performance
+              <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
+                Cosmic Signature Staking
               </h3>
-
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-sm text-text-secondary">
-                      Total ETH Won
-                    </span>
-                    <span className="font-mono text-xl text-primary">
-                      {(
-                        userInfo.SumRaffleEthWinnings +
-                        userInfo.SumRaffleEthWithdrawal
-                      ).toFixed(6)}{" "}
-                      ETH
-                    </span>
-                  </div>
-                  <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                    <div className="h-full bg-status-success rounded-full w-[75%]" />
-                  </div>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Active Stakers</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.CSTStakingInfo.NumActiveStakers}
+                  </span>
                 </div>
-
-                <div>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-sm text-text-secondary">
-                      ETH Currently Claimable
-                    </span>
-                    <span className="font-mono text-xl text-status-warning">
-                      {userInfo.SumRaffleEthWinnings.toFixed(6)} ETH
-                    </span>
-                  </div>
-                  <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-status-warning rounded-full"
-                      style={{
-                        width: `${
-                          userInfo.SumRaffleEthWinnings +
-                            userInfo.SumRaffleEthWithdrawal >
-                          0
-                            ? (userInfo.SumRaffleEthWinnings /
-                                (userInfo.SumRaffleEthWinnings +
-                                  userInfo.SumRaffleEthWithdrawal)) *
-                              100
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Deposits</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.CSTStakingInfo.NumDeposits}
+                  </span>
                 </div>
-
-                <div>
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-sm text-text-secondary">
-                      ETH Withdrawn
-                    </span>
-                    <span className="font-mono text-xl text-text-primary">
-                      {userInfo.SumRaffleEthWithdrawal.toFixed(6)} ETH
-                    </span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Stake Actions</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.CSTStakingInfo.TotalNumStakeActions}
+                  </span>
                 </div>
-
-                <div className="pt-4 border-t border-text-muted/10">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-secondary">
-                      Raffles Participated
-                    </span>
-                    <span className="font-mono text-2xl font-semibold text-primary">
-                      {userInfo.NumRaffleEthWinnings}
-                    </span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Unstake Actions</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.CSTStakingInfo.TotalNumUnstakeActions}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-4 border-t border-text-muted/10">
+                  <span className="text-text-secondary">Total Rewards</span>
+                  <span className="font-mono text-primary font-semibold">
+                    {Number(userInfo.StakingStatistics.CSTStakingInfo.TotalRewardEth).toFixed(6)} ETH
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Unclaimed Rewards</span>
+                  <span className="font-mono text-status-warning font-semibold">
+                    {Number(userInfo.StakingStatistics.CSTStakingInfo.UnclaimedRewardEth).toFixed(6)} ETH
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Tokens Staked</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.CSTStakingInfo.TotalTokensStaked}
+                  </span>
                 </div>
               </div>
             </Card>
 
-            {/* NFT & Prize Stats */}
+            {/* RandomWalk Staking */}
             <Card glass className="p-8">
-              <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                NFT & Prize Stats
+              <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
+                RandomWalk Staking
               </h3>
-
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
-                  <div className="flex items-center space-x-3">
-                    <Gem size={20} className="text-primary" />
-                    <span className="text-text-primary">
-                      Total Cosmic Signature NFTs
-                    </span>
-                  </div>
-                  <span className="font-mono text-lg font-semibold text-primary">
-                    {userInfo.TotalCSTokensWon}
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Active Stakers</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.RWalkStakingInfo.NumActiveStakers}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between p-4 rounded-lg bg-status-info/5 border border-status-info/10">
-                  <div className="flex items-center space-x-3">
-                    <Trophy size={20} className="text-status-info" />
-                    <span className="text-text-primary">Raffle NFTs</span>
-                  </div>
-                  <span className="font-mono text-lg font-semibold text-status-info">
-                    {userInfo.RaffleNFTsCount}
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Stake Actions</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalNumStakeActions}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between p-4 rounded-lg bg-status-success/5 border border-status-success/10">
-                  <div className="flex items-center space-x-3">
-                    <Award size={20} className="text-status-success" />
-                    <span className="text-text-primary">Reward NFTs</span>
-                  </div>
-                  <span className="font-mono text-lg font-semibold text-status-success">
-                    {userInfo.RewardNFTsCount}
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Unstake Actions</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalNumUnstakeActions}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between p-4 rounded-lg bg-status-warning/5 border border-status-warning/10">
-                  <div className="flex items-center space-x-3">
-                    <TrendingUp size={20} className="text-status-warning" />
-                    <span className="text-text-primary">Total Prizes Won</span>
-                  </div>
-                  <span className="font-mono text-lg font-semibold text-status-warning">
-                    {userInfo.NumPrizes}
+                <div className="flex justify-between pt-4 border-t border-text-muted/10">
+                  <span className="text-text-secondary">Tokens Minted</span>
+                  <span className="font-mono text-primary font-semibold">
+                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensMinted}
                   </span>
                 </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-text-secondary">
-                      Max Single Prize Won
-                    </span>
-                    <span className="font-mono text-lg font-semibold text-text-primary">
-                      {userInfo.MaxWinAmount.toFixed(6)} ETH
-                    </span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-text-secondary">Tokens Staked</span>
+                  <span className="font-mono text-text-primary">
+                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensStaked}
+                  </span>
                 </div>
               </div>
             </Card>
@@ -391,13 +572,12 @@ export default function AccountDashboardPage() {
       </section>
 
       {/* Quick Actions */}
-      <section className="py-12">
-        <Container>
-          <Card glass className="p-8">
-            <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+      {isViewingOwnAccount && (
+        <section className="py-12">
+          <Container>
+            <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
               Quick Actions
-            </h3>
-
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button size="lg" className="w-full" asChild>
                 <Link href="/game/play">
@@ -407,12 +587,7 @@ export default function AccountDashboardPage() {
               </Button>
 
               {hasUnclaimedPrizes && (
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  className="w-full"
-                  asChild
-                >
+                <Button size="lg" variant="secondary" className="w-full" asChild>
                   <Link href="/account/winnings">
                     <TrendingUp className="mr-2" size={20} />
                     Claim Prizes
@@ -423,137 +598,32 @@ export default function AccountDashboardPage() {
               <Button size="lg" variant="outline" className="w-full" asChild>
                 <Link href="/account/nfts">
                   <Gem className="mr-2" size={20} />
-                  Manage NFTs
+                  View My NFTs
+                </Link>
+              </Button>
+
+              <Button size="lg" variant="outline" className="w-full" asChild>
+                <Link href="/account/activity">
+                  <Activity className="mr-2" size={20} />
+                  View Activity
                 </Link>
               </Button>
             </div>
-          </Card>
-        </Container>
-      </section>
-
-      {/* Recent Activity */}
-      <section className="py-12 bg-background-surface/50">
-        <Container>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-serif text-3xl font-semibold text-text-primary">
-              Recent Activity
-            </h2>
-            <Button variant="ghost" asChild>
-              <Link href="/account/activity">View All →</Link>
-            </Button>
-          </div>
-
-          <Timeline
-            items={recentActivities.map((activity) => ({
-              id: activity.id,
-              title: activity.title,
-              description: activity.description,
-              timestamp: activity.timestamp,
-              type: activity.type,
-              metadata: activity.metadata,
-              link:
-                activity.type === "bid"
-                  ? `/game/history/bids/${activity.id}`
-                  : undefined,
-            }))}
-          />
-        </Container>
-      </section>
-
-      {/* Your NFTs Preview */}
-      <section className="py-12">
-        <Container>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-serif text-3xl font-semibold text-text-primary">
-              Your Collection
-            </h2>
-            <Button variant="ghost" asChild>
-              <Link href="/account/nfts">
-                View All {userInfo.TotalCSTokensWon} NFTs →
-              </Link>
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {userNFTs.map((nft, index) => (
-              <NFTCard key={nft.id} nft={nft} delay={index * 0.1} />
-            ))}
-          </div>
-        </Container>
-      </section>
-
-      {/* Additional Stats */}
-      <section className="py-12 bg-background-surface/50">
-        <Container>
-          <Card glass className="p-8">
-            <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-              Transfer History
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-                <p className="text-sm text-text-secondary mb-2">
-                  Cosmic Signature Transfers
-                </p>
-                <p className="font-mono text-2xl font-bold text-primary">
-                  {userInfo.CosmicSignatureNumTransfers}
-                </p>
-                {isConnected && userInfo.Address && (
-                  <Link
-                    href={`/cosmic-signature-transfer/${userInfo.Address}`}
-                    className="text-sm text-primary hover:underline mt-2 inline-block"
-                  >
-                    View All Transfers →
-                  </Link>
-                )}
-              </div>
-
-              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-                <p className="text-sm text-text-secondary mb-2">
-                  Cosmic Token Transfers
-                </p>
-                <p className="font-mono text-2xl font-bold text-primary">
-                  {userInfo.CosmicTokenNumTransfers}
-                </p>
-                {isConnected && userInfo.Address && (
-                  <Link
-                    href={`/cosmic-token-transfer/${userInfo.Address}`}
-                    className="text-sm text-primary hover:underline mt-2 inline-block"
-                  >
-                    View All Transfers →
-                  </Link>
-                )}
-              </div>
-
-              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-                <p className="text-sm text-text-secondary mb-2">
-                  Maximum Bid Amount
-                </p>
-                <p className="font-mono text-2xl font-bold text-status-warning">
-                  {userInfo.MaxBidAmount.toFixed(6)} ETH
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-                <p className="text-sm text-text-secondary mb-2">
-                  Unclaimed Donated NFTs
-                </p>
-                <p className="font-mono text-2xl font-bold text-status-info">
-                  {userInfo.UnclaimedNFTs}
-                </p>
-                {isConnected && userInfo.UnclaimedNFTs > 0 && (
-                  <Link
-                    href="/account/winnings"
-                    className="text-sm text-primary hover:underline mt-2 inline-block"
-                  >
-                    Claim NFTs →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </Card>
-        </Container>
-      </section>
+          </Container>
+        </section>
+      )}
     </div>
+  );
+}
+
+export default function AccountDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    }>
+      <AccountPageContent />
+    </Suspense>
   );
 }
