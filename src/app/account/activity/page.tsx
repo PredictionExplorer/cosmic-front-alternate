@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
-import { formatEth, shortenAddress } from "@/lib/utils";
 
 interface BidData {
   EvtLogId: number;

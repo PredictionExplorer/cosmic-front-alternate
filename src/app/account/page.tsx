@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/game/StatCard";
 import { AlertCard } from "@/components/features/AlertCard";
-import { formatEth, shortenAddress, formatTime } from "@/lib/utils";
+import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
 import { isAddress, formatEther } from "viem";
 
@@ -50,11 +50,6 @@ interface UserInfoAPI {
       TotalTokensStaked: number;
     };
   };
-}
-
-interface UserBalance {
-  CosmicTokenBalance: string;
-  ETH_Balance: string;
 }
 
 // User winnings API response interface
@@ -116,7 +111,7 @@ const DEFAULT_WINNINGS: UserWinningsAPI = {
 };
 
 function AccountPageContent() {
-  const { address: connectedAddress, isConnected } = useAccount();
+  const { address: connectedAddress } = useAccount();
   const searchParams = useSearchParams();
   const addressParam = searchParams.get("address");
   

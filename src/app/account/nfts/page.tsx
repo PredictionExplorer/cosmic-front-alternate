@@ -9,7 +9,6 @@ import { useAccount } from "wagmi";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { NFTCard } from "@/components/nft/NFTCard";
 import { StatusBadge } from "@/components/features/StatusBadge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";

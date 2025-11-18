@@ -17,7 +17,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image, Trophy, Activity } from "lucide-react";
+import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image, Trophy, Activity, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
 import Link from "next/link";
@@ -67,6 +67,7 @@ export function ConnectWalletButton({
     { href: "/account/nfts", label: "My NFTs", icon: Image },
     { href: "/account/winnings", label: "My Winnings", icon: Trophy },
     { href: "/account/activity", label: "Activity", icon: Activity },
+    { href: "/account/statistics", label: "My Statistics", icon: BarChart3 },
   ];
   
   // Close dropdown when clicking outside

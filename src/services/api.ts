@@ -21,20 +21,28 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://161.129.67.
 const ASSETS_BASE_URL = process.env.NEXT_PUBLIC_ASSETS_BASE_URL || 'https://nfts.cosmicsignature.com/';
 
 /**
- * Check if we need to use proxy for mixed content
- * Returns true if we're on HTTPS and trying to access HTTP
+ * Check if we need to use proxy
+ * Returns true if:
+ * 1. We're on HTTPS and trying to access HTTP (mixed content)
+ * 2. We're in development mode (localhost) to avoid CORS issues
  */
 function shouldUseProxy(url: string): boolean {
 	// Only apply in browser
 	if (typeof window === 'undefined') return false;
 	
+	// Use proxy in development (localhost) to avoid CORS issues
+	const isDevelopment = window.location.hostname === 'localhost' || 
+	                     window.location.hostname === '127.0.0.1';
+	
 	// Check if page is HTTPS
 	const isPageSecure = window.location.protocol === 'https:';
-	if (!isPageSecure) return false;
 	
 	// Check if target URL is HTTP
 	const targetUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-	return targetUrl.startsWith('http://');
+	const isTargetHttp = targetUrl.startsWith('http://');
+	
+	// Use proxy if in development OR if mixed content (HTTPS page + HTTP API)
+	return isDevelopment || (isPageSecure && isTargetHttp);
 }
 
 /**
