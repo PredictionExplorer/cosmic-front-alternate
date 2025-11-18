@@ -37,6 +37,7 @@ export default function PlayPage() {
   const [lastActionType, setLastActionType] = useState<
     "bid" | "claimPrize" | null
   >(null); // Track last action
+  const [lastBidMessage, setLastBidMessage] = useState<string>("");
 
   // Advanced Options State
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -92,6 +93,28 @@ export default function PlayPage() {
 
     fetchUsedNfts();
   }, []);
+
+  // Fetch last bid message from API
+  useEffect(() => {
+    const fetchLastBidMessage = async () => {
+      if (!roundNum) return;
+
+      try {
+        const bids = await api.getBidListByRound(Number(roundNum), "desc");
+        if (bids && bids.length > 0) {
+          const lastBid = bids[0];
+          setLastBidMessage(lastBid.Message || "");
+        } else {
+          setLastBidMessage("");
+        }
+      } catch (error) {
+        console.error("Failed to fetch last bid message:", error);
+        setLastBidMessage("");
+      }
+    };
+
+    fetchLastBidMessage();
+  }, [roundNum]);
 
   // Filter out used NFTs from owned NFTs
   const availableNfts = ownedNfts.filter((nftId) => {
@@ -326,6 +349,17 @@ export default function PlayPage() {
           refetchEthPrice();
           refetchCstPrice();
           refetchPrizeAmount();
+
+          // Refresh last bid message
+          try {
+            const bids = await api.getBidListByRound(Number(roundNum), "desc");
+            if (bids && bids.length > 0) {
+              const lastBid = bids[0];
+              setLastBidMessage(lastBid.Message || "");
+            }
+          } catch (error) {
+            console.error("Failed to refresh last bid message:", error);
+          }
         }
 
         // Refresh used NFTs list if RandomWalk NFT was used
@@ -364,6 +398,7 @@ export default function PlayPage() {
     refetchEthPrice,
     refetchCstPrice,
     refetchPrizeAmount,
+    roundNum,
   ]);
 
   // Prepare display data
@@ -877,8 +912,8 @@ export default function PlayPage() {
                                 className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
                               />
                               <p className="text-xs text-text-muted">
-                                Enter the amount in token&apos;s base unit (e.g., 1.5
-                                for 1.5 tokens)
+                                Enter the amount in token&apos;s base unit
+                                (e.g., 1.5 for 1.5 tokens)
                               </p>
                             </div>
                           </div>
@@ -979,6 +1014,18 @@ export default function PlayPage() {
                         {currentRound.lastBidder}
                       </p>
                     </div>
+                    {lastBidMessage && (
+                      <div className="col-span-2 mt-2">
+                        <p className="text-xs text-text-secondary mb-1">
+                          Last Bidder&apos;s Message
+                        </p>
+                        <div className="p-3 rounded-lg bg-background-elevated border border-text-muted/10">
+                          <p className="text-sm text-text-primary italic">
+                            &quot;{lastBidMessage}&quot;
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
