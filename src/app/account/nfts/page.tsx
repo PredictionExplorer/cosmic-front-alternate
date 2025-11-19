@@ -13,11 +13,17 @@ import { NFTCard } from "@/components/nft/NFTCard";
 import { StatusBadge } from "@/components/features/StatusBadge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { api, getAssetsUrl } from "@/services/api";
+import { safeTimestamp } from "@/lib/utils";
 
 interface NFTData {
   TokenId: number;
   Seed: string;
-  TimeStamp: number;
+  Tx?: {
+    TimeStamp?: number;
+    DateTime?: string;
+    TxHash?: string;
+    BlockNum?: number;
+  };
   TokenName?: string;
   RoundNum: number;
   Staked: boolean;
@@ -77,7 +83,7 @@ export default function MyNFTsPage() {
     seed: `0x${nft.Seed}`,
     imageUrl: getAssetsUrl(`cosmicsignature/0x${nft.Seed}.png`),
     videoUrl: getAssetsUrl(`cosmicsignature/0x${nft.Seed}.mp4`),
-    mintedAt: new Date(nft.TimeStamp * 1000).toISOString(),
+    mintedAt: safeTimestamp(nft),
     attributes: [],
   }));
 

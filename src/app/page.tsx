@@ -25,6 +25,7 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api, { getAssetsUrl } from "@/services/api";
+import { safeTimestamp } from "@/lib/utils";
 import { shortenAddress } from "@/lib/web3/utils";
 import { formatDate } from "@/lib/utils";
 import { GAME_CONSTANTS } from "@/lib/constants";
@@ -151,9 +152,7 @@ export default function Home() {
             imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
             owner: (nft.WinnerAddr as string) || "0x0",
             round: (nft.RoundNum as number) || 0,
-            mintedAt: new Date(
-              ((nft.TimeStamp as number) || 0) * 1000
-            ).toISOString(),
+            mintedAt: safeTimestamp(nft),
             attributes: [],
           }));
         setFeaturedNFTs(recent);

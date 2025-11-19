@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
-import { formatDate, formatDuration } from '@/lib/utils';
+import { formatDate, formatDuration, safeTimestamp } from '@/lib/utils';
 import api from '@/services/api';
 
 // API Response Interface
@@ -220,7 +220,7 @@ export default function RoundsArchivePage() {
 																	Round {round.RoundNum}
 																</Badge>
 																<span className="text-sm text-text-muted">
-																	{formatDate(new Date(round.TimeStamp * 1000))}
+																	{formatDate(new Date(safeTimestamp(round)))}
 																</span>
 															</div>
 

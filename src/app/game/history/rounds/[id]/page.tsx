@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
-import { formatDate, formatDuration } from "@/lib/utils";
+import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
 
 // API Response Interfaces
@@ -316,7 +316,7 @@ export default function RoundDetailPage({
               <div>
                 <h1 className="heading-xl mb-2">Round {round.RoundNum}</h1>
                 <p className="text-text-secondary">
-                  Completed on {formatDate(new Date(round.TimeStamp * 1000))} •
+                  Completed on {formatDate(new Date(safeTimestamp(round)))} •
                   Duration: {formatDuration(duration * 1000)}
                 </p>
               </div>

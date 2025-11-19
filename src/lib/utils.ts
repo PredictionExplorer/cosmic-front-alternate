@@ -69,3 +69,61 @@ export function formatPercentage(value: number): string {
 	return `${value.toFixed(1)}%`;
 }
 
+/**
+ * Safely extract timestamp from API response
+ * Handles both nested (Tx.TimeStamp) and root-level TimeStamp
+ * 
+ * @param data - API response object that may contain timestamp
+ * @returns ISO date string or current date as fallback
+ */
+export function safeTimestamp(data: unknown): string {
+	try {
+		// If data is nullish, return current date
+		if (!data || typeof data !== 'object') {
+			return new Date().toISOString();
+		}
+
+		const obj = data as Record<string, unknown>;
+		
+		// Try nested Tx.TimeStamp first (NFT data structure)
+		if (obj.Tx && typeof obj.Tx === 'object') {
+			const tx = obj.Tx as Record<string, unknown>;
+			const timestamp = tx.TimeStamp as number;
+			
+			if (timestamp && !isNaN(timestamp) && timestamp > 0) {
+				return new Date(timestamp * 1000).toISOString();
+			}
+			
+			// Fallback to DateTime if available
+			if (tx.DateTime && typeof tx.DateTime === 'string') {
+				return tx.DateTime;
+			}
+		}
+		
+		// Try root-level TimeStamp (donated NFT structure)
+		if (obj.TimeStamp) {
+			const timestamp = obj.TimeStamp as number;
+			if (timestamp && !isNaN(timestamp) && timestamp > 0) {
+				return new Date(timestamp * 1000).toISOString();
+			}
+		}
+		
+		// Fallback to current date
+		return new Date().toISOString();
+	} catch (error) {
+		console.warn('Error parsing timestamp:', error);
+		return new Date().toISOString();
+	}
+}
+
+/**
+ * Format timestamp to localized date string
+ * 
+ * @param data - API response object or timestamp number
+ * @returns Formatted date string
+ */
+export function formatTimestamp(data: unknown): string {
+	const isoString = safeTimestamp(data);
+	return new Date(isoString).toLocaleDateString();
+}
+

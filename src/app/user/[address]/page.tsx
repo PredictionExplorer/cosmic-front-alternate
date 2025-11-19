@@ -17,6 +17,7 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { api } from "@/services/api";
 import { formatEther, isAddress } from "viem";
+import { safeTimestamp } from "@/lib/utils";
 
 interface Bid {
   EvtLogId: number;
@@ -1154,7 +1155,7 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                     <div className="flex justify-between">
                       <span className="text-text-secondary">Date</span>
                       <span className="text-text-primary">
-                        {new Date(nft.TimeStamp * 1000).toLocaleDateString()}
+                        {new Date(safeTimestamp(nft)).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="flex justify-between">

@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { NFTCard } from "@/components/nft/NFTCard";
 import api, { getAssetsUrl } from "@/services/api";
+import { safeTimestamp } from "@/lib/utils";
 
 export default function GalleryPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "id">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "id">("id");
   const [currentPage, setCurrentPage] = useState(1);
   const [allNFTs, setAllNFTs] = useState<
     Array<{
@@ -37,7 +38,7 @@ export default function GalleryPage() {
     async function fetchNFTs() {
       try {
         setIsLoading(true);
-        const nfts = await api.getCSTList();
+        const nfts = await api.getCSTList();        
 
         // Transform API data to component format
         const transformed = nfts.map((nft: Record<string, unknown>) => ({
@@ -47,9 +48,9 @@ export default function GalleryPage() {
           customName: (nft.TokenName as string | null) || undefined,
           seed: `0x${nft.Seed}`,
           imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
-          owner: (nft.WinnerAddr as string) || "0x0",
+          owner: (nft.CurOwnerAddr as string) || "0x0",
           round: (nft.RoundNum as number) || 0,
-          mintedAt: new Date((nft.TimeStamp as number) * 1000).toISOString(),
+          mintedAt: safeTimestamp(nft),
           attributes: [],
         }));
 
@@ -84,7 +85,8 @@ export default function GalleryPage() {
         return new Date(b.mintedAt).getTime() - new Date(a.mintedAt).getTime();
       if (sortBy === "oldest")
         return new Date(a.mintedAt).getTime() - new Date(b.mintedAt).getTime();
-      return a.tokenId - b.tokenId;
+      // Sort by TokenId descending (highest first) like the old project
+      return b.tokenId - a.tokenId;
     });
 
   // Calculate pagination
@@ -151,9 +153,9 @@ export default function GalleryPage() {
                 }
                 className="px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
               >
+                <option value="id">Token ID (Desc)</option>
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
-                <option value="id">Token ID</option>
               </select>
 
               {/* View Mode */}
