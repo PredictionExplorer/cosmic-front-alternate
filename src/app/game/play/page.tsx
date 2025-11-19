@@ -60,7 +60,8 @@ export default function PlayPage() {
     read.useMainPrizeAmount();
 
   // Get user's Random Walk NFTs
-  const { data: userNfts, refetch: refetchWalletNfts } = readRandomWalk.useWalletOfOwner(address);
+  const { data: userNfts, refetch: refetchWalletNfts } =
+    readRandomWalk.useWalletOfOwner(address);
   const ownedNfts = (userNfts as bigint[] | undefined) || [];
 
   // Fetch used NFTs from API
@@ -210,7 +211,11 @@ export default function PlayPage() {
       setLastActionType("bid");
 
       // Track if we need to refresh NFTs (RandomWalk used or NFT donated)
-      const needsNftRefresh = useRandomWalkNft || (donationType === "nft" && !!donationNftAddress && !!donationNftTokenId);
+      const needsNftRefresh =
+        useRandomWalkNft ||
+        (donationType === "nft" &&
+          !!donationNftAddress &&
+          !!donationNftTokenId);
       setShouldRefreshNfts(needsNftRefresh);
 
       // Submit bid with or without donation
@@ -280,7 +285,8 @@ export default function PlayPage() {
 
       // Track if we need to refresh NFTs (NFT donated)
       // Note: CST bids don't use RandomWalk NFTs, but can donate NFTs
-      const needsNftRefresh = donationType === "nft" && !!donationNftAddress && !!donationNftTokenId;
+      const needsNftRefresh =
+        donationType === "nft" && !!donationNftAddress && !!donationNftTokenId;
       setShouldRefreshNfts(needsNftRefresh);
 
       // Submit bid with or without donation
@@ -386,7 +392,7 @@ export default function PlayPage() {
             // Refetch the user's wallet to get updated NFT list
             // This is important when NFTs are donated (they leave the wallet)
             await refetchWalletNfts();
-            
+
             // Also fetch the used NFTs list from the API
             // This tracks which RandomWalk NFTs were used for bidding discount
             const response = await api.getUsedRWLKNfts();
@@ -405,12 +411,12 @@ export default function PlayPage() {
               });
             }
             setUsedNfts(normalizedList);
-            
+
             // Clear RandomWalk NFT selection if it was used
             if (useRandomWalkNft && selectedNftId !== null) {
               setSelectedNftId(null);
             }
-            
+
             // Reset the refresh flag
             setShouldRefreshNfts(false);
           } catch (error) {

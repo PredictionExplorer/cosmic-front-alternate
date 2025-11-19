@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { 
-  Trophy, 
-  Coins, 
-  Gem, 
-  CheckCircle, 
-  Package, 
-  Loader2, 
+import {
+  Trophy,
+  Coins,
+  CheckCircle,
+  Loader2,
   ExternalLink,
-  AlertCircle 
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
@@ -22,7 +20,9 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
-import { safeTimestamp } from "@/lib/utils";
+import { useStakingWalletCST } from "@/hooks/useStakingWallet";
+import { formatTime } from "@/lib/utils";
+import { useNotification } from "@/contexts/NotificationContext";
 
 interface RaffleWinning {
   EvtLogId: number;
@@ -53,27 +53,58 @@ interface DonatedERC20 {
 }
 
 interface StakingReward {
-  ActionId: number;
-  TokenId: number;
-  RoundNum: number;
-  RewardAmountEth: number;
-  TimeStamp: number;
+  RecordId: number;
+  Tx?: {
+    TimeStamp?: number;
+    DateTime?: string;
+    TxHash?: string;
+  };
+  DepositId: number;
+  DepositTimeStamp: number;
+  DepositDate: string;
+  NumStakedNFTs: number;
+  DepositAmount: string;
+  DepositAmountEth: number;
+  YourTokensStaked: number;
+  YourRewardAmount: string;
+  YourRewardAmountEth: number;
+  YourCollectedAmount: string;
+  YourCollectedAmountEth: number;
+  PendingToClaim: string;
+  PendingToClaimEth: number;
+  NumUnclaimedTokens: number;
+  AmountPerToken: string;
+  AmountPerTokenEth: number;
 }
 
 export default function MyWinningsPage() {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
-  
+
   // Unclaimed winnings data
-  const [raffleETHWinnings, setRaffleETHWinnings] = useState<RaffleWinning[]>([]);
+  const [raffleETHWinnings, setRaffleETHWinnings] = useState<RaffleWinning[]>(
+    []
+  );
   const [donatedNFTs, setDonatedNFTs] = useState<DonatedNFT[]>([]);
   const [donatedERC20, setDonatedERC20] = useState<DonatedERC20[]>([]);
   const [stakingRewards, setStakingRewards] = useState<StakingReward[]>([]);
-  
+
+  // Round timeout data for expiration tracking
+  const [roundTimeouts, setRoundTimeouts] = useState<Record<number, number>>(
+    {}
+  );
+
   // Summary data
   const [totalEthToClaim, setTotalEthToClaim] = useState(0);
   const [totalStakingRewards, setTotalStakingRewards] = useState(0);
-  
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [stakingPage, setStakingPage] = useState(1);
+  const [nftPage, setNftPage] = useState(1);
+  const [erc20Page, setErc20Page] = useState(1);
+  const perPage = 5;
+
   // Transaction states
   const [claiming, setClaiming] = useState({
     eth: false,
@@ -81,8 +112,10 @@ export default function MyWinningsPage() {
     erc20: null as number | null,
     staking: null as number | null,
   });
-  
+
   const prizesWallet = usePrizesWallet();
+  const stakingWallet = useStakingWalletCST();
+  const { showSuccess, showError, showInfo } = useNotification();
 
   // Fetch all unclaimed winnings
   const fetchWinnings = useCallback(async () => {
@@ -93,7 +126,7 @@ export default function MyWinningsPage() {
 
     try {
       setLoading(true);
-      
+
       const [
         raffleDeposits,
         unclaimedNFTs,
@@ -108,28 +141,62 @@ export default function MyWinningsPage() {
         api.getStakingCSTRewardsToClaim(address),
       ]);
 
-      setRaffleETHWinnings(raffleDeposits.sort((a: RaffleWinning, b: RaffleWinning) => 
-        b.TimeStamp - a.TimeStamp
-      ));
-      
-      setDonatedNFTs([...unclaimedNFTs, ...claimedNFTs].sort((a: DonatedNFT, b: DonatedNFT) => 
-        b.TimeStamp - a.TimeStamp
-      ));
-      
-      setDonatedERC20(erc20Tokens.sort((a: DonatedERC20, b: DonatedERC20) => 
-        b.TimeStamp - a.TimeStamp
-      ));
-      
+      // Sort raffle winnings by timestamp (most recent first)
+      setRaffleETHWinnings(
+        raffleDeposits.sort(
+          (a: RaffleWinning, b: RaffleWinning) => b.TimeStamp - a.TimeStamp
+        )
+      );
+
+      // Combine and sort donated NFTs
+      setDonatedNFTs(
+        [...unclaimedNFTs, ...claimedNFTs].sort(
+          (a: DonatedNFT, b: DonatedNFT) => a.TimeStamp - b.TimeStamp
+        )
+      );
+
+      // Sort ERC20 tokens
+      setDonatedERC20(
+        erc20Tokens.sort(
+          (a: DonatedERC20, b: DonatedERC20) => b.TimeStamp - a.TimeStamp
+        )
+      );
       setStakingRewards(stakingRewardsData);
 
       // Calculate totals
-      const ethTotal = raffleDeposits.reduce((sum: number, w: RaffleWinning) => sum + w.Amount, 0);
-      const stakingTotal = stakingRewardsData.reduce((sum: number, r: StakingReward) => 
-        sum + r.RewardAmountEth, 0
+      const ethTotal = raffleDeposits.reduce(
+        (sum: number, w: RaffleWinning) => sum + w.Amount,
+        0
       );
-      
+      const stakingTotal = stakingRewardsData.reduce(
+        (sum: number, r: StakingReward) => sum + r.PendingToClaimEth,
+        0
+      );
+
       setTotalEthToClaim(ethTotal);
       setTotalStakingRewards(stakingTotal);
+
+      // Fetch round timeouts for raffle winnings
+      const uniqueRounds: number[] = [
+        ...new Set<number>(
+          raffleDeposits.map((w: RaffleWinning) => w.RoundNum)
+        ),
+      ];
+      const timeouts: Record<number, number> = {};
+
+      for (const roundNum of uniqueRounds) {
+        try {
+          const timeoutData = await prizesWallet.read.useRoundTimeout(
+            BigInt(roundNum)
+          );
+          if (timeoutData && timeoutData.data) {
+            timeouts[roundNum] = Number(timeoutData.data);
+          }
+        } catch (err) {
+          console.error(`Error fetching timeout for round ${roundNum}:`, err);
+        }
+      }
+      setRoundTimeouts(timeouts);
     } catch (error) {
       console.error("Error fetching winnings:", error);
     } finally {
@@ -146,39 +213,39 @@ export default function MyWinningsPage() {
     setTimeout(fetchWinnings, 3000);
   };
 
-  // Claim all ETH (raffle + staking)
+  // Claim all ETH (raffle prizes)
   const handleClaimETH = async () => {
     try {
-      setClaiming(prev => ({ ...prev, eth: true }));
+      setClaiming((prev) => ({ ...prev, eth: true }));
       await prizesWallet.write.withdrawEth();
       refreshData();
     } catch (error) {
       console.error("Error claiming ETH:", error);
     } finally {
-      setClaiming(prev => ({ ...prev, eth: false }));
+      setClaiming((prev) => ({ ...prev, eth: false }));
     }
   };
 
   // Claim single donated NFT
   const handleClaimNFT = async (nftIndex: number) => {
     try {
-      setClaiming(prev => ({ ...prev, nft: nftIndex }));
+      setClaiming((prev) => ({ ...prev, nft: nftIndex }));
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
       refreshData();
     } catch (error) {
       console.error("Error claiming NFT:", error);
     } finally {
-      setClaiming(prev => ({ ...prev, nft: null }));
+      setClaiming((prev) => ({ ...prev, nft: null }));
     }
   };
 
   // Claim all donated NFTs
   const handleClaimAllNFTs = async () => {
-    const unclaimedNFTs = donatedNFTs.filter(nft => !nft.Claimed);
+    const unclaimedNFTs = donatedNFTs.filter((nft) => !nft.Claimed);
     if (unclaimedNFTs.length === 0) return;
 
     try {
-      const indexes = unclaimedNFTs.map(nft => BigInt(nft.Index));
+      const indexes = unclaimedNFTs.map((nft) => BigInt(nft.Index));
       await prizesWallet.write.claimManyDonatedNfts(indexes);
       refreshData();
     } catch (error) {
@@ -189,7 +256,7 @@ export default function MyWinningsPage() {
   // Claim single ERC20 token
   const handleClaimERC20 = async (token: DonatedERC20) => {
     try {
-      setClaiming(prev => ({ ...prev, erc20: token.RoundNum }));
+      setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
         token.TokenAddr as `0x${string}`,
@@ -199,22 +266,22 @@ export default function MyWinningsPage() {
     } catch (error) {
       console.error("Error claiming ERC20:", error);
     } finally {
-      setClaiming(prev => ({ ...prev, erc20: null }));
+      setClaiming((prev) => ({ ...prev, erc20: null }));
     }
   };
 
   // Claim all ERC20 tokens
   const handleClaimAllERC20 = async () => {
-    const unclaimedTokens = donatedERC20.filter(t => !t.Claimed);
+    const unclaimedTokens = donatedERC20.filter((t) => !t.Claimed);
     if (unclaimedTokens.length === 0) return;
 
     try {
-      const tokens = unclaimedTokens.map(token => ({
+      const tokens = unclaimedTokens.map((token) => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
         amount: BigInt(token.AmountEth),
       }));
-      
+
       await prizesWallet.write.claimManyDonatedTokens(tokens);
       refreshData();
     } catch (error) {
@@ -222,8 +289,59 @@ export default function MyWinningsPage() {
     }
   };
 
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString();
+  // Unstake and claim single deposit
+  const handleUnstakeSingle = async (depositId: number) => {
+    try {
+      setClaiming((prev) => ({ ...prev, staking: depositId }));
+      showInfo("Unstaking NFTs and claiming rewards...");
+      
+      await stakingWallet.write.unstake(BigInt(depositId));
+      
+      showSuccess("NFTs unstaked and rewards claimed successfully!");
+      refreshData();
+    } catch (error) {
+      console.error("Error unstaking:", error);
+      showError("Failed to unstake. Please try again.");
+    } finally {
+      setClaiming((prev) => ({ ...prev, staking: null }));
+    }
+  };
+
+  // Claim all staking rewards (unstake all deposits)
+  const handleClaimAllStaking = async () => {
+    if (stakingRewards.length === 0) return;
+
+    try {
+      showInfo("Unstaking all NFTs and claiming all rewards...");
+      
+      const depositIds = stakingRewards.map((reward) => BigInt(reward.DepositId));
+      await stakingWallet.write.unstakeMany(depositIds);
+      
+      showSuccess(`Successfully unstaked ${stakingRewards.length} deposit(s) and claimed all rewards!`);
+      refreshData();
+    } catch (error) {
+      console.error("Error claiming all staking rewards:", error);
+      showError("Failed to claim all rewards. Please try again.");
+    }
+  };
+
+  const formatTimestamp = (timestamp: number, includeTime = false) => {
+    const date = new Date(timestamp * 1000);
+    if (includeTime) {
+      return date.toLocaleString();
+    }
+    return date.toLocaleDateString();
+  };
+
+  const getExpirationStatus = (roundNum: number) => {
+    const timeout = roundTimeouts[roundNum];
+    if (!timeout) return null;
+
+    const now = Math.floor(Date.now() / 1000);
+    const isExpired = timeout < now;
+    const timeLeft = timeout - now;
+
+    return { timeout, isExpired, timeLeft };
   };
 
   if (!isConnected) {
@@ -256,7 +374,10 @@ export default function MyWinningsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <Container>
           <Card glass className="p-12 text-center">
-            <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={48} />
+            <Loader2
+              className="animate-spin mx-auto mb-4 text-primary"
+              size={48}
+            />
             <p className="text-text-secondary">Loading your prizes...</p>
           </Card>
         </Container>
@@ -264,8 +385,8 @@ export default function MyWinningsPage() {
     );
   }
 
-  const unclaimedNFTs = donatedNFTs.filter(nft => !nft.Claimed);
-  const unclaimedERC20 = donatedERC20.filter(t => !t.Claimed);
+  const unclaimedNFTs = donatedNFTs.filter((nft) => !nft.Claimed);
+  const unclaimedERC20 = donatedERC20.filter((t) => !t.Claimed);
 
   const hasUnclaimedPrizes =
     totalEthToClaim > 0 ||
@@ -275,7 +396,39 @@ export default function MyWinningsPage() {
 
   const totalClaimableEth = totalEthToClaim + totalStakingRewards;
 
-  if (!hasUnclaimedPrizes && raffleETHWinnings.length === 0 && donatedNFTs.length === 0) {
+  // Paginate raffle winnings
+  const paginatedRaffleWinnings = raffleETHWinnings.slice(
+    (currentPage - 1) * perPage,
+    currentPage * perPage
+  );
+  const totalPages = Math.ceil(raffleETHWinnings.length / perPage);
+
+  // Paginate staking rewards
+  const paginatedStakingRewards = stakingRewards.slice(
+    (stakingPage - 1) * perPage,
+    stakingPage * perPage
+  );
+  const stakingTotalPages = Math.ceil(stakingRewards.length / perPage);
+
+  // Paginate donated NFTs
+  const paginatedDonatedNFTs = donatedNFTs.slice(
+    (nftPage - 1) * perPage,
+    nftPage * perPage
+  );
+  const nftTotalPages = Math.ceil(donatedNFTs.length / perPage);
+
+  // Paginate donated ERC20 tokens
+  const paginatedDonatedERC20 = donatedERC20.slice(
+    (erc20Page - 1) * perPage,
+    erc20Page * perPage
+  );
+  const erc20TotalPages = Math.ceil(donatedERC20.length / perPage);
+
+  if (
+    !hasUnclaimedPrizes &&
+    raffleETHWinnings.length === 0 &&
+    donatedNFTs.length === 0
+  ) {
     return (
       <div className="min-h-screen section-padding">
         <Container>
@@ -319,14 +472,11 @@ export default function MyWinningsPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <h1 className="heading-xl mb-4">Pending Winnings</h1>
-            {hasUnclaimedPrizes && (
+            {totalClaimableEth > 0 && (
               <div className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-primary/10 border border-primary/20">
                 <Trophy size={24} className="text-primary" />
                 <span className="font-mono text-3xl font-semibold text-primary">
                   {totalClaimableEth.toFixed(6)} ETH
-                </span>
-                <span className="text-text-secondary">
-                  + {unclaimedNFTs.length} NFTs + {unclaimedERC20.length} Tokens
                 </span>
               </div>
             )}
@@ -342,7 +492,9 @@ export default function MyWinningsPage() {
               <div className="flex items-center gap-3">
                 <Loader2 className="animate-spin text-primary" size={24} />
                 <div>
-                  <p className="font-semibold text-text-primary">Transaction in progress...</p>
+                  <p className="font-semibold text-text-primary">
+                    Transaction in progress...
+                  </p>
                   <p className="text-sm text-text-secondary">
                     Please wait while your transaction is being confirmed
                   </p>
@@ -364,115 +516,204 @@ export default function MyWinningsPage() {
       )}
 
       {/* Claimable ETH Rewards (Raffle) */}
-      {raffleETHWinnings.length > 0 && (
-        <section className="py-12">
-          <Container>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Claimable ETH Rewards
-              </h2>
-              {totalEthToClaim > 0 && (
-                <div className="text-right">
-                  <p className="text-sm text-text-secondary mb-1">Total Claimable</p>
-                  <p className="font-mono text-2xl font-bold text-primary">
-                    {totalEthToClaim.toFixed(6)} ETH
-                  </p>
-                </div>
-              )}
-            </div>
+      <section className="py-12">
+        <Container>
+          <h2 className="font-serif text-3xl font-semibold text-text-primary mb-6">
+            Claimable ETH Rewards
+          </h2>
 
-            {totalEthToClaim > 0 && (
-              <Card glass className="p-6 mb-6 bg-primary/5 border-primary/20">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-4">
-                    <Coins size={40} className="text-primary" />
-                    <div>
-                      <p className="text-sm text-text-secondary mb-1">Total Raffle ETH</p>
-                      <p className="font-mono text-3xl font-bold text-primary">
-                        {totalEthToClaim.toFixed(6)} ETH
-                      </p>
-                      <p className="text-sm text-text-muted mt-1">
-                        ≈ ${(totalEthToClaim * 2400).toFixed(2)} USD
-                      </p>
+          {raffleETHWinnings.length === 0 ? (
+            <Card glass className="p-8 text-center">
+              <p className="text-text-secondary">No ETH winnings yet.</p>
+            </Card>
+          ) : (
+            <>
+              {/* Summary Card */}
+              {totalEthToClaim > 0 && (
+                <Card glass className="p-6 mb-6 bg-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-4">
+                      <Coins size={40} className="text-primary" />
+                      <div>
+                        <p className="text-sm text-text-secondary mb-1">
+                          Your claimable winnings are
+                        </p>
+                        <p className="font-mono text-3xl font-bold text-primary">
+                          {totalEthToClaim.toFixed(6)} ETH
+                        </p>
+                        <p className="text-sm text-text-muted mt-1">
+                          ≈ ${(totalEthToClaim * 2400).toFixed(2)} USD
+                        </p>
+                      </div>
                     </div>
+                    <Button
+                      size="lg"
+                      onClick={handleClaimETH}
+                      disabled={
+                        claiming.eth || prizesWallet.isTransactionPending
+                      }
+                    >
+                      {claiming.eth ? (
+                        <>
+                          <Loader2 className="mr-2 animate-spin" size={20} />
+                          Claiming...
+                        </>
+                      ) : (
+                        "Claim All"
+                      )}
+                    </Button>
                   </div>
-                  <Button 
-                    size="lg"
-                    onClick={handleClaimETH}
-                    disabled={claiming.eth || prizesWallet.isTransactionPending}
-                  >
-                    {claiming.eth ? (
-                      <>
-                        <Loader2 className="mr-2 animate-spin" size={20} />
-                        Claiming...
-                      </>
-                    ) : (
-                      "Claim All ETH"
-                    )}
-                  </Button>
+                </Card>
+              )}
+
+              {/* Raffle Winnings Table */}
+              <Card glass className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-background-elevated border-b border-text-muted/10">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
+                          Datetime
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                          Round
+                        </th>
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                          Expiration Date
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                          Amount (ETH)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedRaffleWinnings.map((winning, index) => {
+                        const expiration = getExpirationStatus(
+                          winning.RoundNum
+                        );
+
+                        return (
+                          <tr
+                            key={winning.EvtLogId}
+                            className={`border-b border-text-muted/5 ${
+                              index % 2 === 0 ? "bg-background-surface/30" : ""
+                            }`}
+                          >
+                            <td className="px-6 py-4">
+                              <a
+                                href={`https://sepolia.arbiscan.io/tx/${winning.TxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"
+                              >
+                                {formatTimestamp(winning.TimeStamp, true)}
+                                <ExternalLink size={12} />
+                              </a>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <Link
+                                href={`/game/history/rounds/${winning.RoundNum}`}
+                              >
+                                <Badge variant="default">
+                                  Round {winning.RoundNum}
+                                </Badge>
+                              </Link>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              {expiration ? (
+                                <div className="text-sm">
+                                  <div
+                                    className={
+                                      expiration.isExpired
+                                        ? "text-status-error"
+                                        : "text-text-secondary"
+                                    }
+                                  >
+                                    {formatTimestamp(expiration.timeout, true)}
+                                  </div>
+                                  {expiration.isExpired ? (
+                                    <div className="text-xs text-status-error mt-1">
+                                      (Expired)
+                                    </div>
+                                  ) : (
+                                    <div className="text-xs text-text-muted mt-1">
+                                      ({formatTime(expiration.timeLeft)})
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-text-muted">-</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono text-text-primary">
+                              {winning.Amount.toFixed(7)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
-            )}
 
-            {/* Raffle Winnings Table */}
-            <Card glass className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-background-elevated border-b border-text-muted/10">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
-                        Date & Time
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                        Amount (ETH)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {raffleETHWinnings.map((winning, index) => (
-                      <tr 
-                        key={winning.EvtLogId}
-                        className={`border-b border-text-muted/5 ${
-                          index % 2 === 0 ? "bg-background-surface/30" : ""
-                        }`}
-                      >
-                        <td className="px-6 py-4">
-                          <a
-                            href={`https://sepolia.arbiscan.io/tx/${winning.TxHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 1
+                        );
+                      })
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center gap-2">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="text-text-muted">...</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={
+                              currentPage === page ? "primary" : "outline"
+                            }
+                            onClick={() => setCurrentPage(page)}
+                            className="min-w-[40px]"
                           >
-                            {formatTimestamp(winning.TimeStamp)}
-                            <ExternalLink size={12} />
-                          </a>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Link href={`/game/history/rounds/${winning.RoundNum}`}>
-                            <Badge variant="default">Round {winning.RoundNum}</Badge>
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant="warning">Unclaimed</Badge>
-                        </td>
-                        <td className="px-6 py-4 text-right font-mono text-text-primary">
-                          {winning.Amount.toFixed(7)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </Container>
-        </section>
-      )}
+                            {page}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </Container>
+      </section>
 
       {/* CST Staking Rewards */}
       {stakingRewards.length > 0 && (
@@ -480,16 +721,43 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                CST Staking Rewards
+                Claimable CST Staking Rewards
               </h2>
-              {totalStakingRewards > 0 && (
-                <div className="text-right">
-                  <p className="text-sm text-text-secondary mb-1">Total Uncollected</p>
-                  <p className="font-mono text-2xl font-bold text-status-success">
-                    {totalStakingRewards.toFixed(6)} ETH
+              {stakingRewards.length > 0 && (
+                <Button
+                  onClick={handleClaimAllStaking}
+                  disabled={stakingWallet.status.isPending}
+                >
+                  {stakingWallet.status.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" size={16} />
+                      Processing...
+                    </>
+                  ) : (
+                    `Claim All (${stakingRewards.length})`
+                  )}
+                </Button>
+              )}
+            </div>
+
+            <div className="mb-6 p-4 rounded-lg bg-status-info/10 border border-status-info/20">
+              <div className="flex items-start gap-3">
+                <AlertCircle
+                  className="text-status-info flex-shrink-0 mt-0.5"
+                  size={20}
+                />
+                <div className="text-sm text-text-secondary">
+                  <p className="font-semibold text-text-primary mb-1">
+                    How staking rewards work:
+                  </p>
+                  <p>
+                    When you unstake your NFTs, the pending rewards will be automatically 
+                    transferred to your wallet. Click &quot;Unstake & Claim&quot; to unstake 
+                    individual deposits, or use &quot;Claim All&quot; to unstake all deposits 
+                    and claim all rewards at once.
                   </p>
                 </div>
-              )}
+              </div>
             </div>
 
             <Card glass className="overflow-hidden">
@@ -498,159 +766,218 @@ export default function MyWinningsPage() {
                   <thead className="bg-background-elevated border-b border-text-muted/10">
                     <tr>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
+                        Deposit ID
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Token ID
+                        Your NFTs
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Total NFTs
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                        Reward (ETH)
+                        Total Deposit
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                        Per NFT
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                        Your Reward
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Action
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {stakingRewards.map((reward, index) => (
-                      <tr 
-                        key={reward.ActionId}
+                    {paginatedStakingRewards.map((reward, index) => (
+                      <tr
+                        key={reward.DepositId}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
                       >
-                        <td className="px-6 py-4 text-sm text-text-secondary">
-                          {formatTimestamp(reward.TimeStamp)}
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-primary font-semibold">
+                            #{reward.DepositId}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm text-text-secondary">
+                          {new Date(reward.DepositDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <Link href={`/gallery/${reward.TokenId}`}>
-                            <span className="font-mono text-sm text-primary hover:text-primary/80">
-                              #{reward.TokenId}
-                            </span>
-                          </Link>
+                          <Badge variant="info">
+                            {reward.YourTokensStaked}
+                          </Badge>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant="default">Round {reward.RoundNum}</Badge>
+                        <td className="px-6 py-4 text-center text-text-secondary">
+                          {reward.NumStakedNFTs}
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-text-primary">
-                          {reward.RewardAmountEth.toFixed(7)}
+                          {reward.DepositAmountEth.toFixed(6)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono text-text-muted text-sm">
+                          {reward.AmountPerTokenEth.toFixed(8)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono text-status-success font-semibold">
+                          {reward.PendingToClaimEth.toFixed(7)}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Button 
+                            size="sm" 
+                            variant="primary"
+                            onClick={() => handleUnstakeSingle(reward.DepositId)}
+                            disabled={
+                              claiming.staking === reward.DepositId ||
+                              stakingWallet.status.isPending
+                            }
+                          >
+                            {claiming.staking === reward.DepositId ? (
+                              <>
+                                <Loader2 className="mr-1 animate-spin" size={14} />
+                                Processing...
+                              </>
+                            ) : (
+                              "Unstake & Claim"
+                            )}
+                          </Button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              
-              <div className="p-6 bg-background-elevated border-t border-text-muted/10">
-                <p className="text-sm text-text-secondary mb-3">
-                  <AlertCircle size={16} className="inline mr-2" />
-                  Staking rewards will be automatically claimed when you unstake your NFT
-                </p>
-              </div>
-            </Card>
-          </Container>
-        </section>
-      )}
 
-      {/* ERC-20 Tokens */}
-      {donatedERC20.length > 0 && (
-        <section className="py-12">
-          <Container>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Donated ERC-20 Tokens
-              </h2>
-              {unclaimedERC20.length > 1 && (
-                <Button 
-                  variant="outline"
-                  onClick={handleClaimAllERC20}
-                  disabled={prizesWallet.isTransactionPending}
-                >
-                  Claim All ({unclaimedERC20.length})
-                </Button>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {donatedERC20.map((token) => (
-                <Card 
-                  key={`${token.RoundNum}-${token.TokenAddr}`} 
-                  glass 
-                  className={`p-6 ${token.Claimed ? "opacity-50" : ""}`}
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-start space-x-4 flex-1">
-                      <div className={`flex-shrink-0 p-3 rounded-lg ${
-                        token.Claimed ? "bg-background-elevated" : "bg-status-success/10"
-                      }`}>
-                        <Package 
-                          size={24} 
-                          className={token.Claimed ? "text-text-muted" : "text-status-success"} 
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-mono text-xl font-semibold text-text-primary">
-                            {(parseFloat(token.AmountEth) / 1e18).toLocaleString(undefined, {
-                              maximumFractionDigits: 6
-                            })}{" "}
-                            {token.TokenSymbol}
-                          </h3>
-                          {token.Claimed ? (
-                            <Badge variant="success">
-                              <CheckCircle size={12} className="mr-1" />
-                              Claimed
-                            </Badge>
-                          ) : (
-                            <Badge variant="warning">Unclaimed</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-text-secondary mb-1">
-                          {token.TokenName || "ERC-20 Token"}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-text-muted">
-                          <span>Round {token.RoundNum}</span>
-                          <span>•</span>
-                          <span>{formatTimestamp(token.TimeStamp)}</span>
-                        </div>
-                      </div>
+              {totalStakingRewards > 0 && (
+                <div className="p-6 bg-background-elevated border-t border-text-muted/10">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-text-secondary mb-1">
+                        Total Deposits
+                      </p>
+                      <p className="font-mono text-lg font-bold text-text-primary">
+                        {stakingRewards.length}
+                      </p>
                     </div>
-                    
-                    {!token.Claimed && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleClaimERC20(token)}
-                        disabled={claiming.erc20 === token.RoundNum || prizesWallet.isTransactionPending}
-                      >
-                        {claiming.erc20 === token.RoundNum ? (
-                          <>
-                            <Loader2 className="mr-2 animate-spin" size={16} />
-                            Claiming...
-                          </>
-                        ) : (
-                          "Claim"
-                        )}
-                      </Button>
-                    )}
+                    <div>
+                      <p className="text-sm text-text-secondary mb-1">
+                        Your NFTs Staked
+                      </p>
+                      <p className="font-mono text-lg font-bold text-text-primary">
+                        {stakingRewards.reduce((sum, r) => sum + r.YourTokensStaked, 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-text-secondary mb-1">
+                        Unclaimed Tokens
+                      </p>
+                      <p className="font-mono text-lg font-bold text-text-primary">
+                        {stakingRewards.reduce((sum, r) => sum + r.NumUnclaimedTokens, 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-text-secondary mb-1">
+                        Total Rewards
+                      </p>
+                      <p className="font-mono text-2xl font-bold text-status-success">
+                        {totalStakingRewards.toFixed(6)} ETH
+                      </p>
+                    </div>
                   </div>
-                </Card>
-              ))}
-            </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleClaimAllStaking}
+                      disabled={stakingWallet.status.isPending}
+                    >
+                      {stakingWallet.status.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 animate-spin" size={16} />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2" size={16} />
+                          Claim All Rewards
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {stakingTotalPages > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setStakingPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={stakingPage === 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: stakingTotalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === stakingTotalPages ||
+                          Math.abs(page - stakingPage) <= 1
+                        );
+                      })
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center gap-2">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="text-text-muted">...</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={
+                              stakingPage === page ? "primary" : "outline"
+                            }
+                            onClick={() => setStakingPage(page)}
+                            className="min-w-[40px]"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setStakingPage((prev) =>
+                        Math.min(stakingTotalPages, prev + 1)
+                      )
+                    }
+                    disabled={stakingPage === stakingTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </Card>
           </Container>
         </section>
       )}
 
       {/* Donated NFTs */}
       {donatedNFTs.length > 0 && (
-        <section className="py-12 bg-background-surface/50">
+        <section className="py-12">
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
                 Donated NFTs
               </h2>
-              {unclaimedNFTs.length > 1 && (
-                <Button 
-                  variant="outline"
+              {unclaimedNFTs.length > 0 && (
+                <Button
                   onClick={handleClaimAllNFTs}
                   disabled={prizesWallet.isTransactionPending}
                 >
@@ -659,137 +986,348 @@ export default function MyWinningsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {donatedNFTs.map((nft) => (
-                <Card 
-                  key={nft.Index} 
-                  glass 
-                  className={`p-6 ${nft.Claimed ? "opacity-50" : ""}`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Gem size={20} className={nft.Claimed ? "text-text-muted" : "text-status-info"} />
-                      <h3 className="font-serif text-lg font-semibold text-text-primary">
-                        Token #{nft.TokenId}
-                      </h3>
-                    </div>
-                    {nft.Claimed ? (
-                      <Badge variant="success">
-                        <CheckCircle size={12} className="mr-1" />
-                        Claimed
-                      </Badge>
-                    ) : (
-                      <Badge variant="warning">Unclaimed</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2 text-sm mb-4">
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Round</span>
-                      <Link href={`/game/history/rounds/${nft.RoundNum}`}>
-                        <span className="text-primary hover:text-primary/80">
-                          {nft.RoundNum}
-                        </span>
-                      </Link>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Date</span>
-                      <span className="text-text-primary">
-                        {new Date(safeTimestamp(nft)).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-secondary">Contract</span>
-                      <span className="font-mono text-xs text-text-muted">
-                        {nft.NftAddr.substring(0, 6)}...{nft.NftAddr.slice(-4)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {!nft.Claimed && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handleClaimNFT(nft.Index)}
-                      disabled={claiming.nft === nft.Index || prizesWallet.isTransactionPending}
-                    >
-                      {claiming.nft === nft.Index ? (
-                        <>
-                          <Loader2 className="mr-2 animate-spin" size={16} />
-                          Claiming...
-                        </>
-                      ) : (
-                        "Claim NFT"
-                      )}
-                    </Button>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </Container>
-        </section>
-      )}
-
-      {/* Summary Section */}
-      {hasUnclaimedPrizes && (
-        <section className="py-12">
-          <Container>
-            <Card glass className="p-8">
-              <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                Summary
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                  <p className="text-sm text-text-secondary mb-2">ETH Raffle</p>
-                  <p className="font-mono text-2xl font-bold text-primary">
-                    {totalEthToClaim.toFixed(4)}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1">ETH</p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-status-success/5 border border-status-success/10">
-                  <p className="text-sm text-text-secondary mb-2">Staking Rewards</p>
-                  <p className="font-mono text-2xl font-bold text-status-success">
-                    {totalStakingRewards.toFixed(4)}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1">ETH</p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-status-warning/5 border border-status-warning/10">
-                  <p className="text-sm text-text-secondary mb-2">ERC-20 Tokens</p>
-                  <p className="font-mono text-2xl font-bold text-status-warning">
-                    {unclaimedERC20.length}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1">Tokens</p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-status-info/5 border border-status-info/10">
-                  <p className="text-sm text-text-secondary mb-2">Donated NFTs</p>
-                  <p className="font-mono text-2xl font-bold text-status-info">
-                    {unclaimedNFTs.length}
-                  </p>
-                  <p className="text-xs text-text-muted mt-1">NFTs</p>
-                </div>
+            <Card glass className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-background-elevated border-b border-text-muted/10">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
+                        Token ID
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Contract Address
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Round
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedDonatedNFTs.map((nft, index) => (
+                      <tr
+                        key={nft.Index}
+                        className={`border-b border-text-muted/5 ${
+                          index % 2 === 0 ? "bg-background-surface/30" : ""
+                        } ${nft.Claimed ? "opacity-50" : ""}`}
+                      >
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-text-primary font-semibold">
+                            #{nft.TokenId}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="font-mono text-xs text-text-muted">
+                            {nft.NftAddr.substring(0, 6)}...
+                            {nft.NftAddr.slice(-4)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Link href={`/game/history/rounds/${nft.RoundNum}`}>
+                            <Badge variant="default">
+                              Round {nft.RoundNum}
+                            </Badge>
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 text-center text-sm text-text-secondary">
+                          {formatTimestamp(nft.TimeStamp)}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {nft.Claimed ? (
+                            <Badge variant="success">
+                              <CheckCircle size={12} className="mr-1" />
+                              Claimed
+                            </Badge>
+                          ) : (
+                            <Badge variant="warning">Unclaimed</Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {!nft.Claimed && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleClaimNFT(nft.Index)}
+                              disabled={
+                                claiming.nft === nft.Index ||
+                                prizesWallet.isTransactionPending
+                              }
+                            >
+                              {claiming.nft === nft.Index ? (
+                                <>
+                                  <Loader2
+                                    className="mr-1 animate-spin"
+                                    size={14}
+                                  />
+                                  Claiming...
+                                </>
+                              ) : (
+                                "Claim"
+                              )}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
+
+              {/* Pagination */}
+              {nftTotalPages > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNftPage((prev) => Math.max(1, prev - 1))}
+                    disabled={nftPage === 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: nftTotalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === nftTotalPages ||
+                          Math.abs(page - nftPage) <= 1
+                        );
+                      })
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center gap-2">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="text-text-muted">...</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={nftPage === page ? "primary" : "outline"}
+                            onClick={() => setNftPage(page)}
+                            className="min-w-[40px]"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setNftPage((prev) => Math.min(nftTotalPages, prev + 1))
+                    }
+                    disabled={nftPage === nftTotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </Card>
           </Container>
         </section>
       )}
 
-      {/* Navigation */}
+      {/* Donated ERC20 Tokens */}
+      {donatedERC20.length > 0 && (
+        <section className="py-12 bg-background-surface/50">
+          <Container>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-serif text-3xl font-semibold text-text-primary">
+                Donated ERC20 Tokens
+              </h2>
+              {unclaimedERC20.length > 0 && (
+                <Button
+                  onClick={handleClaimAllERC20}
+                  disabled={prizesWallet.isTransactionPending}
+                >
+                  Claim All ({unclaimedERC20.length})
+                </Button>
+              )}
+            </div>
+
+            <Card glass className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-background-elevated border-b border-text-muted/10">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
+                        Token
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Contract Address
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Round
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                        Amount
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedDonatedERC20.map((token, index) => (
+                      <tr
+                        key={`${token.RoundNum}-${token.TokenAddr}`}
+                        className={`border-b border-text-muted/5 ${
+                          index % 2 === 0 ? "bg-background-surface/30" : ""
+                        } ${token.Claimed ? "opacity-50" : ""}`}
+                      >
+                        <td className="px-6 py-4">
+                          <div>
+                            <span className="font-mono text-text-primary font-semibold">
+                              {token.TokenSymbol}
+                            </span>
+                            {token.TokenName && (
+                              <div className="text-xs text-text-muted mt-1">
+                                {token.TokenName}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="font-mono text-xs text-text-muted">
+                            {token.TokenAddr.substring(0, 6)}...
+                            {token.TokenAddr.slice(-4)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <Badge variant="default">
+                            Round {token.RoundNum}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-right font-mono text-text-primary">
+                          {(parseFloat(token.AmountEth) / 1e18).toLocaleString(
+                            undefined,
+                            {
+                              maximumFractionDigits: 6,
+                            }
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {token.Claimed ? (
+                            <Badge variant="success">
+                              <CheckCircle size={12} className="mr-1" />
+                              Claimed
+                            </Badge>
+                          ) : (
+                            <Badge variant="warning">Unclaimed</Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {!token.Claimed && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleClaimERC20(token)}
+                              disabled={
+                                claiming.erc20 === token.RoundNum ||
+                                prizesWallet.isTransactionPending
+                              }
+                            >
+                              {claiming.erc20 === token.RoundNum ? (
+                                <>
+                                  <Loader2
+                                    className="mr-1 animate-spin"
+                                    size={14}
+                                  />
+                                  Claiming...
+                                </>
+                              ) : (
+                                "Claim"
+                              )}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {erc20TotalPages > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setErc20Page((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={erc20Page === 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: erc20TotalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page === 1 ||
+                          page === erc20TotalPages ||
+                          Math.abs(page - erc20Page) <= 1
+                        );
+                      })
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center gap-2">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="text-text-muted">...</span>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={erc20Page === page ? "primary" : "outline"}
+                            onClick={() => setErc20Page(page)}
+                            className="min-w-[40px]"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setErc20Page((prev) =>
+                        Math.min(erc20TotalPages, prev + 1)
+                      )
+                    }
+                    disabled={erc20Page === erc20TotalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </Container>
+        </section>
+      )}
+
+      {/* Navigation to Other Pages */}
       <section className="py-12">
         <Container>
           <Card glass className="p-6 text-center">
             <p className="text-text-secondary mb-4">
-              View your complete winning history and statistics
+              Want to see all your winnings history?
             </p>
             <div className="flex justify-center gap-4">
               <Button variant="outline" asChild>
-                <Link href="/account">View Account Dashboard</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/account/activity">View Activity History</Link>
+                <Link href="/account/statistics">View My Statistics →</Link>
               </Button>
             </div>
           </Card>
