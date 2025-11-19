@@ -38,6 +38,7 @@ export default function PlayPage() {
     "bid" | "claimPrize" | null
   >(null); // Track last action
   const [lastBidMessage, setLastBidMessage] = useState<string>("");
+  const [shouldRefreshNfts, setShouldRefreshNfts] = useState(false); // Track if NFTs should be refreshed
 
   // Advanced Options State
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -59,7 +60,7 @@ export default function PlayPage() {
     read.useMainPrizeAmount();
 
   // Get user's Random Walk NFTs
-  const { data: userNfts } = readRandomWalk.useWalletOfOwner(address);
+  const { data: userNfts, refetch: refetchWalletNfts } = readRandomWalk.useWalletOfOwner(address);
   const ownedNfts = (userNfts as bigint[] | undefined) || [];
 
   // Fetch used NFTs from API
@@ -116,12 +117,14 @@ export default function PlayPage() {
     fetchLastBidMessage();
   }, [roundNum]);
 
-  // Filter out used NFTs from owned NFTs
-  const availableNfts = ownedNfts.filter((nftId) => {
-    const nftIdNumber = Number(nftId);
-    const isUsed = usedNfts.includes(nftIdNumber);
-    return !isUsed;
-  });
+  // Filter out used NFTs from owned NFTs and sort by token ID
+  const availableNfts = ownedNfts
+    .filter((nftId) => {
+      const nftIdNumber = Number(nftId);
+      const isUsed = usedNfts.includes(nftIdNumber);
+      return !isUsed;
+    })
+    .sort((a, b) => Number(a) - Number(b)); // Sort in ascending order by token ID
 
   // Clear selected NFT if it's no longer available
   useEffect(() => {
@@ -206,6 +209,10 @@ export default function PlayPage() {
       // Track that this is a bid action
       setLastActionType("bid");
 
+      // Track if we need to refresh NFTs (RandomWalk used or NFT donated)
+      const needsNftRefresh = useRandomWalkNft || (donationType === "nft" && !!donationNftAddress && !!donationNftTokenId);
+      setShouldRefreshNfts(needsNftRefresh);
+
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
         // Bid with NFT donation
@@ -270,6 +277,11 @@ export default function PlayPage() {
 
       // Track that this is a bid action
       setLastActionType("bid");
+
+      // Track if we need to refresh NFTs (NFT donated)
+      // Note: CST bids don't use RandomWalk NFTs, but can donate NFTs
+      const needsNftRefresh = donationType === "nft" && !!donationNftAddress && !!donationNftTokenId;
+      setShouldRefreshNfts(needsNftRefresh);
 
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
@@ -360,11 +372,23 @@ export default function PlayPage() {
           } catch (error) {
             console.error("Failed to refresh last bid message:", error);
           }
+
+          // Clear donation fields after successful bid
+          setDonationNftAddress("");
+          setDonationNftTokenId("");
+          setDonationTokenAddress("");
+          setDonationTokenAmount("");
         }
 
-        // Refresh used NFTs list if RandomWalk NFT was used
-        if (useRandomWalkNft && selectedNftId !== null) {
+        // Refresh used NFTs list if RandomWalk NFT was used or NFT was donated
+        if (shouldRefreshNfts) {
           try {
+            // Refetch the user's wallet to get updated NFT list
+            // This is important when NFTs are donated (they leave the wallet)
+            await refetchWalletNfts();
+            
+            // Also fetch the used NFTs list from the API
+            // This tracks which RandomWalk NFTs were used for bidding discount
             const response = await api.getUsedRWLKNfts();
             // Normalize the response format
             let normalizedList: number[] = [];
@@ -381,9 +405,16 @@ export default function PlayPage() {
               });
             }
             setUsedNfts(normalizedList);
-            setSelectedNftId(null);
+            
+            // Clear RandomWalk NFT selection if it was used
+            if (useRandomWalkNft && selectedNftId !== null) {
+              setSelectedNftId(null);
+            }
+            
+            // Reset the refresh flag
+            setShouldRefreshNfts(false);
           } catch (error) {
-            console.error("Failed to refresh used NFTs:", error);
+            console.error("Failed to refresh NFT data:", error);
           }
         }
       }, 2000);
@@ -399,6 +430,8 @@ export default function PlayPage() {
     refetchCstPrice,
     refetchPrizeAmount,
     roundNum,
+    shouldRefreshNfts,
+    refetchWalletNfts,
   ]);
 
   // Prepare display data
