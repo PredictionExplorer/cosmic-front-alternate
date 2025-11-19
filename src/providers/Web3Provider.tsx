@@ -19,6 +19,7 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/web3/config";
 import { defaultChain } from "@/lib/web3/chains";
+import { useApiNetwork } from "@/hooks/useApiNetwork";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -42,6 +43,17 @@ const queryClient = new QueryClient({
  */
 interface Web3ProviderProps {
   children: ReactNode;
+}
+
+/**
+ * API Network Sync Component
+ * 
+ * Internal component that syncs the API endpoint with the current network.
+ * Must be inside WagmiProvider to access chain information.
+ */
+function ApiNetworkSync() {
+  useApiNetwork();
+  return null;
 }
 
 /**
@@ -76,6 +88,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
           coolMode // Adds confetti on connect 🎉
           initialChain={defaultChain}
         >
+          <ApiNetworkSync />
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>

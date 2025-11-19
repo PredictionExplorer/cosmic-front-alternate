@@ -106,9 +106,9 @@ export const supportedChains: Chain[] = [
 
 /**
  * Default chain for the application
- * Set to Arbitrum Sepolia testnet
+ * Set to Local Testnet for development/testing
  */
-export const defaultChain = arbitrumSepoliaChain;
+export const defaultChain = localTestnet;
 
 /**
  * Chain configuration utilities

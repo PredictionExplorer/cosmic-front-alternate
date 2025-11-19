@@ -148,6 +148,6 @@ export const CONTRACT_NAMES = {
 } as const;
 
 /**
- * Export for convenience - defaults to Arbitrum Sepolia
+ * Export for convenience - defaults to Local Testnet
  */
-export const CONTRACTS = ARBITRUM_SEPOLIA_CONTRACTS;
+export const CONTRACTS = LOCAL_TESTNET_CONTRACTS;

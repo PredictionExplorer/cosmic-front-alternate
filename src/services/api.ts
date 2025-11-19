@@ -14,10 +14,29 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
 /**
- * API Base URLs
- * Configure based on environment
+ * API Base URLs by network
+ * Configure based on chain ID
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://161.129.67.42:8383/api/cosmicgame/';
+const API_ENDPOINTS = {
+	// Local Testnet (Chain ID: 31337)
+	31337: process.env.NEXT_PUBLIC_API_BASE_URL_LOCAL || 'http://161.129.67.42:7070/api/cosmicgame/',
+	// Arbitrum Sepolia (Chain ID: 421614)
+	421614: process.env.NEXT_PUBLIC_API_BASE_URL_SEPOLIA || 'http://161.129.67.42:8383/api/cosmicgame/',
+	// Arbitrum One (Chain ID: 42161)
+	42161: process.env.NEXT_PUBLIC_API_BASE_URL_MAINNET || 'http://161.129.67.42:8383/api/cosmicgame/',
+} as const;
+
+/**
+ * Get API base URL for a specific chain
+ * Defaults to local testnet
+ */
+function getApiBaseUrl(chainId?: number): string {
+	const id = chainId || 31337; // Default to local testnet
+	return API_ENDPOINTS[id as keyof typeof API_ENDPOINTS] || API_ENDPOINTS[31337];
+}
+
+// Default API base URL (local testnet)
+const API_BASE_URL = getApiBaseUrl();
 const ASSETS_BASE_URL = process.env.NEXT_PUBLIC_ASSETS_BASE_URL || 'https://nfts.cosmicsignature.com/';
 
 /**
@@ -104,6 +123,33 @@ apiClient.interceptors.response.use(
  * Organized by feature area for easy navigation
  */
 class CosmicSignatureAPI {
+	/**
+	 * Current chain ID
+	 * Used to determine which API endpoint to use
+	 */
+	private currentChainId: number = 31337; // Default to local testnet
+
+	/**
+	 * Set the current chain ID and update API base URL
+	 * Should be called when the user switches networks
+	 */
+	setChainId(chainId: number) {
+		this.currentChainId = chainId;
+		const newBaseUrl = getApiBaseUrl(chainId);
+		apiClient.defaults.baseURL = newBaseUrl;
+		
+		if (process.env.NODE_ENV === 'development') {
+			console.log(`API endpoint switched to ${newBaseUrl} for chain ${chainId}`);
+		}
+	}
+
+	/**
+	 * Get the current chain ID
+	 */
+	getChainId(): number {
+		return this.currentChainId;
+	}
+
 	// ==================== DASHBOARD & STATISTICS ====================
 
 	/**
