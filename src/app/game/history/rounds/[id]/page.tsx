@@ -13,6 +13,7 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
 import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 
 // API Response Interfaces
 interface RoundStats {
@@ -187,13 +188,13 @@ export default function RoundDetailPage({
       if (!round) return;
       try {
         const bidsData = await api.getBidListByRound(round.RoundNum, "desc");
-        const formattedBids = bidsData.map((bid: Record<string, unknown>) => ({
-          id: (bid.EvtLogId as number) || 0,
-          bidder: (bid.BidderAddr as string) || "0x0",
-          bidType: (bid.BidType as string) || "ETH",
-          amount: parseFloat((bid.BidPrice as string) || "0") / 1e18,
-          timestamp: (bid.TimeStamp as number) || 0,
-          message: (bid.Message as string) || undefined,
+        const formattedBids = bidsData.map((bid: ComponentBidData) => ({
+          id: bid.EvtLogId || 0,
+          bidder: bid.BidderAddr || "0x0",
+          bidType: bid.BidType === 0 ? "ETH" : "CST",
+          amount: bid.BidPriceEth || 0,
+          timestamp: bid.TimeStamp || 0,
+          message: bid.Message || undefined,
         }));
         setBids(formattedBids);
       } catch (error) {

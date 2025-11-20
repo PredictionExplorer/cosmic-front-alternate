@@ -25,6 +25,7 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api, { getAssetsUrl } from "@/services/api";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 import { safeTimestamp } from "@/lib/utils";
 import { shortenAddress } from "@/lib/web3/utils";
 import { formatDate } from "@/lib/utils";
@@ -192,13 +193,14 @@ export default function Home() {
     async function fetchCurrentBids() {
       try {
         const currentRoundNumber =
-          roundNum?.toString() || dashboardData?.CurRoundNum?.toString() || "0";
-        if (currentRoundNumber && currentRoundNumber !== "0") {
+          roundNum?.toString() || dashboardData?.CurRoundNum?.toString();
+        
+        // Round 0 is valid, so check if we have a valid number (including 0)
+        if (currentRoundNumber !== undefined && currentRoundNumber !== null) {
           const bids = await api.getBidListByRound(
             parseInt(currentRoundNumber),
             "desc"
           );
-
           // Check if bids is null or not an array
           if (!bids || !Array.isArray(bids)) {
             setCurrentBids([]);
@@ -208,9 +210,9 @@ export default function Home() {
           // Get the 10 most recent bids and calculate durations
           const recentBids = bids
             .slice(0, 10)
-            .map((bid: Record<string, unknown>, index: number) => {
-              const bidTypeNum = (bid.BidType as number) || 0;
-              const timestamp = (bid.TimeStamp as number) || 0;
+            .map((bid: ComponentBidData, index: number) => {
+              const bidTypeNum = bid.BidType || 0;
+              const timestamp = bid.TimeStamp || 0;
 
               // Calculate duration (time between this bid and the previous one, or now for the most recent)
               let duration = 0;
@@ -219,41 +221,37 @@ export default function Home() {
                 duration = Date.now() / 1000 - timestamp;
               } else {
                 // Duration is from this bid to the previous bid
-                const prevTimestamp =
-                  (bids[index - 1].TimeStamp as number) || 0;
+                const prevTimestamp = bids[index - 1].TimeStamp || 0;
                 duration = prevTimestamp - timestamp;
               }
 
               // For CST bids, use NumCSTTokensEth field; for ETH/RWLK bids, use BidPrice
-              const amount = (bidTypeNum === 2
-                ? bid.NumCSTTokensEth
-                : bid.BidPriceEth) as number || 0;
+              const amount = bidTypeNum === 2
+                ? (bid.NumCSTTokensEth || 0)
+                : (bid.BidPriceEth || 0);
 
               const processedBid = {
-                id: (bid.EvtLogId as number) || 0,
-                bidder: (bid.BidderAddr as string) || "0x0",
+                id: bid.EvtLogId || 0,
+                bidder: bid.BidderAddr || "0x0",
                 bidType: getBidTypeLabel(bidTypeNum),
                 bidTypeNum,
                 amount,
                 timestamp,
-                message: (bid.Message as string) || undefined,
-                roundNum: (bid.RoundNum as number) || undefined,
+                message: bid.Message || undefined,
+                roundNum: bid.RoundNum || undefined,
                 rwalkNftId:
                   bid.RWalkNFTId !== null && bid.RWalkNFTId !== undefined
-                    ? (bid.RWalkNFTId as number)
+                    ? bid.RWalkNFTId
                     : undefined,
                 duration,
-                nftDonationAddr:
-                  (bid.NFTDonationTokenAddr as string) || undefined,
+                nftDonationAddr: bid.NFTDonationTokenAddr || undefined,
                 nftDonationId:
                   bid.NFTDonationTokenId !== null &&
                   bid.NFTDonationTokenId !== undefined
-                    ? (bid.NFTDonationTokenId as number)
+                    ? bid.NFTDonationTokenId
                     : undefined,
-                erc20DonationAddr:
-                  (bid.DonatedERC20TokenAddr as string) || undefined,
-                erc20DonationAmount:
-                  (bid.DonatedERC20TokenAmount as string) || undefined,
+                erc20DonationAddr: bid.DonatedERC20TokenAddr || undefined,
+                erc20DonationAmount: bid.DonatedERC20TokenAmount || undefined,
               };
 
               return processedBid;
@@ -277,7 +275,7 @@ export default function Home() {
   // Prepare display data with safe defaults
   const currentRound = {
     roundNumber:
-      roundNum?.toString() || dashboardData?.CurRoundNum?.toString() || "0",
+      (roundNum !== undefined ? roundNum : dashboardData?.CurRoundNum)?.toString() || "0",
     prizePool: (dashboardData?.PrizeAmountEth as number) || 0,
     totalBids: (dashboardData?.CurNumBids as number) || 0,
     lastBidder: lastBidder

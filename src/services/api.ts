@@ -13,6 +13,7 @@
 
 import axios, { AxiosInstance, AxiosError } from "axios";
 import { getDefaultChainId } from "@/lib/networkConfig";
+import { transformBidList } from "@/lib/apiTransforms";
 
 /**
  * API Base URLs by network
@@ -292,10 +293,12 @@ class CosmicSignatureAPI {
 
   /**
    * Get all bids (global)
+   * @returns Transformed bid list with flattened structure
    */
   async getBidList() {
     const { data } = await apiClient.get("bid/list/all/0/1000000");
-    return data.Bids || [];
+    const bids = data.Bids || [];
+    return transformBidList(bids);
   }
 
   /**
@@ -311,13 +314,15 @@ class CosmicSignatureAPI {
    *
    * @param roundNum - Round number
    * @param sortDir - 'asc' or 'desc'
+   * @returns Transformed bid list with flattened structure
    */
   async getBidListByRound(roundNum: number, sortDir: "asc" | "desc" = "desc") {
     const dir = sortDir === "asc" ? 0 : 1;
     const { data } = await apiClient.get(
       `bid/list/by_round/${roundNum}/${dir}/0/1000000`
     );
-    return data.BidsByRound || [];
+    const bids = data.BidsByRound || [];
+    return transformBidList(bids);
   }
 
   /**
@@ -479,6 +484,12 @@ class CosmicSignatureAPI {
    */
   async getUserInfo(address: string) {
     const { data } = await apiClient.get(`user/info/${address}`);
+    
+    // Transform bid history if present
+    if (data && data.Bids && Array.isArray(data.Bids)) {
+      data.Bids = transformBidList(data.Bids);
+    }
+    
     return data;
   }
 
