@@ -18,7 +18,6 @@ import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/web3/config";
-import { defaultChain } from "@/lib/web3/chains";
 import { useApiNetwork } from "@/hooks/useApiNetwork";
 
 import "@rainbow-me/rainbowkit/styles.css";
@@ -65,7 +64,8 @@ function ApiNetworkSync() {
  * Features:
  * - Multi-wallet support (MetaMask, Coinbase, WalletConnect, Rainbow, etc.)
  * - Beautiful connection UI with luxury theme
- * - Automatic network switching
+ * - Multi-network support (Local Testnet, Arbitrum Sepolia, Arbitrum One)
+ * - Automatic API endpoint switching based on network
  * - Transaction status tracking
  * - Account balance display
  * - ENS name resolution
@@ -86,7 +86,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
           modalSize="compact"
           showRecentTransactions={true}
           coolMode // Adds confetti on connect 🎉
-          initialChain={defaultChain}
         >
           <ApiNetworkSync />
           {children}

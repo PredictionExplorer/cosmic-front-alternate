@@ -36,6 +36,16 @@ export function useApiNetwork() {
   useEffect(() => {
     // Update API service with current chain ID
     if (chainId) {
+      const networkName =
+        chainId === 31337
+          ? "Local Testnet"
+          : chainId === 421614
+          ? "Arbitrum Sepolia"
+          : chainId === 42161
+          ? "Arbitrum One"
+          : "Unknown Network";
+
+      console.log(`[useApiNetwork] Connected to ${networkName} (Chain ID: ${chainId})`);
       api.setChainId(chainId);
     }
   }, [chainId]);
