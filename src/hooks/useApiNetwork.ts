@@ -1,48 +1,50 @@
 /**
  * API Network Hook
  *
- * Automatically updates the API service endpoint when the user switches networks.
- * Ensures API calls go to the correct backend for the current chain.
+ * Sets the API service endpoint based on NEXT_PUBLIC_DEFAULT_NETWORK environment variable.
+ * The API endpoint is controlled by ENV configuration, not by MetaMask network.
  */
 
 "use client";
 
 import { useEffect } from "react";
-import { useChainId } from "wagmi";
 import { api } from "@/services/api";
-import { getNetworkName } from "@/lib/networkConfig";
+import { getNetworkName, getDefaultChainId } from "@/lib/networkConfig";
 
 /**
- * Hook to sync API endpoint with current network
+ * Hook to set API endpoint from environment configuration
  *
- * This hook monitors the current chain ID and automatically
- * updates the API service to use the correct backend endpoint.
+ * ALWAYS uses the network specified in NEXT_PUBLIC_DEFAULT_NETWORK,
+ * regardless of MetaMask connection or selected network.
  *
  * - Local Testnet (31337): Port 7070
- * - Arbitrum Sepolia (421614): Port 8383
+ * - Arbitrum Sepolia (421614): Port 8353
  * - Arbitrum One (42161): Port 8383
+ *
+ * Configuration:
+ * - Set NEXT_PUBLIC_DEFAULT_NETWORK in .env.local
+ * - Options: "local" | "sepolia" | "mainnet"
+ * - Falls back to "local" if not configured
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   useApiNetwork(); // That's it! API endpoint will auto-update
+ *   useApiNetwork(); // Sets API endpoint from ENV
  *   
  *   // Your component code...
  * }
  * ```
  */
 export function useApiNetwork() {
-  const chainId = useChainId();
-
   useEffect(() => {
-    // Update API service with current chain ID
-    if (chainId) {
-      const networkName = getNetworkName(chainId);
-      console.log(`[useApiNetwork] Connected to ${networkName} (Chain ID: ${chainId})`);
-      api.setChainId(chainId);
-    }
-  }, [chainId]);
+    // Always use the default network from environment variable
+    const envChainId = getDefaultChainId();
+    const networkName = getNetworkName(envChainId);
+    
+    console.log(`[useApiNetwork] Using network from ENV: ${networkName} (Chain ID: ${envChainId})`);
+    api.setChainId(envChainId);
+  }, []); // Empty deps - only run once on mount
 
-  return { chainId };
+  return { chainId: getDefaultChainId() };
 }
 

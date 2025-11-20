@@ -2,7 +2,9 @@
 
 ## Overview
 
-The application now supports setting the default network via environment variables. This allows you to easily switch between Local Testnet, Arbitrum Sepolia, and Arbitrum One without changing code.
+The application uses the network specified in the `NEXT_PUBLIC_DEFAULT_NETWORK` environment variable for ALL API calls. This allows you to easily switch between Local Testnet, Arbitrum Sepolia, and Arbitrum One without changing code.
+
+**Important:** The API endpoint is controlled by the ENV file, NOT by MetaMask network selection. This ensures consistent API behavior regardless of which network users have selected in their wallet.
 
 ## Quick Start
 
