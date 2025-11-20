@@ -10,6 +10,7 @@
 import { useEffect } from "react";
 import { useChainId } from "wagmi";
 import { api } from "@/services/api";
+import { getNetworkName } from "@/lib/networkConfig";
 
 /**
  * Hook to sync API endpoint with current network
@@ -36,15 +37,7 @@ export function useApiNetwork() {
   useEffect(() => {
     // Update API service with current chain ID
     if (chainId) {
-      const networkName =
-        chainId === 31337
-          ? "Local Testnet"
-          : chainId === 421614
-          ? "Arbitrum Sepolia"
-          : chainId === 42161
-          ? "Arbitrum One"
-          : "Unknown Network";
-
+      const networkName = getNetworkName(chainId);
       console.log(`[useApiNetwork] Connected to ${networkName} (Chain ID: ${chainId})`);
       api.setChainId(chainId);
     }

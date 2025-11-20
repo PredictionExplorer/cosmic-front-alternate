@@ -7,6 +7,7 @@
 
 import { arbitrum, arbitrumSepolia } from "wagmi/chains";
 import { Chain } from "viem";
+import { getDefaultChainId } from "@/lib/networkConfig";
 
 /**
  * Arbitrum One - Layer 2 Ethereum mainnet
@@ -96,7 +97,6 @@ export const localTestnet: Chain = {
 
 /**
  * Supported chains for the application
- * Default is local testnet matching the reference implementation
  */
 export const supportedChains: Chain[] = [
   localTestnet,
@@ -105,10 +105,29 @@ export const supportedChains: Chain[] = [
 ];
 
 /**
- * Default chain for the application
- * Set to Local Testnet for development/testing
+ * Get the default chain based on environment configuration
+ * Controlled by NEXT_PUBLIC_DEFAULT_NETWORK env var
  */
-export const defaultChain = localTestnet;
+function getDefaultChainConfig(): Chain {
+  const defaultChainId = getDefaultChainId();
+  
+  switch (defaultChainId) {
+    case 31337:
+      return localTestnet;
+    case 421614:
+      return arbitrumSepoliaChain;
+    case 42161:
+      return arbitrumOne;
+    default:
+      return localTestnet;
+  }
+}
+
+/**
+ * Default chain for the application
+ * Set via NEXT_PUBLIC_DEFAULT_NETWORK environment variable
+ */
+export const defaultChain = getDefaultChainConfig();
 
 /**
  * Chain configuration utilities

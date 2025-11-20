@@ -12,6 +12,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from "axios";
+import { getDefaultChainId } from "@/lib/networkConfig";
 
 /**
  * API Base URLs by network
@@ -34,16 +35,22 @@ const API_ENDPOINTS = {
 
 /**
  * Get API base URL for a specific chain
- * Defaults to local testnet
+ * Defaults to network specified in NEXT_PUBLIC_DEFAULT_NETWORK env var
  */
 function getApiBaseUrl(chainId?: number): string {
-  const id = chainId || 31337; // Default to local testnet
-  return (
-    API_ENDPOINTS[id as keyof typeof API_ENDPOINTS] || API_ENDPOINTS[31337]
-  );
+  const defaultChainId = getDefaultChainId();
+  const id = chainId || defaultChainId;
+  
+  // Type-safe endpoint lookup
+  if (id === 31337) return API_ENDPOINTS[31337];
+  if (id === 421614) return API_ENDPOINTS[421614];
+  if (id === 42161) return API_ENDPOINTS[42161];
+  
+  // Fallback to default
+  return API_ENDPOINTS[defaultChainId as keyof typeof API_ENDPOINTS];
 }
 
-// Default API base URL (local testnet)
+// Default API base URL (from environment config)
 const API_BASE_URL = getApiBaseUrl();
 const ASSETS_BASE_URL =
   process.env.NEXT_PUBLIC_ASSETS_BASE_URL ||
@@ -141,7 +148,7 @@ class CosmicSignatureAPI {
    * Current chain ID
    * Used to determine which API endpoint to use
    */
-  private currentChainId: number = 31337; // Default to local testnet
+  private currentChainId: number = getDefaultChainId(); // Default from environment config
 
   /**
    * Set the current chain ID and update API base URL

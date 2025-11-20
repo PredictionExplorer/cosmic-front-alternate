@@ -8,6 +8,7 @@
  */
 
 import { Address } from "viem";
+import { getDefaultChainId } from "@/lib/networkConfig";
 
 /**
  * Contract addresses from reference implementation
@@ -152,6 +153,15 @@ export const CONTRACT_NAMES = {
 } as const;
 
 /**
- * Export for convenience - defaults to Local Testnet
+ * Get default contracts based on environment configuration
+ * Controlled by NEXT_PUBLIC_DEFAULT_NETWORK env var
  */
-export const CONTRACTS = LOCAL_TESTNET_CONTRACTS;
+function getDefaultContracts() {
+  const defaultChainId = getDefaultChainId();
+  return getContractAddresses(defaultChainId);
+}
+
+/**
+ * Export for convenience - defaults based on NEXT_PUBLIC_DEFAULT_NETWORK
+ */
+export const CONTRACTS = getDefaultContracts();
