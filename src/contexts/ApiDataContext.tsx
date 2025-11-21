@@ -27,7 +27,19 @@ interface DashboardData {
 	CosmicGameBalanceEth: number;
 	CurNumBids: number;
 	MainStats: Record<string, unknown>;
+	// Prize percentages
+	PrizePercentage: number;
+	ChronoWarriorPercentage: number;
+	RafflePercentage: number;
 	StakignPercentage: number; // Note: Typo in API field name
+	CharityPercentage: number;
+	// Raffle configuration
+	NumRaffleEthWinnersBidding: number;
+	NumRaffleNFTWinnersBidding: number;
+	NumRaffleNFTWinnersStakingRWalk: number;
+	// Game configuration
+	InitialSecondsUntilPrize: number;
+	TimeoutClaimPrize: number;
 	// Add more fields as needed based on API response
 	[key: string]: unknown;
 }

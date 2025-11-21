@@ -29,12 +29,12 @@ import type { ComponentBidData } from "@/lib/apiTransforms";
 import { safeTimestamp } from "@/lib/utils";
 import { shortenAddress } from "@/lib/web3/utils";
 import { formatDate } from "@/lib/utils";
-import { GAME_CONSTANTS } from "@/lib/constants";
 
 export default function Home() {
   const { dashboardData } = useApiData();
-  const { useRoundNum, useLastBidder, useMainPrizeTime, useCurrentChampions } =
+  const { useRoundNum, useLastBidder, useMainPrizeTime, useCurrentChampions, useCstRewardPerBid } =
     useCosmicGameRead();
+  const { data: cstRewardPerBid } = useCstRewardPerBid();
   const [featuredNFTs, setFeaturedNFTs] = useState<
     Array<{
       id: number;
@@ -1055,7 +1055,7 @@ export default function Home() {
                 <Card glass className="p-6">
                   <Gem className="text-primary mb-3" size={28} />
                   <div className="font-mono text-2xl font-semibold text-primary mb-1">
-                    {GAME_CONSTANTS.CST_REWARD_PER_BID}
+                    {cstRewardPerBid ? Number(cstRewardPerBid) / 1e18 : '--'}
                   </div>
                   <div className="text-sm text-text-secondary">CST Per Bid</div>
                 </Card>

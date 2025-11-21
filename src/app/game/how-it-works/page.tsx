@@ -16,9 +16,15 @@ import {
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { GAME_CONSTANTS } from '@/lib/constants';
+import { useApiData } from '@/contexts/ApiDataContext';
+import { useCosmicGameRead } from '@/hooks/useCosmicGameContract';
 
 export default function HowItWorksPage() {
+	const { dashboardData } = useApiData();
+	const { useCstRewardPerBid } = useCosmicGameRead();
+	const { data: cstRewardPerBid } = useCstRewardPerBid();
+	
+	const cstRewardAmount = cstRewardPerBid ? Number(cstRewardPerBid) / 1e18 : 0;
 	return (
 		<div className="min-h-screen">
 			{/* Hero */}
@@ -148,10 +154,9 @@ export default function HowItWorksPage() {
 														First Bid of Round
 													</p>
 													<p className="text-sm">
-														The very first bid of each round MUST be an ETH bid. This
-														activates the round and sets the initial countdown timer. The
-														first bid price starts at a low baseline (
-														{GAME_CONSTANTS.FIRST_ROUND_ETH_BID_PRICE} ETH for round 0).
+													The very first bid of each round MUST be an ETH bid. This
+													activates the round and sets the initial countdown timer. The
+													first bid price starts at a low baseline.
 													</p>
 												</div>
 											</div>
@@ -258,11 +263,11 @@ export default function HowItWorksPage() {
 													<p className="text-text-primary font-medium mb-1">
 														Earn CST from Every Bid
 													</p>
-													<p className="text-sm">
-														Every bid you place (ETH or CST) earns you{' '}
-														{GAME_CONSTANTS.CST_REWARD_PER_BID} CST tokens as a reward.
-														These tokens accumulate in your wallet for future use.
-													</p>
+												<p className="text-sm">
+													Every bid you place (ETH or CST) earns you{' '}
+													{cstRewardAmount} CST tokens as a reward.
+													These tokens accumulate in your wallet for future use.
+												</p>
 												</div>
 											</div>
 
@@ -275,13 +280,13 @@ export default function HowItWorksPage() {
 													<p className="text-text-primary font-medium mb-1">
 														CST Bids Burn Tokens
 													</p>
-													<p className="text-sm">
-														When you bid with CST, those tokens are permanently burned
-														(destroyed). However, you still receive the{' '}
-														{GAME_CONSTANTS.CST_REWARD_PER_BID} CST reward, so if the bid
-														price is below {GAME_CONSTANTS.CST_REWARD_PER_BID} CST, you
-														profit.
-													</p>
+												<p className="text-sm">
+													When you bid with CST, those tokens are permanently burned
+													(destroyed). However, you still receive the{' '}
+													{cstRewardAmount} CST reward, so if the bid
+													price is below {cstRewardAmount} CST, you
+													profit.
+												</p>
 												</div>
 											</div>
 
@@ -545,7 +550,7 @@ export default function HowItWorksPage() {
 									<div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
 										<p className="text-sm font-semibold text-text-primary mb-2">Prize:</p>
 										<ul className="space-y-1 text-sm text-text-secondary">
-											<li>• {GAME_CONSTANTS.CST_PRIZE_MULTIPLIER} CST per bid in round</li>
+											<li>• 10x CST per bid in round</li>
 											<li>• 1 Cosmic Signature NFT</li>
 										</ul>
 									</div>
@@ -598,7 +603,7 @@ export default function HowItWorksPage() {
 									<div className="p-4 rounded-lg bg-status-info/5 border border-status-info/20">
 										<p className="text-sm font-semibold text-text-primary mb-2">Prize:</p>
 										<ul className="space-y-1 text-sm text-text-secondary">
-											<li>• {GAME_CONSTANTS.CHRONO_WARRIOR_PERCENTAGE}% of prize pool in ETH</li>
+											<li>• {dashboardData?.ChronoWarriorPercentage || '--'}% of prize pool in ETH</li>
 											<li>• Transferred to Prizes Wallet (withdraw later)</li>
 										</ul>
 									</div>

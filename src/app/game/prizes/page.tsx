@@ -3,11 +3,70 @@
 import { motion } from 'framer-motion';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
-import { PRIZE_TYPES, MOCK_CURRENT_ROUND } from '@/lib/constants';
+import { MOCK_CURRENT_ROUND } from '@/lib/constants';
 import { formatEth } from '@/lib/utils';
+import { useApiData } from '@/contexts/ApiDataContext';
+import { useMemo } from 'react';
 
 export default function PrizesPage() {
-	const totalPercentage = PRIZE_TYPES.reduce((sum, p) => sum + p.percentage, 0);
+	const { dashboardData } = useApiData();
+
+	// Build prize types with API data
+	const prizeTypes = useMemo(() => {
+		return [
+			{
+				name: "Main Prize",
+				percentage: dashboardData?.PrizePercentage || 0,
+				description: "Last bidder when timer expires",
+				rewards: [`${dashboardData?.PrizePercentage || 0}% of ETH pool`, "1 Cosmic Signature NFT"],
+				color: "primary",
+			},
+			{
+				name: "Endurance Champion",
+				percentage: 0,
+				description: "Longest single duration as last bidder",
+				rewards: [
+					`10x CST per bid`,
+					"1 Cosmic Signature NFT",
+				],
+				color: "accent",
+			},
+			{
+				name: "Chrono-Warrior",
+				percentage: dashboardData?.ChronoWarriorPercentage || 0,
+				description: "Longest duration as Endurance Champion",
+				rewards: [`${dashboardData?.ChronoWarriorPercentage || 0}% of ETH pool`],
+				color: "info",
+			},
+			{
+				name: "Raffle Winners",
+				percentage: dashboardData?.RafflePercentage || 0,
+				description: "Random selection among all bidders",
+				rewards: [
+					`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} winners`,
+					`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to bidders`,
+					`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to stakers`,
+				],
+				color: "warning",
+			},
+			{
+				name: "NFT Stakers",
+				percentage: dashboardData?.StakignPercentage || 0,
+				description: "Distributed to all staked NFTs",
+				rewards: [`${dashboardData?.StakignPercentage || 0}% of ETH pool (proportional)`],
+				color: "success",
+			},
+			{
+				name: "Charity",
+				percentage: dashboardData?.CharityPercentage || 0,
+				description: "Supporting charitable causes",
+				rewards: [`${dashboardData?.CharityPercentage || 0}% of ETH pool`],
+				color: "error",
+			},
+		];
+	}, [dashboardData]);
+
+	const totalPercentage = prizeTypes.reduce((sum, p) => sum + p.percentage, 0);
 	const remainingPercentage = 100 - totalPercentage;
 
 	return (
@@ -53,8 +112,8 @@ export default function PrizesPage() {
 									</p>
 								</div>
 
-								{/* Distribution Arrows */}
-								{PRIZE_TYPES.filter(p => p.percentage > 0).map((prize, index) => (
+							{/* Distribution Arrows */}
+							{prizeTypes.filter(p => p.percentage > 0).map((prize, index) => (
 									<motion.div
 										key={prize.name}
 										initial={{ opacity: 0, x: -20 }}
@@ -145,7 +204,7 @@ export default function PrizesPage() {
 			<section className="section-padding">
 				<Container>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{PRIZE_TYPES.map((prize, index) => (
+						{prizeTypes.map((prize, index) => (
 							<motion.div
 								key={prize.name}
 								initial={{ opacity: 0, y: 30 }}

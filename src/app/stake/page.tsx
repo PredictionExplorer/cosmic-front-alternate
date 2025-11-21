@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/game/StatCard";
-import { GAME_CONSTANTS } from "@/lib/constants";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
 import type {
@@ -83,8 +82,8 @@ export default function StakePage() {
   const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
   const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
 
-  // Get staking percentage from dashboard API, fallback to constant
-  const stakingPercentage = apiDashboardData?.StakignPercentage ?? GAME_CONSTANTS.STAKING_PERCENTAGE;
+  // Get staking percentage from dashboard API
+  const stakingPercentage = apiDashboardData?.StakignPercentage || 0;
 
   // Random Walk NFT state
   const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(

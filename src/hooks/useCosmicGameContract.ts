@@ -144,6 +144,15 @@ export function useCosmicGameRead() {
 				...contractConfig,
 				functionName: 'usedRandomWalkNfts',
 				args: [nftId]
+			}),
+
+		/**
+		 * Get CST reward amount per bid
+		 */
+		useCstRewardPerBid: () =>
+			useReadContract({
+				...contractConfig,
+				functionName: 'cstRewardAmountForBidding'
 			})
 	};
 }
