@@ -27,6 +27,7 @@ interface DashboardData {
 	CosmicGameBalanceEth: number;
 	CurNumBids: number;
 	MainStats: Record<string, unknown>;
+	StakignPercentage: number; // Note: Typo in API field name
 	// Add more fields as needed based on API response
 	[key: string]: unknown;
 }

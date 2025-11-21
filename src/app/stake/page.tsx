@@ -27,6 +27,7 @@ import {
 import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { useNotification } from "@/contexts/NotificationContext";
+import { useApiData } from "@/contexts/ApiDataContext";
 
 /**
  * Type for staking rewards from API
@@ -59,6 +60,7 @@ function getNFTImageUrl(tokenId: number): string {
 
 export default function StakePage() {
   const { address, isConnected } = useAccount();
+  const { dashboardData: apiDashboardData } = useApiData();
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
   const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
   const [stakedTokens, setStakedTokens] = useState<StakedCSTToken[]>([]);
@@ -80,6 +82,9 @@ export default function StakePage() {
   const [stakedCurrentPage, setStakedCurrentPage] = useState(1);
   const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
   const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
+
+  // Get staking percentage from dashboard API, fallback to constant
+  const stakingPercentage = apiDashboardData?.StakignPercentage ?? GAME_CONSTANTS.STAKING_PERCENTAGE;
 
   // Random Walk NFT state
   const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(
@@ -884,7 +889,7 @@ export default function StakePage() {
             </h1>
             <p className="body-xl">
               Lock your NFTs to earn a share of{" "}
-              {GAME_CONSTANTS.STAKING_PERCENTAGE}% of each round&apos;s prize
+              {stakingPercentage}% of each round&apos;s prize
               pool. Withdraw anytime with accumulated rewards.
             </p>
           </motion.div>
@@ -977,7 +982,7 @@ export default function StakePage() {
                       step: "2",
                       title: "Earn Every Round",
                       description:
-                        "6% of each round's prize pool is distributed proportionally among all staked NFTs.",
+                        `${stakingPercentage}% of each round's prize pool is distributed proportionally among all staked NFTs.`,
                     },
                     {
                       step: "3",
@@ -2415,7 +2420,7 @@ export default function StakePage() {
               },
               {
                 q: "Can I stake and unstake multiple times?",
-                a: "For Cosmic Signature NFTs: Yes, you can stake and unstake as many times as you want. For Random Walk NFTs: Each NFT can only be staked once, ever.",
+                a: "No, each NFT can only be staked once, ever.",
               },
               {
                 q: "How are rewards calculated?",
@@ -2427,7 +2432,7 @@ export default function StakePage() {
               },
               {
                 q: "What happens if no one stakes?",
-                a: "If there are no Cosmic Signature NFTs staked when a round ends, the 6% staking allocation is added to the charity donation instead.",
+                a: `If there are no Cosmic Signature NFTs staked when a round ends, the ${stakingPercentage}% staking allocation is added to the charity donation instead.`,
               },
               {
                 q: "Can staked NFTs be traded?",
