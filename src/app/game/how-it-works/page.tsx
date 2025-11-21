@@ -120,23 +120,23 @@ export default function HowItWorksPage() {
 						{/* ETH Bidding */}
 						<Accordion.Item value="eth-bidding">
 							<Card glass>
-								<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
-									<div className="flex items-center space-x-4">
-										<div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
-											<Coins size={24} className="text-primary" />
-										</div>
-										<div className="text-left">
-											<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-												ETH Bidding
-											</h3>
-											<p className="text-sm text-text-secondary">
-												Bid with Ethereum (the primary bidding method)
-											</p>
-										</div>
+							<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
+								<div className="flex items-center space-x-4">
+									<div className="flex items-center justify-center rounded-lg bg-primary/10 p-3">
+										<Coins size={24} className="text-primary" />
 									</div>
-									<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
-								</Accordion.Trigger>
-								<Accordion.Content className="data-[state=open]:animate-slide-down data-[state=closed]:animate-slide-up overflow-hidden">
+									<div className="text-left">
+										<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
+											ETH Bidding
+										</h3>
+										<p className="text-sm text-text-secondary">
+											Bid with Ethereum (the primary bidding method)
+										</p>
+									</div>
+								</div>
+								<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
+							</Accordion.Trigger>
+							<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
 											ETH bidding is the primary way to participate in Cosmic Signature.
@@ -230,23 +230,23 @@ export default function HowItWorksPage() {
 						{/* CST Bidding */}
 						<Accordion.Item value="cst-bidding">
 							<Card glass>
-								<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
-									<div className="flex items-center space-x-4">
-										<div className="flex items-center justify-center rounded-lg bg-status-success/10 p-3">
-											<TrendingDown size={24} className="text-status-success" />
-										</div>
-										<div className="text-left">
-											<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-												CST Token Bidding
-											</h3>
-											<p className="text-sm text-text-secondary">
-												Bid with earned CST tokens (alternative bidding method)
-											</p>
-										</div>
+							<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
+								<div className="flex items-center space-x-4">
+									<div className="flex items-center justify-center rounded-lg bg-status-success/10 p-3">
+										<TrendingDown size={24} className="text-status-success" />
 									</div>
-									<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
-								</Accordion.Trigger>
-								<Accordion.Content className="data-[state=open]:animate-slide-down data-[state=closed]:animate-slide-up overflow-hidden">
+									<div className="text-left">
+										<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
+											CST Token Bidding
+										</h3>
+										<p className="text-sm text-text-secondary">
+											Bid with earned CST tokens (alternative bidding method)
+										</p>
+									</div>
+								</div>
+								<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
+							</Accordion.Trigger>
+							<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
 											CST (Cosmic Signature Token) bidding offers an alternative way to compete
@@ -362,7 +362,7 @@ export default function HowItWorksPage() {
 									</div>
 									<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
 								</Accordion.Trigger>
-								<Accordion.Content className="data-[state=open]:animate-slide-down data-[state=closed]:animate-slide-up overflow-hidden">
+								<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
 											Random Walk NFTs are a separate NFT collection that provides a special
@@ -442,7 +442,7 @@ export default function HowItWorksPage() {
 									</div>
 									<ChevronDown className="text-text-secondary group-data-[state=open]:rotate-180 transition-transform" />
 								</Accordion.Trigger>
-								<Accordion.Content className="data-[state=open]:animate-slide-down data-[state=closed]:animate-slide-up overflow-hidden">
+								<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
 											Both ETH and CST use Dutch auction mechanics, but they work differently:
