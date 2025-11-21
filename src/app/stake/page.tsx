@@ -965,11 +965,12 @@ export default function StakePage() {
           <section className="py-12 bg-background-surface/50">
             <Container size="lg">
               <Card glass className="p-8 md:p-12">
-                <h2 className="font-serif text-2xl font-semibold text-text-primary text-center mb-8">
+                <h2 className="font-serif text-2xl font-semibold text-text-primary text-center mb-2">
                   How Staking Works
                 </h2>
+                <p className="text-center text-text-secondary mb-8">Follow these simple steps</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   {[
                     {
                       step: "1",
@@ -989,51 +990,79 @@ export default function StakePage() {
                       description:
                         "Withdraw your NFTs and claim accumulated rewards whenever you want. No lock period.",
                     },
-                  ].map((item) => (
-                    <div key={item.step} className="text-center">
-                      <div className="inline-flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 border border-primary/20 mb-4">
-                        <span className="font-mono text-xl font-semibold text-primary">
-                          {item.step}
-                        </span>
+                  ].map((item, index) => (
+                    <div key={item.step} className="relative">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-lg bg-primary/10 border border-primary/20">
+                          <span className="font-mono text-xl font-semibold text-primary">
+                            #{item.step}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-text-secondary leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
-                      <h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-text-secondary leading-relaxed">
-                        {item.description}
-                      </p>
+                      {index < 2 && (
+                        <div className="hidden md:block absolute top-6 -right-3 w-6 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
+                      )}
                     </div>
                   ))}
                 </div>
 
-                <div className="p-6 rounded-lg bg-background-elevated border border-text-muted/10">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-sm text-text-secondary mb-1">
-                        Total Staked Globally
-                      </p>
-                      <p className="font-mono text-2xl font-semibold text-primary">
-                        {totalStaked} NFTs
-                      </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-6 rounded-lg bg-background-elevated border border-text-muted/10">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Award className="text-primary" size={20} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-secondary">
+                          Total NFTs Staked (Globally)
+                        </p>
+                        <p className="font-mono text-2xl font-semibold text-primary">
+                          {totalStaked}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-text-secondary mb-1">
-                        Current Reward Rate
-                      </p>
-                      <p className="font-mono text-2xl font-semibold text-primary">
-                        {formatEth(rewardPerNFT)} ETH
-                      </p>
-                      <p className="text-xs text-text-muted">per NFT</p>
-                    </div>
+                    <p className="text-xs text-text-muted">
+                      Total number of NFTs staked by all users across the network
+                    </p>
                   </div>
 
-                  <div className="text-xs text-text-secondary">
-                    Rewards update after each round ends. The more rounds that
-                    pass while you&apos;re staked, the more you earn. Rewards
-                    are distributed proportionally - if you stake 10 NFTs out of
-                    100 total staked, you earn 10% of the staking pool each
-                    round.
+                  <div className="p-6 rounded-lg bg-background-elevated border border-text-muted/10">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-status-success/10 flex items-center justify-center">
+                        <Zap className="text-status-success" size={20} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-text-secondary">
+                          Reward Per NFT (Current)
+                        </p>
+                        <p className="font-mono text-2xl font-semibold text-status-success">
+                          {formatEth(rewardPerNFT)} ETH
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-text-muted">
+                      Estimated reward per staked NFT based on current round
+                    </p>
                   </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-xs text-text-secondary">
+                    💡 <strong>How rewards work:</strong> Rewards update after each round ends. 
+                    The more rounds that pass while you&apos;re staked, the more you earn. 
+                    Rewards are distributed proportionally - if you stake 10 NFTs out of 
+                    {totalStaked > 0 ? ` ${totalStaked}` : ' 100'} total staked, you earn 
+                    {totalStaked > 0 ? ` ${((10 / totalStaked) * 100).toFixed(1)}%` : ' 10%'} of 
+                    the staking pool each round.
+                  </p>
                 </div>
               </Card>
             </Container>
