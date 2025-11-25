@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
+import { readContract } from "@wagmi/core";
+import { wagmiConfig } from "@/lib/web3/config";
+import { CONTRACTS } from "@/lib/web3/contracts";
+import { defaultChain } from "@/lib/web3/chains";
+import PrizesWalletABI from "@/contracts/PrizesWallet.json";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -81,6 +86,38 @@ interface StakedTokenAction {
   TokenId: number;
   StakeActionId: number;
   StakeTimeStamp: number;
+}
+
+/**
+ * Extract user-friendly error message from Web3 error
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  
+  // Type guard for error objects
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    
+    // Check various error message locations
+    if (err.shortMessage && typeof err.shortMessage === 'string') {
+      return err.shortMessage;
+    }
+    if (err.message && typeof err.message === 'string') {
+      // Remove technical prefixes
+      return err.message.replace(/^.*?Error:\s*/i, '');
+    }
+    if (err.data && typeof err.data === 'object') {
+      const data = err.data as Record<string, unknown>;
+      if (data.message && typeof data.message === 'string') {
+        return data.message;
+      }
+    }
+    if (err.reason && typeof err.reason === 'string') {
+      return err.reason;
+    }
+  }
+  
+  return 'Transaction failed. Please try again.';
 }
 
 export default function MyWinningsPage() {
@@ -173,7 +210,12 @@ export default function MyWinningsPage() {
       setStakingRewards(stakingRewardsData);
       
       // Extract action IDs from staked tokens
-      const actionIds = stakedTokens.map((token: any) => ({
+      const actionIds = stakedTokens.map((token: {
+        TokenInfo?: { TokenId: number };
+        TokenId: number;
+        StakeActionId: number;
+        StakeTimeStamp: number;
+      }) => ({
         TokenId: token.TokenInfo?.TokenId || token.TokenId,
         StakeActionId: token.StakeActionId,
         StakeTimeStamp: token.StakeTimeStamp,
@@ -203,11 +245,16 @@ export default function MyWinningsPage() {
 
       for (const roundNum of uniqueRounds) {
         try {
-          const timeoutData = await prizesWallet.read.useRoundTimeout(
-            BigInt(roundNum)
-          );
-          if (timeoutData && timeoutData.data) {
-            timeouts[roundNum] = Number(timeoutData.data);
+          const timeoutData = await readContract(wagmiConfig, {
+            address: CONTRACTS.PRIZES_WALLET,
+            abi: PrizesWalletABI,
+            chainId: defaultChain.id,
+            functionName: 'roundTimeoutTimesToWithdrawPrizes',
+            args: [BigInt(roundNum)]
+          });
+          
+          if (timeoutData) {
+            timeouts[roundNum] = Number(timeoutData);
           }
         } catch (err) {
           console.error(`Error fetching timeout for round ${roundNum}:`, err);
@@ -225,19 +272,25 @@ export default function MyWinningsPage() {
     fetchWinnings();
   }, [fetchWinnings]);
 
-  // Refresh data after successful transaction
-  const refreshData = () => {
-    setTimeout(fetchWinnings, 3000);
-  };
-
   // Claim all ETH (raffle prizes)
   const handleClaimETH = async () => {
+    if (totalEthToClaim === 0) return;
+    
+    setClaiming((prev) => ({ ...prev, eth: true }));
     try {
-      setClaiming((prev) => ({ ...prev, eth: true }));
+      showInfo("Claiming your ETH rewards...");
       await prizesWallet.write.withdrawEth();
-      refreshData();
+      
+      showSuccess(`Successfully claimed ${totalEthToClaim.toFixed(6)} ETH!`);
+      
+      // Refresh status and unclaimed data after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming ETH:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     } finally {
       setClaiming((prev) => ({ ...prev, eth: false }));
     }
@@ -245,12 +298,21 @@ export default function MyWinningsPage() {
 
   // Claim single donated NFT
   const handleClaimNFT = async (nftIndex: number) => {
+    setClaiming((prev) => ({ ...prev, nft: nftIndex }));
     try {
-      setClaiming((prev) => ({ ...prev, nft: nftIndex }));
+      showInfo("Claiming NFT...");
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
-      refreshData();
+      
+      showSuccess("NFT claimed successfully!");
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming NFT:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     } finally {
       setClaiming((prev) => ({ ...prev, nft: null }));
     }
@@ -262,26 +324,46 @@ export default function MyWinningsPage() {
     if (unclaimedNFTs.length === 0) return;
 
     try {
+      showInfo(`Claiming ${unclaimedNFTs.length} NFT(s)...`);
+      
       const indexes = unclaimedNFTs.map((nft) => BigInt(nft.Index));
       await prizesWallet.write.claimManyDonatedNfts(indexes);
-      refreshData();
+      
+      showSuccess(`Successfully claimed ${unclaimedNFTs.length} NFT(s)!`);
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming all NFTs:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     }
   };
 
   // Claim single ERC20 token
   const handleClaimERC20 = async (token: DonatedERC20) => {
+    setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
     try {
-      setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
+      showInfo(`Claiming ${token.TokenSymbol} tokens...`);
+      
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
         token.TokenAddr as `0x${string}`,
         BigInt(token.AmountEth)
       );
-      refreshData();
+      
+      showSuccess(`${token.TokenSymbol} tokens claimed successfully!`);
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming ERC20:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     } finally {
       setClaiming((prev) => ({ ...prev, erc20: null }));
     }
@@ -293,6 +375,8 @@ export default function MyWinningsPage() {
     if (unclaimedTokens.length === 0) return;
 
     try {
+      showInfo(`Claiming ${unclaimedTokens.length} ERC20 token(s)...`);
+      
       const tokens = unclaimedTokens.map((token) => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
@@ -300,16 +384,24 @@ export default function MyWinningsPage() {
       }));
 
       await prizesWallet.write.claimManyDonatedTokens(tokens);
-      refreshData();
+      
+      showSuccess(`Successfully claimed ${unclaimedTokens.length} ERC20 token(s)!`);
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming all ERC20:", error);
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     }
   };
 
   // Unstake and claim single deposit
   const handleUnstakeSingle = async (depositId: number) => {
+    setClaiming((prev) => ({ ...prev, staking: depositId }));
     try {
-      setClaiming((prev) => ({ ...prev, staking: depositId }));
       showInfo("Unstaking NFTs and claiming rewards...");
       
       // Find the corresponding reward to get the staked tokens
@@ -344,10 +436,15 @@ export default function MyWinningsPage() {
       }
       
       showSuccess("NFTs unstaked and rewards claimed successfully!");
-      refreshData();
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error unstaking:", error);
-      showError("Failed to unstake. Please try again.");
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     } finally {
       setClaiming((prev) => ({ ...prev, staking: null }));
     }
@@ -371,10 +468,15 @@ export default function MyWinningsPage() {
       await stakingWallet.write.unstakeMany(allActionIds);
       
       showSuccess(`Successfully unstaked ${allActionIds.length} NFT(s) and claimed all rewards!`);
-      refreshData();
+      
+      // Refresh after short delay
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     } catch (error) {
       console.error("Error claiming all staking rewards:", error);
-      showError("Failed to claim all rewards. Please try again.");
+      const errorMessage = getErrorMessage(error);
+      showError(errorMessage);
     }
   };
 
