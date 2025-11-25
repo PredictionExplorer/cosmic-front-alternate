@@ -77,6 +77,12 @@ interface StakingReward {
   AmountPerTokenEth: number;
 }
 
+interface StakedTokenAction {
+  TokenId: number;
+  StakeActionId: number;
+  StakeTimeStamp: number;
+}
+
 export default function MyWinningsPage() {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
@@ -88,6 +94,7 @@ export default function MyWinningsPage() {
   const [donatedNFTs, setDonatedNFTs] = useState<DonatedNFT[]>([]);
   const [donatedERC20, setDonatedERC20] = useState<DonatedERC20[]>([]);
   const [stakingRewards, setStakingRewards] = useState<StakingReward[]>([]);
+  const [stakedTokenActions, setStakedTokenActions] = useState<StakedTokenAction[]>([]);
 
   // Round timeout data for expiration tracking
   const [roundTimeouts, setRoundTimeouts] = useState<Record<number, number>>(
@@ -133,12 +140,14 @@ export default function MyWinningsPage() {
         claimedNFTs,
         erc20Tokens,
         stakingRewardsData,
+        stakedTokens,
       ] = await Promise.all([
         api.getUnclaimedRaffleDeposits(address),
         api.getUnclaimedDonatedNFTsByUser(address),
         api.getClaimedDonatedNFTsByUser(address),
         api.getERC20DonationsByUser(address),
         api.getStakingCSTRewardsToClaim(address),
+        api.getStakedCSTTokensByUser(address),
       ]);
 
       // Sort raffle winnings by timestamp (most recent first)
@@ -162,6 +171,14 @@ export default function MyWinningsPage() {
         )
       );
       setStakingRewards(stakingRewardsData);
+      
+      // Extract action IDs from staked tokens
+      const actionIds = stakedTokens.map((token: any) => ({
+        TokenId: token.TokenInfo?.TokenId || token.TokenId,
+        StakeActionId: token.StakeActionId,
+        StakeTimeStamp: token.StakeTimeStamp,
+      }));
+      setStakedTokenActions(actionIds);
 
       // Calculate totals
       const ethTotal = raffleDeposits.reduce(
@@ -295,7 +312,36 @@ export default function MyWinningsPage() {
       setClaiming((prev) => ({ ...prev, staking: depositId }));
       showInfo("Unstaking NFTs and claiming rewards...");
       
-      await stakingWallet.write.unstake(BigInt(depositId));
+      // Find the corresponding reward to get the staked tokens
+      const reward = stakingRewards.find((r) => r.DepositId === depositId);
+      if (!reward) {
+        showError("Could not find staking information.");
+        setClaiming((prev) => ({ ...prev, staking: null }));
+        return;
+      }
+      
+      // Get all action IDs for tokens in this deposit
+      // We need to get action IDs from the staked tokens that belong to this deposit
+      const depositActionIds = stakedTokenActions
+        .filter((token) => {
+          // Match by timestamp - tokens staked around the same time belong to same deposit
+          const timeDiff = Math.abs(token.StakeTimeStamp - reward.DepositTimeStamp);
+          return timeDiff < 60; // Within 60 seconds (same transaction batch)
+        })
+        .map((token) => BigInt(token.StakeActionId));
+      
+      if (depositActionIds.length === 0) {
+        showError("No staked tokens found for this deposit.");
+        setClaiming((prev) => ({ ...prev, staking: null }));
+        return;
+      }
+      
+      // If only one action, use unstake, otherwise use unstakeMany
+      if (depositActionIds.length === 1) {
+        await stakingWallet.write.unstake(depositActionIds[0]);
+      } else {
+        await stakingWallet.write.unstakeMany(depositActionIds);
+      }
       
       showSuccess("NFTs unstaked and rewards claimed successfully!");
       refreshData();
@@ -309,15 +355,22 @@ export default function MyWinningsPage() {
 
   // Claim all staking rewards (unstake all deposits)
   const handleClaimAllStaking = async () => {
-    if (stakingRewards.length === 0) return;
+    if (stakingRewards.length === 0 || stakedTokenActions.length === 0) return;
 
     try {
       showInfo("Unstaking all NFTs and claiming all rewards...");
       
-      const depositIds = stakingRewards.map((reward) => BigInt(reward.DepositId));
-      await stakingWallet.write.unstakeMany(depositIds);
+      // Get all action IDs from currently staked tokens
+      const allActionIds = stakedTokenActions.map((token) => BigInt(token.StakeActionId));
       
-      showSuccess(`Successfully unstaked ${stakingRewards.length} deposit(s) and claimed all rewards!`);
+      if (allActionIds.length === 0) {
+        showError("No staked tokens found.");
+        return;
+      }
+      
+      await stakingWallet.write.unstakeMany(allActionIds);
+      
+      showSuccess(`Successfully unstaked ${allActionIds.length} NFT(s) and claimed all rewards!`);
       refreshData();
     } catch (error) {
       console.error("Error claiming all staking rewards:", error);
