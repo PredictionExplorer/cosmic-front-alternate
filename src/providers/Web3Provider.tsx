@@ -19,6 +19,7 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/web3/config";
 import { useApiNetwork } from "@/hooks/useApiNetwork";
+import { NetworkSwitchGuard } from "@/components/web3/NetworkSwitchGuard";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -66,6 +67,7 @@ function ApiNetworkSync() {
  * - Beautiful connection UI with luxury theme
  * - Multi-network support (Local Testnet, Arbitrum Sepolia, Arbitrum One)
  * - Automatic API endpoint switching based on network
+ * - Automatic network switching when wrong network detected
  * - Transaction status tracking
  * - Account balance display
  * - ENS name resolution
@@ -88,6 +90,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
           coolMode // Adds confetti on connect 🎉
         >
           <ApiNetworkSync />
+          <NetworkSwitchGuard />
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>

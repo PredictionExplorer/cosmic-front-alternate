@@ -119,6 +119,15 @@ src/
 
 ## 🎯 Key Features
 
+### Web3 Integration
+
+-   **Multi-Wallet Support**: MetaMask, Coinbase, WalletConnect, Rainbow, and 300+ wallets via RainbowKit
+-   **Automatic Network Switching**: Automatically prompts users to switch to the correct network when they access the site
+-   **Smart Network Detection**: Detects wrong network and guides users through switching
+-   **Multi-Network Support**: Local Testnet, Arbitrum Sepolia, and Arbitrum One
+-   **Beautiful Wallet UI**: Luxury-themed connection modal with smooth animations
+-   **Transaction Status**: Real-time transaction tracking and status updates
+
 ### Landing Page
 
 -   Elegant hero with animated gradient backgrounds
@@ -278,19 +287,31 @@ node scripts/generate-placeholders.js
 Create `.env.local` for local development:
 
 ```env
-# Blockchain (when ready to connect)
-NEXT_PUBLIC_CHAIN_ID=42161
-NEXT_PUBLIC_RPC_URL=https://arb1.arbitrum.io/rpc
+# Network Configuration (Required)
+# Specifies which blockchain network the app should use by default
+# Options: "local" | "sepolia" | "mainnet"
+# When users access the website, if their MetaMask network is different
+# from this default network, they will be automatically prompted to switch.
+NEXT_PUBLIC_DEFAULT_NETWORK=local
 
-# Contract Addresses (update with actual addresses)
-NEXT_PUBLIC_CONTRACT_GAME=0x...
-NEXT_PUBLIC_CONTRACT_NFT=0x...
-NEXT_PUBLIC_CONTRACT_TOKEN=0x...
-NEXT_PUBLIC_CONTRACT_PRIZES_WALLET=0x...
+# WalletConnect Project ID (Required for wallet connections)
+# Get your free Project ID at: https://cloud.walletconnect.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
-# Optional
-NEXT_PUBLIC_ENABLE_ANALYTICS=false
+# Optional: Custom API Endpoints
+# If not specified, defaults will be used based on NEXT_PUBLIC_DEFAULT_NETWORK
+# NEXT_PUBLIC_API_BASE_URL_LOCAL=http://161.129.67.42:7070/api/cosmicgame/
+# NEXT_PUBLIC_API_BASE_URL_SEPOLIA=http://161.129.67.42:8353/api/cosmicgame/
+# NEXT_PUBLIC_API_BASE_URL_MAINNET=http://161.129.67.42:8383/api/cosmicgame/
 ```
+
+### Network Options
+
+| Value | Network | Chain ID | API Port | Description |
+|-------|---------|----------|----------|-------------|
+| `local` | Local Testnet | 31337 | 7070 | Local development testnet |
+| `sepolia` | Arbitrum Sepolia | 421614 | 8353 | Arbitrum testnet |
+| `mainnet` | Arbitrum One | 42161 | 8383 | Arbitrum mainnet |
 
 ## 🎯 Development Roadmap
 
@@ -307,14 +328,17 @@ NEXT_PUBLIC_ENABLE_ANALYTICS=false
 -   [x] Responsive design
 -   [x] Animations and interactions
 
-### Phase 2: Blockchain Integration (Next)
+### Phase 2: Blockchain Integration ✅
 
--   [ ] Wallet connection (RainbowKit/ConnectKit)
--   [ ] Read contract data (wagmi hooks)
--   [ ] Transaction handling
--   [ ] Real-time updates
--   [ ] Event listening
--   [ ] User profile data
+-   [x] Wallet connection (RainbowKit)
+-   [x] Multi-wallet support (300+ wallets)
+-   [x] Automatic network switching
+-   [x] Read contract data (wagmi hooks)
+-   [x] Transaction handling
+-   [x] Real-time updates
+-   [x] Network detection and validation
+-   [ ] Event listening (in progress)
+-   [ ] Advanced user profile data
 
 ### Phase 3: Advanced Features
 
