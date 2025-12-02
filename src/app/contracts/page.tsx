@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/Badge';
 import { defaultChain } from '@/lib/web3/chains';
 import { api } from '@/services/api';
 import { formatTime } from '@/lib/utils';
+import { useCosmicGameRead } from '@/hooks/useCosmicGameContract';
+import { useCharityWallet } from '@/hooks/useCharityWallet';
+import { formatEther } from 'viem';
 import { 
 	Copy,
 	Network,
@@ -39,6 +42,7 @@ interface DashboardData {
 	CharityPercentage: number;
 	TimeoutClaimPrize: number;
 	InitialSecondsUntilPrize: number;
+	CurRoundNum: number;
 	MainStats: {
 		TotalBids: number;
 		TotalRounds: number;
@@ -92,6 +96,36 @@ const ContractItem = ({ name, value, copyable = false }: ContractItemProps) => {
 export default function ContractsPage() {
 	const [data, setData] = useState<DashboardData | null>(null);
 	const [loading, setLoading] = useState(true);
+
+	// Get contract read hooks
+	const cosmicGameRead = useCosmicGameRead();
+	const charityWallet = useCharityWallet();
+
+	// Fetch contract data using hooks
+	const { data: charityAddress } = charityWallet.useCharityAddress();
+	const { data: cstRewardPerBid } = cosmicGameRead.useCstRewardPerBid();
+	const { data: bidMessageMaxLength } = cosmicGameRead.useBidMessageMaxLength();
+	const { data: ethBidPriceIncreaseDivisor } = cosmicGameRead.useEthBidPriceIncreaseDivisor();
+	const { data: mainPrizeTimeIncrementIncreaseDivisor } = cosmicGameRead.useMainPrizeTimeIncrementIncreaseDivisor();
+	const { data: cstDutchAuctionBeginningBidPriceMinLimit } = cosmicGameRead.useCstDutchAuctionBeginningBidPriceMinLimit();
+	const { data: cstAuctionDurations } = cosmicGameRead.useCstAuctionDurations();
+	const { data: ethAuctionDurations } = cosmicGameRead.useEthAuctionDurations();
+
+	// Calculate percentages from divisors
+	const priceIncrease = ethBidPriceIncreaseDivisor ? 100 / Number(ethBidPriceIncreaseDivisor) : 0;
+	const timeIncrease = mainPrizeTimeIncrementIncreaseDivisor ? 100 / Number(mainPrizeTimeIncrementIncreaseDivisor) : 0;
+
+	// Format token amounts
+	const cstRewardFormatted = cstRewardPerBid && typeof cstRewardPerBid === 'bigint' ? Number(formatEther(cstRewardPerBid)) : 0;
+	const cstBeginningBidPriceFormatted = cstDutchAuctionBeginningBidPriceMinLimit && typeof cstDutchAuctionBeginningBidPriceMinLimit === 'bigint'
+		? Number(formatEther(cstDutchAuctionBeginningBidPriceMinLimit)) 
+		: 0;
+
+	// Extract auction durations
+	const cstAuctionDuration = cstAuctionDurations && Array.isArray(cstAuctionDurations) ? Number(cstAuctionDurations[0]) : 0;
+	const cstAuctionElapsed = cstAuctionDurations && Array.isArray(cstAuctionDurations) ? Number(cstAuctionDurations[1]) : 0;
+	const ethAuctionDuration = ethAuctionDurations && Array.isArray(ethAuctionDurations) ? Number(ethAuctionDurations[0]) : 0;
+	const ethAuctionElapsed = ethAuctionDurations && Array.isArray(ethAuctionDurations) ? Number(ethAuctionDurations[1]) : 0;
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -165,6 +199,14 @@ export default function ContractsPage() {
 
 	const configItems = [
 		{
+			name: 'Price Increase',
+			value: priceIncrease ? `${priceIncrease.toFixed(2)}%` : '--',
+		},
+		{
+			name: 'Time Increase',
+			value: timeIncrease ? `${timeIncrease.toFixed(2)}%` : '--',
+		},
+		{
 			name: 'Prize Percentage',
 			value: data ? `${data.PrizePercentage}%` : '--',
 		},
@@ -181,10 +223,6 @@ export default function ContractsPage() {
 			value: data ? `${data.StakignPercentage}%` : '--',
 		},
 		{
-			name: 'Charity Percentage',
-			value: data ? `${data.CharityPercentage}%` : '--',
-		},
-		{
 			name: 'Raffle ETH Winners for Bidding',
 			value: data?.NumRaffleEthWinnersBidding,
 		},
@@ -197,12 +235,49 @@ export default function ContractsPage() {
 			value: data?.NumRaffleNFTWinnersStakingRWalk,
 		},
 		{
+			name: 'Charity Address',
+			value: (charityAddress && typeof charityAddress === 'string') ? charityAddress : '--',
+			copyable: true,
+		},
+		{
+			name: 'Charity Percentage',
+			value: data ? `${data.CharityPercentage}%` : '--',
+		},
+		{
+			name: 'Amount of CosmicTokens earned per bid',
+			value: cstRewardFormatted ? `${cstRewardFormatted} CST` : '--',
+		},
+		{
+			name: 'CST Dutch Auction Duration',
+			value: cstAuctionDuration ? formatTime(cstAuctionDuration) : '--',
+		},
+		{
+			name: 'CST Dutch Auction Elapsed Duration',
+			value: cstAuctionElapsed ? formatTime(cstAuctionElapsed) : '--',
+		},
+		{
+			name: 'ETH Dutch Auction Duration',
+			value: ethAuctionDuration ? formatTime(ethAuctionDuration) : '--',
+		},
+		{
+			name: 'ETH Dutch Auction Elapsed Duration',
+			value: ethAuctionElapsed ? formatTime(ethAuctionElapsed) : '--',
+		},
+		{
 			name: 'Timeout to claim prize',
 			value: data ? formatTime(data.TimeoutClaimPrize) : '--',
 		},
 		{
+			name: 'Maximum message length',
+			value: (bidMessageMaxLength && typeof bidMessageMaxLength === 'bigint') ? Number(bidMessageMaxLength) : '--',
+		},
+		{
 			name: 'Initial increment first bid',
 			value: data ? formatTime(data.InitialSecondsUntilPrize) : '--',
+		},
+		{
+			name: 'CST dutch auction beginning bid price',
+			value: cstBeginningBidPriceFormatted ? `${cstBeginningBidPriceFormatted} CST` : '--',
 		},
 		{
 			name: 'Total Bids',
@@ -210,7 +285,7 @@ export default function ContractsPage() {
 		},
 		{
 			name: 'Total Rounds',
-			value: data?.MainStats.TotalRounds,
+			value: data?.CurRoundNum,
 		},
 	];
 
@@ -330,6 +405,7 @@ export default function ContractsPage() {
 												key={item.name}
 												name={item.name}
 												value={item.value}
+												copyable={item.copyable}
 											/>
 										))}
 									</div>

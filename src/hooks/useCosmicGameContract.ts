@@ -153,6 +153,42 @@ export function useCosmicGameRead() {
 			useReadContract({
 				...contractConfig,
 				functionName: 'cstRewardAmountForBidding'
+			}),
+
+		/**
+		 * Get maximum bid message length
+		 */
+		useBidMessageMaxLength: () =>
+			useReadContract({
+				...contractConfig,
+				functionName: 'bidMessageLengthMaxLimit'
+			}),
+
+		/**
+		 * Get ETH bid price increase divisor (used to calculate price increase %)
+		 */
+		useEthBidPriceIncreaseDivisor: () =>
+			useReadContract({
+				...contractConfig,
+				functionName: 'ethBidPriceIncreaseDivisor'
+			}),
+
+		/**
+		 * Get main prize time increment increase divisor (used to calculate time increase %)
+		 */
+		useMainPrizeTimeIncrementIncreaseDivisor: () =>
+			useReadContract({
+				...contractConfig,
+				functionName: 'mainPrizeTimeIncrementIncreaseDivisor'
+			}),
+
+		/**
+		 * Get CST dutch auction beginning bid price minimum limit
+		 */
+		useCstDutchAuctionBeginningBidPriceMinLimit: () =>
+			useReadContract({
+				...contractConfig,
+				functionName: 'cstDutchAuctionBeginningBidPriceMinLimit'
 			})
 	};
 }
