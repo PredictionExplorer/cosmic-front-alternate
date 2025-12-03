@@ -13,14 +13,6 @@ export function formatEth(value: number | string): string {
 	});
 }
 
-export function formatCst(value: number | string): string {
-	const num = typeof value === 'string' ? parseFloat(value) : value;
-	return num.toLocaleString('en-US', {
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 2
-	});
-}
-
 export function shortenAddress(address: string, chars = 4): string {
 	if (!address) return '';
 	return `${address.substring(0, chars + 2)}...${address.substring(address.length - chars)}`;
@@ -63,10 +55,6 @@ export function formatDate(date: Date | string): string {
 		month: 'long',
 		day: 'numeric'
 	});
-}
-
-export function formatPercentage(value: number): string {
-	return `${value.toFixed(1)}%`;
 }
 
 /**
