@@ -32,7 +32,7 @@ import { formatDate } from "@/lib/utils";
 
 export default function Home() {
   const { dashboardData } = useApiData();
-  const { useRoundNum, useLastBidder, useMainPrizeTime, useCurrentChampions, useCstRewardPerBid } =
+  const { useCurrentChampions, useCstRewardPerBid } =
     useCosmicGameRead();
   const { data: cstRewardPerBid } = useCstRewardPerBid();
   const [featuredNFTs, setFeaturedNFTs] = useState<
@@ -105,14 +105,32 @@ export default function Home() {
     }
   };
 
-  // Get blockchain data
-  const { data: roundNum } = useRoundNum();
-  const { data: lastBidder } = useLastBidder();
-  const { data: mainPrizeTime } = useMainPrizeTime();
+  // Get data from dashboard API and blockchain
+  const roundNum = dashboardData?.CurRoundNum;
+  const lastBidder = dashboardData?.LastBidderAddr;
   const { data: championsData } = useCurrentChampions();
+
+  // Get prize time from API
+  const [mainPrizeTime, setMainPrizeTime] = useState<number | null>(null);
 
   // Calculate time remaining (in seconds)
   const [timeRemaining, setTimeRemaining] = useState(0);
+
+  // Fetch prize time from API
+  useEffect(() => {
+    async function fetchPrizeTime() {
+      try {
+        const prizeTime = await api.getPrizeTime();
+        setMainPrizeTime(prizeTime);
+      } catch (error) {
+        console.error("Failed to fetch prize time:", error);
+      }
+    }
+    fetchPrizeTime();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchPrizeTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (mainPrizeTime) {
@@ -196,7 +214,7 @@ export default function Home() {
           roundNum?.toString() || dashboardData?.CurRoundNum?.toString();
         
         // Round 0 is valid, so check if we have a valid number (including 0)
-        if (currentRoundNumber !== undefined && currentRoundNumber !== null) {
+        if (currentRoundNumber !== undefined && currentRoundNumber !== null && currentRoundNumber !== '') {
           const bids = await api.getBidListByRound(
             parseInt(currentRoundNumber),
             "desc"
@@ -274,14 +292,11 @@ export default function Home() {
 
   // Prepare display data with safe defaults
   const currentRound = {
-    roundNumber:
-      (roundNum !== undefined ? roundNum : dashboardData?.CurRoundNum)?.toString() || "0",
+    roundNumber: roundNum?.toString() || "0",
     prizePool: (dashboardData?.PrizeAmountEth as number) || 0,
     totalBids: (dashboardData?.CurNumBids as number) || 0,
     lastBidder: lastBidder
       ? shortenAddress(lastBidder as string, 6)
-      : dashboardData?.LastBidderAddr
-      ? shortenAddress(dashboardData.LastBidderAddr as string, 6)
       : "No bids yet",
     totalNFTs:
       ((dashboardData?.MainStats as Record<string, unknown>)

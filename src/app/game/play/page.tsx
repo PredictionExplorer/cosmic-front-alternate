@@ -48,10 +48,9 @@ export default function PlayPage() {
   const [donationTokenAddress, setDonationTokenAddress] = useState("");
   const [donationTokenAmount, setDonationTokenAmount] = useState("");
 
-  // Get blockchain data
-  const { data: roundNum } = read.useRoundNum();
-  const { data: lastBidder } = read.useLastBidder();
-  const { data: mainPrizeTime } = read.useMainPrizeTime();
+  // Get data from dashboard API and blockchain
+  const roundNum = dashboardData?.CurRoundNum;
+  const lastBidder = dashboardData?.LastBidderAddr;
   const { data: ethBidPriceRaw, refetch: refetchEthPrice } =
     read.useEthBidPrice();
   const { data: cstBidPriceRaw, refetch: refetchCstPrice } =
@@ -136,6 +135,25 @@ export default function PlayPage() {
       setSelectedNftId(null);
     }
   }, [availableNfts, selectedNftId]);
+
+  // Get prize time from API
+  const [mainPrizeTime, setMainPrizeTime] = useState<number | null>(null);
+
+  // Fetch prize time from API
+  useEffect(() => {
+    async function fetchPrizeTime() {
+      try {
+        const prizeTime = await api.getPrizeTime();
+        setMainPrizeTime(prizeTime);
+      } catch (error) {
+        console.error("Failed to fetch prize time:", error);
+      }
+    }
+    fetchPrizeTime();
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchPrizeTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Calculate timer
   const [timeRemaining, setTimeRemaining] = useState(0);

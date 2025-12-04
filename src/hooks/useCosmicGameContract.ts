@@ -28,15 +28,6 @@ export function useCosmicGameRead() {
 
 	return {
 		/**
-		 * Get current round number
-		 */
-		useRoundNum: () =>
-			useReadContract({
-				...contractConfig,
-				functionName: 'roundNum'
-			}),
-
-		/**
 		 * Get current ETH bid price
 		 */
 		useEthBidPrice: () =>
@@ -52,24 +43,6 @@ export function useCosmicGameRead() {
 			useReadContract({
 				...contractConfig,
 				functionName: 'getNextCstBidPrice'
-			}),
-
-		/**
-		 * Get last bidder address
-		 */
-		useLastBidder: () =>
-			useReadContract({
-				...contractConfig,
-				functionName: 'lastBidderAddress'
-			}),
-
-		/**
-		 * Get main prize time (when prize can be claimed)
-		 */
-		useMainPrizeTime: () =>
-			useReadContract({
-				...contractConfig,
-				functionName: 'mainPrizeTime'
 			}),
 
 		/**
