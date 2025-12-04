@@ -1,0 +1,17 @@
+# Robots.txt for Cosmic Signature
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Disallow crawling of API routes
+Disallow: /api/
+
+# Disallow crawling of private user data
+Disallow: /account/
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Crawl-delay (optional, helps prevent server overload)
+Crawl-delay: 1

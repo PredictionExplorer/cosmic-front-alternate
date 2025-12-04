@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
-import { MOCK_CURRENT_ROUND } from '@/lib/constants';
 import { formatEth } from '@/lib/utils';
 import { useApiData } from '@/contexts/ApiDataContext';
 import { useMemo } from 'react';
@@ -108,7 +107,7 @@ export default function PrizesPage() {
 								<div className="p-6 rounded-lg bg-gradient-gold text-background text-center">
 									<p className="text-sm font-semibold mb-1">Contract Balance</p>
 									<p className="font-mono text-3xl font-bold">
-										{formatEth(MOCK_CURRENT_ROUND.prizePool)} ETH
+										{formatEth(dashboardData?.PrizeAmountEth || 0)} ETH
 									</p>
 								</div>
 
@@ -133,17 +132,17 @@ export default function PrizesPage() {
 												<h3 className="font-serif text-lg font-semibold text-text-primary">
 													{prize.name}
 												</h3>
-												<div className="text-right">
-													<div className="font-mono text-xl font-semibold text-primary">
-														{formatEth(
-															MOCK_CURRENT_ROUND.prizePool * (prize.percentage / 100)
-														)}{' '}
-														ETH
+													<div className="text-right">
+														<div className="font-mono text-xl font-semibold text-primary">
+															{formatEth(
+																(dashboardData?.PrizeAmountEth || 0) * (prize.percentage / 100)
+															)}{' '}
+															ETH
+														</div>
+														<div className="text-xs text-text-secondary">
+															{prize.percentage}% of pool
+														</div>
 													</div>
-													<div className="text-xs text-text-secondary">
-														{prize.percentage}% of pool
-													</div>
-												</div>
 											</div>
 											<p className="text-sm text-text-secondary mb-2">{prize.description}</p>
 											<div className="flex flex-wrap gap-2">
@@ -180,7 +179,7 @@ export default function PrizesPage() {
 											<div className="text-right">
 												<div className="font-mono text-xl font-semibold text-primary">
 													{formatEth(
-														MOCK_CURRENT_ROUND.prizePool * (remainingPercentage / 100)
+														(dashboardData?.PrizeAmountEth || 0) * (remainingPercentage / 100)
 													)}{' '}
 													ETH
 												</div>
