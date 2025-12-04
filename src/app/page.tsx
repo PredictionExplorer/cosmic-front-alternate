@@ -280,7 +280,9 @@ export default function Home() {
     totalBids: (dashboardData?.CurNumBids as number) || 0,
     lastBidder: lastBidder
       ? shortenAddress(lastBidder as string, 6)
-      : "Waiting...",
+      : dashboardData?.LastBidderAddr
+      ? shortenAddress(dashboardData.LastBidderAddr as string, 6)
+      : "No bids yet",
     totalNFTs:
       ((dashboardData?.MainStats as Record<string, unknown>)
         ?.NumCSTokenMints as number) || 0,
@@ -293,10 +295,10 @@ export default function Home() {
     | undefined;
   const enduranceChampion = championsArray?.[0]
     ? shortenAddress(championsArray[0], 6)
-    : "TBD";
+    : "None yet";
   const chronoWarrior = championsArray?.[2]
     ? shortenAddress(championsArray[2], 6)
-    : "TBD";
+    : "None yet";
 
   // ETH bid price from API
   const [ethBidPrice, setEthBidPrice] = useState<number>(0);

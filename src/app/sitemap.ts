@@ -9,8 +9,9 @@ import { MetadataRoute } from 'next';
  * This will be available at: https://yourdomain.com/sitemap.xml
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  // TODO: Update this with your actual production domain
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com';
+  // Use environment variable for production domain
+  // Set NEXT_PUBLIC_SITE_URL in your .env.local or hosting platform
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://cosmicsignature.com';
   
   // Static routes
   const staticRoutes: MetadataRoute.Sitemap = [
