@@ -55,35 +55,35 @@ export const LOCAL_TESTNET_CONTRACTS = {
  */
 export const ARBITRUM_SEPOLIA_CONTRACTS = {
   /** Main game contract - handles bidding, prizes, and game logic */
-  COSMIC_GAME: "0x68DF91182b60D8E35f4ABCcc471c2Da9EA741efb" as Address,
+  COSMIC_GAME: "0xC801d06c9900ef0cD878Ad6f59622aAfAd8F54dE" as Address,
 
   /** CosmicSignatureToken (CST) - ERC-20 token used for bidding and rewards */
   COSMIC_SIGNATURE_TOKEN:
-    "0x1c4eeAd3022a5a69c7AE68E9d9ffaC65729cf0F1" as Address,
+    "0xCF4896360C63Fef4ca60e6b4b7c2680ee366468a" as Address,
 
   /** CosmicSignature NFT - ERC-721 NFTs awarded as prizes */
-  COSMIC_SIGNATURE_NFT: "0xec0d0B250AF131AC0F5C1A0850c17a922949d878" as Address,
+  COSMIC_SIGNATURE_NFT: "0xAbC91c97336E885872a37b3105808e894AbA744E" as Address,
 
   /** RandomWalk NFT - Pre-existing ERC-721 NFTs used for bid discounts */
   RANDOM_WALK_NFT: "0xbB749EfF6018a9213DFbca2a20292DB1576F530d" as Address,
 
   /** Prizes Wallet (RaffleWallet) - Holds secondary prizes and donated items */
-  PRIZES_WALLET: "0x1a9B1CbC2e872517553A00f7BB6bCCe9223Cb009" as Address,
+  PRIZES_WALLET: "0x1d22A8AfBbC2A6d25D5c95eFC84277073b209bD6" as Address,
 
   /** CST NFT Staking Wallet - Stake Cosmic Signature NFTs for ETH rewards */
-  STAKING_WALLET_CST: "0x650446009E6783BdbF405c3e428641506B4dA4fB" as Address,
+  STAKING_WALLET_CST: "0xcF1c54DFd233CD031CE5f4F79fD281A38b37AB7a" as Address,
 
   /** RandomWalk Staking Wallet - Stake RandomWalk NFTs for raffle eligibility */
-  STAKING_WALLET_RWLK: "0xb341438e5813cBc27bbd0F6564F796A597d5cE49" as Address,
+  STAKING_WALLET_RWLK: "0xbE190dC5bd0f12Dbc189351B6172b6a1312d6f5C" as Address,
 
   /** Charity Wallet - Receives charity donations (7% of prizes) */
-  CHARITY_WALLET: "0x9c368643D7b196c84F3AF1C6742EC8265dE15de8" as Address,
+  CHARITY_WALLET: "0x5e1DAc81E4f32C20f496a20bcB6C6EBdd9eC5a6C" as Address,
 
   /** Marketing Wallet - Receives CST tokens for marketing activities */
-  MARKETING_WALLET: "0x17A0875E3BE378DDFd905B9F4a15A4a31e904cF7" as Address,
+  MARKETING_WALLET: "0xB96Cb96f6378F8f9e6e002DB15Cd38F33d0e5648" as Address,
 
   /** DAO Contract - Governance contract for CST token holders */
-  COSMIC_DAO: "0xD2C5Cb2Bb611EfFF878fa2e9318FcdF38330bca6" as Address,
+  COSMIC_DAO: "0x6993054C1a08Edd7dF8B9EB1b5C29E3Af05638a0" as Address,
 } as const;
 
 /**
