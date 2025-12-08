@@ -132,22 +132,32 @@ export function Footer() {
 								</li>
 								<li>
 									<a
-										href="https://github.com"
+										href="https://github.com/PredictionExplorer/Cosmic-Signature/tree/main/docs"
 										target="_blank"
 										rel="noopener noreferrer"
 										className="text-sm text-text-secondary hover:text-primary transition-colors"
 									>
-										Documentation
+										Smart Contracts Documentation
 									</a>
 								</li>
 								<li>
 									<a
-										href="https://github.com"
+										href="http://161.129.67.42:8353/black/cosmicgame"
 										target="_blank"
 										rel="noopener noreferrer"
 										className="text-sm text-text-secondary hover:text-primary transition-colors"
 									>
-										Smart Contracts
+										API Documentation
+									</a>
+								</li>
+								<li>
+									<a
+										href="https://github.com/PredictionExplorer/Cosmic-Signature"
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-sm text-text-secondary hover:text-primary transition-colors"
+									>
+										Github Repo
 									</a>
 								</li>
 								<li>
