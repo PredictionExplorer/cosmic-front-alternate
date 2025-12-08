@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Web3Provider } from '@/providers/Web3Provider';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ApiDataProvider } from '@/contexts/ApiDataContext';
+import { TimeOffsetProvider } from '@/contexts/TimeOffsetContext';
 
 const cormorant = Cormorant_Garamond({
 	subsets: ['latin'],
@@ -56,13 +57,15 @@ export default function RootLayout({
 			<body className={`${cormorant.variable} ${inter.variable} ${spaceGrotesk.variable} font-sans`}>
 				<Web3Provider>
 					<NotificationProvider>
-						<ApiDataProvider>
-							<div className="flex min-h-screen flex-col">
-								<Header />
-								<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
-								<Footer />
-							</div>
-						</ApiDataProvider>
+						<TimeOffsetProvider>
+							<ApiDataProvider>
+								<div className="flex min-h-screen flex-col">
+									<Header />
+									<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
+									<Footer />
+								</div>
+							</ApiDataProvider>
+						</TimeOffsetProvider>
 					</NotificationProvider>
 				</Web3Provider>
 			</body>

@@ -14,6 +14,7 @@ import { useCosmicGame } from "@/hooks/useCosmicGameContract";
 import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { useNotification } from "@/contexts/NotificationContext";
+import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
 import { api } from "@/services/api";
@@ -25,6 +26,7 @@ export default function PlayPage() {
   const { read: readRandomWalk } = useRandomWalkNFT();
   const { dashboardData, refresh: refreshDashboard } = useApiData();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
+  const { applyOffset } = useTimeOffset();
 
   // UI State
   const [bidType, setBidType] = useState<"ETH" | "CST">("ETH");
@@ -155,19 +157,21 @@ export default function PlayPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate timer
+  // Calculate timer with offset applied
   const [timeRemaining, setTimeRemaining] = useState(0);
   useEffect(() => {
     if (mainPrizeTime) {
       const update = () => {
-        const remaining = Number(mainPrizeTime) - Math.floor(Date.now() / 1000);
+        // Apply offset to the prize time to sync with blockchain time
+        const adjustedPrizeTime = applyOffset(Number(mainPrizeTime));
+        const remaining = Math.ceil(adjustedPrizeTime - Math.floor(Date.now() / 1000));
         setTimeRemaining(Math.max(0, remaining));
       };
       update();
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
-  }, [mainPrizeTime]);
+  }, [mainPrizeTime, applyOffset]);
 
   // Check if user can claim main prize
   const canClaimMainPrize =

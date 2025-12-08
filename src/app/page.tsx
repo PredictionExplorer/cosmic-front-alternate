@@ -23,6 +23,7 @@ import { ElegantTable } from "@/components/data/ElegantTable";
 import { Badge } from "@/components/ui/Badge";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
+import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api, { getAssetsUrl } from "@/services/api";
 import type { ComponentBidData } from "@/lib/apiTransforms";
@@ -32,6 +33,7 @@ import { formatDate } from "@/lib/utils";
 
 export default function Home() {
   const { dashboardData } = useApiData();
+  const { applyOffset } = useTimeOffset();
   const { useCurrentChampions, useCstRewardPerBid } =
     useCosmicGameRead();
   const { data: cstRewardPerBid } = useCstRewardPerBid();
@@ -135,7 +137,9 @@ export default function Home() {
   useEffect(() => {
     if (mainPrizeTime) {
       const updateTime = () => {
-        const remaining = Number(mainPrizeTime) - Math.floor(Date.now() / 1000);
+        // Apply offset to the prize time to sync with blockchain time
+        const adjustedPrizeTime = applyOffset(Number(mainPrizeTime));
+        const remaining = adjustedPrizeTime - Math.floor(Date.now() / 1000);
         setTimeRemaining(Math.max(0, remaining));
       };
 
@@ -143,7 +147,7 @@ export default function Home() {
       const interval = setInterval(updateTime, 1000);
       return () => clearInterval(interval);
     }
-  }, [mainPrizeTime]);
+  }, [mainPrizeTime, applyOffset]);
 
   // Fetch featured NFTs
   useEffect(() => {
