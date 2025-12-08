@@ -1147,6 +1147,19 @@ export default function PlayPage() {
                         4
                       )} ETH`,
                       percentage: "25%",
+                      subtitle: "+ 1 NFT",
+                    },
+                    {
+                      label: "Endurance Champion",
+                      value: `${currentRound.totalBids * 10} CST`,
+                      percentage: "",
+                      subtitle: "+ 1 NFT",
+                    },
+                    {
+                      label: "Last CST Bidder",
+                      value: `${currentRound.totalBids * 10} CST`,
+                      percentage: "",
+                      subtitle: "+ 1 NFT (if CST bids placed)",
                     },
                     {
                       label: "Chrono-Warrior",
@@ -1154,6 +1167,7 @@ export default function PlayPage() {
                         4
                       )} ETH`,
                       percentage: "8%",
+                      subtitle: "",
                     },
                     {
                       label: "Raffle (3 winners)",
@@ -1161,25 +1175,43 @@ export default function PlayPage() {
                         4
                       )} ETH`,
                       percentage: "4%",
+                      subtitle: "Split among winners",
                     },
                     {
-                      label: "Stakers",
+                      label: "Raffle NFTs",
+                      value: "9 NFTs",
+                      percentage: "",
+                      subtitle: "5 to bidders, 4 to stakers",
+                    },
+                    {
+                      label: "NFT Stakers",
                       value: `${(currentRound.prizePool * 0.06).toFixed(
                         4
                       )} ETH`,
                       percentage: "6%",
+                      subtitle: "Proportional distribution",
                     },
                     {
-                      label: "Endurance (CST)",
-                      value: `${currentRound.totalBids * 10} CST`,
-                      percentage: "",
+                      label: "Charity",
+                      value: `${(currentRound.prizePool * 0.07).toFixed(
+                        4
+                      )} ETH`,
+                      percentage: "7%",
+                      subtitle: "",
                     },
                   ].map((prize) => (
                     <div
                       key={prize.label}
-                      className="flex justify-between items-center text-sm"
+                      className="flex justify-between items-start text-sm"
                     >
-                      <span className="text-text-secondary">{prize.label}</span>
+                      <div className="flex-1">
+                        <div className="text-text-secondary">{prize.label}</div>
+                        {prize.subtitle && (
+                          <div className="text-xs text-text-muted mt-0.5">
+                            {prize.subtitle}
+                          </div>
+                        )}
+                      </div>
                       <div className="text-right">
                         <div className="font-mono text-primary font-semibold">
                           {prize.value}
