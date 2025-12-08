@@ -121,9 +121,9 @@ export default function PrizesPage() {
 										transition={{ delay: index * 0.1 }}
 										className="flex items-center space-x-4"
 									>
-										{/* Arrow */}
-										<div className="flex-shrink-0 w-12 text-center">
-											<div className="inline-block text-primary text-2xl">↓</div>
+										{/* Bullet */}
+										<div className="flex-shrink-0 w-12 flex items-center justify-center">
+											<div className="h-3 w-3 rounded-full bg-primary ring-4 ring-primary/20"></div>
 										</div>
 
 										{/* Prize Card */}
@@ -167,8 +167,8 @@ export default function PrizesPage() {
 									transition={{ delay: 0.5 }}
 									className="flex items-center space-x-4"
 								>
-									<div className="flex-shrink-0 w-12 text-center">
-										<div className="inline-block text-primary text-2xl">↓</div>
+									<div className="flex-shrink-0 w-12 flex items-center justify-center">
+										<div className="h-3 w-3 rounded-full bg-primary ring-4 ring-primary/20"></div>
 									</div>
 
 									<div className="flex-1 p-4 rounded-lg bg-background-elevated border border-primary/20">
@@ -231,9 +231,9 @@ export default function PrizesPage() {
 										{prize.rewards.map(reward => (
 											<div
 												key={reward}
-												className="flex items-start space-x-2 text-sm text-text-secondary"
+												className="flex items-start space-x-3 text-sm text-text-secondary"
 											>
-												<span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
+												<span className="flex-shrink-0 h-2 w-2 rounded-full bg-primary ring-2 ring-primary/20 mt-1.5" />
 												<span>{reward}</span>
 											</div>
 										))}
