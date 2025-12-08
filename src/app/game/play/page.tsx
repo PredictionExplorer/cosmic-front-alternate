@@ -1143,10 +1143,11 @@ export default function PlayPage() {
                   {[
                     {
                       label: "Main Prize",
-                      value: `${(currentRound.prizePool * 0.25).toFixed(
-                        4
-                      )} ETH`,
-                      percentage: "25%",
+                      value: `${(
+                        currentRound.prizePool *
+                        ((dashboardData?.PrizePercentage || 0) / 100)
+                      ).toFixed(4)} ETH`,
+                      percentage: `${dashboardData?.PrizePercentage || 0}%`,
                       subtitle: "+ 1 NFT",
                     },
                     {
@@ -1163,40 +1164,47 @@ export default function PlayPage() {
                     },
                     {
                       label: "Chrono-Warrior",
-                      value: `${(currentRound.prizePool * 0.08).toFixed(
-                        4
-                      )} ETH`,
-                      percentage: "8%",
+                      value: `${(
+                        currentRound.prizePool *
+                        ((dashboardData?.ChronoWarriorPercentage || 0) / 100)
+                      ).toFixed(4)} ETH`,
+                      percentage: `${dashboardData?.ChronoWarriorPercentage || 0}%`,
                       subtitle: "",
                     },
                     {
-                      label: "Raffle (3 winners)",
-                      value: `${(currentRound.prizePool * 0.04).toFixed(
-                        4
-                      )} ETH`,
-                      percentage: "4%",
+                      label: `Raffle (${dashboardData?.NumRaffleEthWinnersBidding || 0} winners)`,
+                      value: `${(
+                        currentRound.prizePool *
+                        ((dashboardData?.RafflePercentage || 0) / 100)
+                      ).toFixed(4)} ETH`,
+                      percentage: `${dashboardData?.RafflePercentage || 0}%`,
                       subtitle: "Split among winners",
                     },
                     {
                       label: "Raffle NFTs",
-                      value: "9 NFTs",
+                      value: `${
+                        (dashboardData?.NumRaffleNFTWinnersBidding || 0) +
+                        (dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0)
+                      } NFTs`,
                       percentage: "",
-                      subtitle: "5 to bidders, 4 to stakers",
+                      subtitle: `${dashboardData?.NumRaffleNFTWinnersBidding || 0} to bidders, ${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} to stakers`,
                     },
                     {
                       label: "NFT Stakers",
-                      value: `${(currentRound.prizePool * 0.06).toFixed(
-                        4
-                      )} ETH`,
-                      percentage: "6%",
+                      value: `${(
+                        currentRound.prizePool *
+                        ((dashboardData?.StakignPercentage || 0) / 100)
+                      ).toFixed(4)} ETH`,
+                      percentage: `${dashboardData?.StakignPercentage || 0}%`,
                       subtitle: "Proportional distribution",
                     },
                     {
                       label: "Charity",
-                      value: `${(currentRound.prizePool * 0.07).toFixed(
-                        4
-                      )} ETH`,
-                      percentage: "7%",
+                      value: `${(
+                        currentRound.prizePool *
+                        ((dashboardData?.CharityPercentage || 0) / 100)
+                      ).toFixed(4)} ETH`,
+                      percentage: `${dashboardData?.CharityPercentage || 0}%`,
                       subtitle: "",
                     },
                   ].map((prize) => (
