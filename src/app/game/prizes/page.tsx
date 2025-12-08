@@ -203,7 +203,7 @@ export default function PrizesPage() {
 			<section className="section-padding">
 				<Container>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{prizeTypes.map((prize, index) => (
+						{prizeTypes.filter(p => p.name !== "Endurance Champion").map((prize, index) => (
 							<motion.div
 								key={prize.name}
 								initial={{ opacity: 0, y: 30 }}
@@ -306,6 +306,11 @@ export default function PrizesPage() {
 								</div>
 								<div className="p-3 rounded bg-status-success/10 border border-status-success/20 mt-4">
 									<p className="text-xs">✓ NFT prizes are automatically sent to your wallet</p>
+								</div>
+								<div className="p-3 rounded bg-status-warning/10 border border-status-warning/20 mt-4">
+									<p className="text-xs">
+										⚠️ Secondary prizes also have a claiming deadline. Check your profile regularly to avoid forfeiting unclaimed prizes.
+									</p>
 								</div>
 							</div>
 						</Card>
