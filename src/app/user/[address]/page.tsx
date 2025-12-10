@@ -50,18 +50,32 @@ interface CSTToken {
 }
 
 interface StakingAction {
+  ActionType: number; // 0 = stake, 1 = unstake
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
+  UnstakeDate: string;
+  UnstakeTimeStamp: number;
   ActionId: number;
   TokenId: number;
-  RoundNum: number;
-  TimeStamp: number;
-  IsUnstake: boolean;
+  NumStakedNFTs: number;
+  Modulo: string;
+  ModuloF64: number;
+  Claimed: boolean;
 }
 
 interface StakingReward {
   TokenId: number;
-  TotalRewardEth: number;
-  ClaimedRewardEth: number;
-  UnclaimedRewardEth: number;
+  RewardCollectedEth: number;
+  RewardToCollectEth: number;
+  UserAid: number;
+  UserAddr: string;
 }
 
 interface CollectedStakingReward {
@@ -104,10 +118,11 @@ interface DashboardData {
 }
 
 interface UserInfo {
+  AddressId?: number;
   Address: string;
   NumBids: number;
   CosmicSignatureNumTransfers: number;
-  CosmicTokenNumTransfers: number;
+  CosmicTokenNumTransfers?: number;
   MaxBidAmount: number;
   NumPrizes: number;
   MaxWinAmount: number;
@@ -118,24 +133,14 @@ interface UserInfo {
   RaffleNFTsCount: number;
   RewardNFTsCount: number;
   TotalCSTokensWon: number;
-  StakingStatistics: {
-    CSTStakingInfo: {
-      NumActiveStakers: number;
-      NumDeposits: number;
-      TotalNumStakeActions: number;
-      TotalNumUnstakeActions: number;
-      TotalRewardEth: number;
-      UnclaimedRewardEth: number;
-      TotalTokensMinted: number;
-      TotalTokensStaked: number;
-    };
-    RWalkStakingInfo: {
-      NumActiveStakers: number;
-      TotalNumStakeActions: number;
-      TotalNumUnstakeActions: number;
-      TotalTokensMinted: number;
-      TotalTokensStaked: number;
-    };
+  TotalDonatedCount?: number;
+  TotalDonatedAmountEth?: number;
+  StakingStatisticsRWalk?: {
+    NumActiveStakers: number;
+    TotalNumStakeActions: number;
+    TotalNumUnstakeActions: number;
+    TotalTokensMinted: number;
+    TotalTokensStaked: number;
   };
 }
 
@@ -430,10 +435,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                 title="Number of Cosmic Signature Transfers"
                 value={userInfo.CosmicSignatureNumTransfers}
               />
-              <StatItem
-                title="Number of Cosmic Signature Token Transfers"
-                value={userInfo.CosmicTokenNumTransfers}
-              />
+              {userInfo.CosmicTokenNumTransfers !== undefined && (
+                <StatItem
+                  title="Number of Cosmic Signature Token Transfers"
+                  value={userInfo.CosmicTokenNumTransfers}
+                />
+              )}
               <StatItem
                 title="Maximum Bid Amount"
                 value={`${userInfo.MaxBidAmount.toFixed(6)} ETH`}
@@ -492,15 +499,17 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
 
             {/* Transfer Links */}
             <div className="mt-6 pt-6 border-t border-text-muted/10 space-y-2 text-sm text-text-secondary">
-              <p>
-                This account has {userInfo.CosmicTokenNumTransfers} CosmicToken (ERC20) transfers.{" "}
-                <Link
-                  href={`/cosmic-token-transfer/${userAddress}`}
-                  className="text-primary hover:underline"
-                >
-                  View all transfers →
-                </Link>
-              </p>
+              {userInfo.CosmicTokenNumTransfers !== undefined && (
+                <p>
+                  This account has {userInfo.CosmicTokenNumTransfers} CosmicToken (ERC20) transfers.{" "}
+                  <Link
+                    href={`/cosmic-token-transfer/${userAddress}`}
+                    className="text-primary hover:underline"
+                  >
+                    View all transfers →
+                  </Link>
+                </p>
+              )}
               <p>
                 This account has {userInfo.CosmicSignatureNumTransfers} CosmicSignature (ERC721) transfers.{" "}
                 <Link
@@ -548,43 +557,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
           {stakingTab === "cst" && (
             <div className="space-y-6">
               <Card glass className="p-8">
-                <div className="space-y-1">
-                  <StatItem
-                    title="Number of Active Stakers"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.NumActiveStakers}
-                  />
-                  <StatItem
-                    title="Number of Deposits"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.NumDeposits}
-                  />
-                  <StatItem
-                    title="Total Number of Stake Actions"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.TotalNumStakeActions}
-                  />
-                  <StatItem
-                    title="Total Number of Unstake Actions"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.TotalNumUnstakeActions}
-                  />
-                  <StatItem
-                    title="Total Rewards"
-                    value={`${userInfo.StakingStatistics.CSTStakingInfo.TotalRewardEth.toFixed(
-                      6
-                    )} ETH`}
-                  />
-                  <StatItem
-                    title="Unclaimed Rewards"
-                    value={`${userInfo.StakingStatistics.CSTStakingInfo.UnclaimedRewardEth.toFixed(
-                      6
-                    )} ETH`}
-                  />
-                  <StatItem
-                    title="Total Tokens Minted"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.TotalTokensMinted}
-                  />
-                  <StatItem
-                    title="Total Tokens Staked"
-                    value={userInfo.StakingStatistics.CSTStakingInfo.TotalTokensStaked}
-                  />
+                <div className="text-center py-12">
+                  <p className="text-text-secondary mb-2">CST staking statistics are not available from the API</p>
+                  <p className="text-sm text-text-muted">Please check the staking actions table below for details</p>
                 </div>
               </Card>
 
@@ -609,7 +584,7 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              # NFTs Staked
                             </th>
                           </tr>
                         </thead>
@@ -622,11 +597,11 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                               }`}
                             >
                               <td className="px-6 py-4 text-sm text-text-secondary">
-                                {formatTimestamp(action.TimeStamp)}
+                                {formatTimestamp(action.Tx.TimeStamp)}
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <Badge variant={action.IsUnstake ? "warning" : "success"}>
-                                  {action.IsUnstake ? "Unstake" : "Stake"}
+                                <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
+                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center">
@@ -637,7 +612,7 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                                 </Link>
                               </td>
                               <td className="px-6 py-4 text-center font-mono text-text-primary text-sm">
-                                {action.RoundNum}
+                                {action.NumStakedNFTs}
                               </td>
                             </tr>
                           ))}
@@ -689,13 +664,13 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                                 </Link>
                               </td>
                               <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
-                                {(reward.TotalRewardEth || 0).toFixed(6)}
+                                {((reward.RewardCollectedEth || 0) + (reward.RewardToCollectEth || 0)).toFixed(6)}
                               </td>
                               <td className="px-6 py-4 text-right font-mono text-status-success text-sm">
-                                {(reward.ClaimedRewardEth || 0).toFixed(6)}
+                                {(reward.RewardCollectedEth || 0).toFixed(6)}
                               </td>
                               <td className="px-6 py-4 text-right font-mono text-status-warning text-sm">
-                                {(reward.UnclaimedRewardEth || 0).toFixed(6)}
+                                {(reward.RewardToCollectEth || 0).toFixed(6)}
                               </td>
                             </tr>
                           ))}
@@ -769,30 +744,38 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
           {/* RWLK Staking Tab */}
           {stakingTab === "rwlk" && (
             <div className="space-y-6">
-              <Card glass className="p-8">
-                <div className="space-y-1">
-                  <StatItem
-                    title="Number of Active Stakers"
-                    value={userInfo.StakingStatistics.RWalkStakingInfo.NumActiveStakers}
-                  />
-                  <StatItem
-                    title="Total Number of Stake Actions"
-                    value={userInfo.StakingStatistics.RWalkStakingInfo.TotalNumStakeActions}
-                  />
-                  <StatItem
-                    title="Total Number of Unstake Actions"
-                    value={userInfo.StakingStatistics.RWalkStakingInfo.TotalNumUnstakeActions}
-                  />
-                  <StatItem
-                    title="Total Tokens Minted"
-                    value={userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensMinted}
-                  />
-                  <StatItem
-                    title="Total Tokens Staked"
-                    value={userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensStaked}
-                  />
-                </div>
-              </Card>
+              {userInfo.StakingStatisticsRWalk ? (
+                <Card glass className="p-8">
+                  <div className="space-y-1">
+                    <StatItem
+                      title="Number of Active Stakers"
+                      value={userInfo.StakingStatisticsRWalk.NumActiveStakers}
+                    />
+                    <StatItem
+                      title="Total Number of Stake Actions"
+                      value={userInfo.StakingStatisticsRWalk.TotalNumStakeActions}
+                    />
+                    <StatItem
+                      title="Total Number of Unstake Actions"
+                      value={userInfo.StakingStatisticsRWalk.TotalNumUnstakeActions}
+                    />
+                    <StatItem
+                      title="Total Tokens Minted"
+                      value={userInfo.StakingStatisticsRWalk.TotalTokensMinted}
+                    />
+                    <StatItem
+                      title="Total Tokens Staked"
+                      value={userInfo.StakingStatisticsRWalk.TotalTokensStaked}
+                    />
+                  </div>
+                </Card>
+              ) : (
+                <Card glass className="p-8">
+                  <div className="text-center py-12">
+                    <p className="text-text-secondary">No RandomWalk staking statistics available</p>
+                  </div>
+                </Card>
+              )}
 
               {/* RWLK Staking Actions */}
               {stakingRWLKActions.length > 0 && (
@@ -815,7 +798,7 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              # NFTs Staked
                             </th>
                           </tr>
                         </thead>
@@ -828,18 +811,18 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                               }`}
                             >
                               <td className="px-6 py-4 text-sm text-text-secondary">
-                                {formatTimestamp(action.TimeStamp)}
+                                {formatTimestamp(action.Tx.TimeStamp)}
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <Badge variant={action.IsUnstake ? "warning" : "success"}>
-                                  {action.IsUnstake ? "Unstake" : "Stake"}
+                                <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
+                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center font-mono text-text-primary">
                                 #{action.TokenId}
                               </td>
                               <td className="px-6 py-4 text-center font-mono text-text-primary text-sm">
-                                {action.RoundNum}
+                                {action.NumStakedNFTs}
                               </td>
                             </tr>
                           ))}

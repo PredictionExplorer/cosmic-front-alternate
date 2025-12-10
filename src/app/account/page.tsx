@@ -17,10 +17,11 @@ import { isAddress, formatEther } from "viem";
 
 // User info API response interface
 interface UserInfoAPI {
+  AddressId?: number;
   Address: string;
   NumBids: number;
   CosmicSignatureNumTransfers: number;
-  CosmicTokenNumTransfers: number;
+  CosmicTokenNumTransfers?: number;
   MaxBidAmount: number;
   NumPrizes: number;
   MaxWinAmount: number;
@@ -31,24 +32,14 @@ interface UserInfoAPI {
   RaffleNFTsCount: number;
   RewardNFTsCount: number;
   TotalCSTokensWon: number;
-  StakingStatistics: {
-    CSTStakingInfo: {
-      NumActiveStakers: number;
-      NumDeposits: number;
-      TotalNumStakeActions: number;
-      TotalNumUnstakeActions: number;
-      TotalRewardEth: number;
-      UnclaimedRewardEth: number;
-      TotalTokensMinted: number;
-      TotalTokensStaked: number;
-    };
-    RWalkStakingInfo: {
-      NumActiveStakers: number;
-      TotalNumStakeActions: number;
-      TotalNumUnstakeActions: number;
-      TotalTokensMinted: number;
-      TotalTokensStaked: number;
-    };
+  TotalDonatedCount?: number;
+  TotalDonatedAmountEth?: number;
+  StakingStatisticsRWalk?: {
+    NumActiveStakers: number;
+    TotalNumStakeActions: number;
+    TotalNumUnstakeActions: number;
+    TotalTokensMinted: number;
+    TotalTokensStaked: number;
   };
 }
 
@@ -70,7 +61,6 @@ const DEFAULT_USER_INFO: UserInfoAPI = {
   Address: "",
   NumBids: 0,
   CosmicSignatureNumTransfers: 0,
-  CosmicTokenNumTransfers: 0,
   MaxBidAmount: 0,
   NumPrizes: 0,
   MaxWinAmount: 0,
@@ -81,24 +71,12 @@ const DEFAULT_USER_INFO: UserInfoAPI = {
   RaffleNFTsCount: 0,
   RewardNFTsCount: 0,
   TotalCSTokensWon: 0,
-  StakingStatistics: {
-    CSTStakingInfo: {
-      NumActiveStakers: 0,
-      NumDeposits: 0,
-      TotalNumStakeActions: 0,
-      TotalNumUnstakeActions: 0,
-      TotalRewardEth: 0,
-      UnclaimedRewardEth: 0,
-      TotalTokensMinted: 0,
-      TotalTokensStaked: 0,
-    },
-    RWalkStakingInfo: {
-      NumActiveStakers: 0,
-      TotalNumStakeActions: 0,
-      TotalNumUnstakeActions: 0,
-      TotalTokensMinted: 0,
-      TotalTokensStaked: 0,
-    },
+  StakingStatisticsRWalk: {
+    NumActiveStakers: 0,
+    TotalNumStakeActions: 0,
+    TotalNumUnstakeActions: 0,
+    TotalTokensMinted: 0,
+    TotalTokensStaked: 0,
   },
 };
 
@@ -452,10 +430,12 @@ function AccountPageContent() {
                 <span className="font-mono text-text-primary">{userInfo.CosmicSignatureNumTransfers}</span>
               </div>
 
-              <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">CST Token Transfers</span>
-                <span className="font-mono text-text-primary">{userInfo.CosmicTokenNumTransfers}</span>
-              </div>
+              {userInfo.CosmicTokenNumTransfers !== undefined && (
+                <div className="flex justify-between py-3 border-b border-text-muted/10">
+                  <span className="text-text-secondary">CST Token Transfers</span>
+                  <span className="font-mono text-text-primary">{userInfo.CosmicTokenNumTransfers}</span>
+                </div>
+              )}
 
               <div className="flex justify-between py-3 border-b border-text-muted/10">
                 <span className="text-text-secondary">Unclaimed Donated NFTs</span>
@@ -467,104 +447,55 @@ function AccountPageContent() {
       </section>
 
       {/* Staking Statistics */}
-      <section className="py-12 bg-background-surface/50">
-        <Container>
-          <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-            Staking Statistics
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* CST Staking */}
-            <Card glass className="p-8">
-              <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
-                Cosmic Signature Staking
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Active Stakers</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.CSTStakingInfo.NumActiveStakers}
-                  </span>
+      {userInfo.StakingStatisticsRWalk && (
+        <section className="py-12 bg-background-surface/50">
+          <Container>
+            <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
+              Staking Statistics
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* RandomWalk Staking */}
+              <Card glass className="p-8">
+                <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
+                  RandomWalk Staking
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Active Stakers</span>
+                    <span className="font-mono text-text-primary">
+                      {userInfo.StakingStatisticsRWalk.NumActiveStakers}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Stake Actions</span>
+                    <span className="font-mono text-text-primary">
+                      {userInfo.StakingStatisticsRWalk.TotalNumStakeActions}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Unstake Actions</span>
+                    <span className="font-mono text-text-primary">
+                      {userInfo.StakingStatisticsRWalk.TotalNumUnstakeActions}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-4 border-t border-text-muted/10">
+                    <span className="text-text-secondary">Tokens Minted</span>
+                    <span className="font-mono text-primary font-semibold">
+                      {userInfo.StakingStatisticsRWalk.TotalTokensMinted}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Tokens Staked</span>
+                    <span className="font-mono text-text-primary">
+                      {userInfo.StakingStatisticsRWalk.TotalTokensStaked}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Deposits</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.CSTStakingInfo.NumDeposits}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Stake Actions</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.CSTStakingInfo.TotalNumStakeActions}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Unstake Actions</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.CSTStakingInfo.TotalNumUnstakeActions}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-4 border-t border-text-muted/10">
-                  <span className="text-text-secondary">Total Rewards</span>
-                  <span className="font-mono text-primary font-semibold">
-                    {Number(userInfo.StakingStatistics.CSTStakingInfo.TotalRewardEth).toFixed(6)} ETH
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Unclaimed Rewards</span>
-                  <span className="font-mono text-status-warning font-semibold">
-                    {Number(userInfo.StakingStatistics.CSTStakingInfo.UnclaimedRewardEth).toFixed(6)} ETH
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Tokens Staked</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.CSTStakingInfo.TotalTokensStaked}
-                  </span>
-                </div>
-              </div>
-            </Card>
-
-            {/* RandomWalk Staking */}
-            <Card glass className="p-8">
-              <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
-                RandomWalk Staking
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Active Stakers</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.RWalkStakingInfo.NumActiveStakers}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Stake Actions</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalNumStakeActions}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Unstake Actions</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalNumUnstakeActions}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-4 border-t border-text-muted/10">
-                  <span className="text-text-secondary">Tokens Minted</span>
-                  <span className="font-mono text-primary font-semibold">
-                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensMinted}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-secondary">Tokens Staked</span>
-                  <span className="font-mono text-text-primary">
-                    {userInfo.StakingStatistics.RWalkStakingInfo.TotalTokensStaked}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </Container>
-      </section>
+              </Card>
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* Quick Actions */}
       {isViewingOwnAccount && (
