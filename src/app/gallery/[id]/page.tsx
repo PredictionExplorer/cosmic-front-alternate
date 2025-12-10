@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Share2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
@@ -57,6 +57,7 @@ export default function NFTDetailPage({
   const [imageUrl, setImageUrl] = useState<string>("");
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [maxTokenId, setMaxTokenId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -64,9 +65,19 @@ export default function NFTDetailPage({
         setLoading(true);
         setError(null);
 
-        // Fetch NFT info from API
-        const tokenInfo = await api.getCSTInfo(parseInt(id));
+        // Fetch NFT info and max token ID in parallel
+        const [tokenInfo, tokenList] = await Promise.all([
+          api.getCSTInfo(parseInt(id)),
+          api.getCSTList()
+        ]);
+        
         setNft(tokenInfo);
+
+        // Find the highest token ID
+        if (tokenList && tokenList.length > 0) {
+          const maxId = Math.max(...tokenList.map((token: any) => token.TokenId));
+          setMaxTokenId(maxId);
+        }
 
         // Generate image and video URLs from seed
         const fileName = `0x${tokenInfo.Seed}`;
@@ -139,11 +150,11 @@ export default function NFTDetailPage({
   return (
     <div className="min-h-screen section-padding">
       <Container>
-        {/* Back Button */}
+        {/* Navigation */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="mb-8"
+          className="mb-8 flex items-center justify-between gap-4"
         >
           <Button variant="ghost" asChild>
             <Link href="/gallery">
@@ -151,6 +162,52 @@ export default function NFTDetailPage({
               Back to Gallery
             </Link>
           </Button>
+
+          {/* Prev/Next Navigation */}
+          <div className="flex items-center gap-2">
+            {parseInt(id) > 0 ? (
+              <Button
+                variant="primary"
+                asChild
+                className="min-w-[100px]"
+              >
+                <Link href={`/gallery/${parseInt(id) - 1}`}>
+                  <ChevronLeft size={20} className="mr-1" />
+                  Prev
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled
+                className="min-w-[100px]"
+              >
+                <ChevronLeft size={20} className="mr-1" />
+                Prev
+              </Button>
+            )}
+            {maxTokenId !== null && parseInt(id) >= maxTokenId ? (
+              <Button
+                variant="outline"
+                disabled
+                className="min-w-[100px]"
+              >
+                Next
+                <ChevronRight size={20} className="ml-1" />
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                asChild
+                className="min-w-[100px]"
+              >
+                <Link href={`/gallery/${parseInt(id) + 1}`}>
+                  Next
+                  <ChevronRight size={20} className="ml-1" />
+                </Link>
+              </Button>
+            )}
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
