@@ -106,29 +106,22 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
-      <section className="section-padding bg-background-surface/50">
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center"
-          >
-            <h1 className="heading-xl text-balance mb-6">The Gallery</h1>
-            <p className="body-xl max-w-3xl mx-auto">
-              Explore the complete collection of Cosmic Signature NFTs. Each
-              piece is a unique work of generative art, created through a
-              deterministic algorithm with a verifiable seed.
-            </p>
-          </motion.div>
-        </Container>
-      </section>
-
       {/* Filters and Controls */}
       <section className="sticky top-[72px] lg:top-[88px] z-40 bg-background/95 backdrop-blur-xl border-b border-text-muted/10">
         <Container>
-          <div className="py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="py-6 space-y-4">
+            {/* Title and Description - Compact */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-serif font-semibold text-text-primary mb-1">The Gallery</h1>
+                <p className="text-sm text-text-secondary">
+                  Explore the complete collection of Cosmic Signature NFTs
+                </p>
+              </div>
+            </div>
+
+            {/* Search and Controls */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Search */}
             <div className="relative w-full md:w-96">
               <Search
@@ -183,6 +176,7 @@ export default function GalleryPage() {
                   <List size={20} />
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </Container>
