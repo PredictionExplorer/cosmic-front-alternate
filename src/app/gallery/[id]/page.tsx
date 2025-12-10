@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Share2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Share2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
@@ -56,6 +56,7 @@ export default function NFTDetailPage({
   const [nft, setNft] = useState<NFTData | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [videoUrl, setVideoUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -325,12 +326,22 @@ export default function NFTDetailPage({
                     });
                   } else {
                     navigator.clipboard.writeText(window.location.href);
-                    alert("Link copied to clipboard!");
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 3000);
                   }
                 }}
               >
-                <Share2 className="mr-2" size={20} />
-                Share
+                {copied ? (
+                  <>
+                    <CheckCircle2 className="mr-2" size={20} />
+                    Link Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="mr-2" size={20} />
+                    Share
+                  </>
+                )}
               </Button>
             </div>
 
