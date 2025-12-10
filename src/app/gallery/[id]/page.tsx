@@ -2,15 +2,17 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAccount } from "wagmi";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { shortenAddress } from "@/lib/utils";
 import { api, getAssetsUrl } from "@/services/api";
+import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 
 interface NFTData {
   RecordId: number;
@@ -50,6 +52,9 @@ export default function NFTDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { address: connectedAddress } = useAccount();
+  const nftContract = useCosmicSignatureNFT();
+  
   const [showVideo, setShowVideo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,10 @@ export default function NFTDetailPage({
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [maxTokenId, setMaxTokenId] = useState<number | null>(null);
+  
+  // Name editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState("");
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -93,6 +102,23 @@ export default function NFTDetailPage({
 
     fetchNFTData();
   }, [id]);
+
+  // Refetch NFT data when name change transaction is successful
+  useEffect(() => {
+    if (nftContract.status.isSuccess && isEditingName) {
+      const refetchData = async () => {
+        try {
+          const tokenInfo = await api.getCSTInfo(parseInt(id));
+          setNft(tokenInfo);
+          setIsEditingName(false);
+          setNewName("");
+        } catch (err) {
+          console.error("Failed to refetch NFT data:", err);
+        }
+      };
+      refetchData();
+    }
+  }, [nftContract.status.isSuccess, id, isEditingName]);
 
   if (loading) {
     return (
@@ -146,6 +172,25 @@ export default function NFTDetailPage({
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString();
   };
+
+  const handleStartEdit = () => {
+    setNewName(nft?.TokenName || "");
+    setIsEditingName(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+    setNewName("");
+  };
+
+  const handleSaveName = () => {
+    if (!nft || !newName.trim()) return;
+    nftContract.write.setName(BigInt(nft.TokenId), newName.trim());
+  };
+
+  // Check if connected user is the owner
+  const isOwner = connectedAddress && nft && 
+    connectedAddress.toLowerCase() === nft.CurOwnerAddr.toLowerCase();
 
   return (
     <div className="min-h-screen section-padding">
@@ -262,9 +307,68 @@ export default function NFTDetailPage({
           >
             {/* Title */}
             <div>
-              <h1 className="heading-sm mb-2">
-                {nft.TokenName || `Cosmic Signature #${id}`}
-              </h1>
+              {isEditingName ? (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      maxLength={32}
+                      placeholder="Enter NFT name (max 32 characters)"
+                      className="flex-1 px-4 py-2 rounded-lg bg-background-surface border border-text-muted/20 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={handleSaveName}
+                      disabled={!newName.trim() || nftContract.status.isPending || nftContract.status.isConfirming}
+                    >
+                      <Check size={16} className="mr-1" />
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={nftContract.status.isPending || nftContract.status.isConfirming}
+                    >
+                      <X size={16} className="mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                  {nftContract.status.isPending && (
+                    <p className="text-xs text-status-warning">Waiting for wallet confirmation...</p>
+                  )}
+                  {nftContract.status.isConfirming && (
+                    <p className="text-xs text-status-warning">Transaction confirming...</p>
+                  )}
+                  {nftContract.status.isSuccess && (
+                    <p className="text-xs text-status-success">Name updated successfully!</p>
+                  )}
+                  {nftContract.status.error && (
+                    <p className="text-xs text-status-error">Error: {nftContract.status.error.message}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="heading-sm">
+                    {nft.TokenName || `Cosmic Signature #${id}`}
+                  </h1>
+                  {isOwner && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleStartEdit}
+                      className="hover:bg-primary/10"
+                      title="Edit NFT name"
+                    >
+                      <Edit2 size={16} />
+                    </Button>
+                  )}
+                </div>
+              )}
               <p className="text-text-secondary">
                 Minted on {formatTimestamp(nft.Tx.TimeStamp)}
               </p>
