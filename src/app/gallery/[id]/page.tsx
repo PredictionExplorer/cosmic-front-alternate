@@ -13,16 +13,35 @@ import { shortenAddress } from "@/lib/utils";
 import { api, getAssetsUrl } from "@/services/api";
 
 interface NFTData {
-  Seed: string;
-  TimeStamp: number;
-  TxHash: string;
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
+  ContractAddr: string;
+  TokenId: number;
+  WinnerAid: number;
   WinnerAddr: string;
+  CurOwnerAid: number;
   CurOwnerAddr: string;
-  RecordType: number;
+  Seed: string;
   RoundNum: number;
-  TokenName?: string;
+  RecordType: number;
+  TokenName: string;
   Staked: boolean;
+  StakedOwnerAid: number;
+  StakedOwnerAddr: string;
+  StakeActionId: number;
+  StakeTimeStamp: number;
+  StakeDateTime: string;
+  UnstakeActionId: number;
   WasUnstaked: boolean;
+  ActualUnstakeTimeStamp: number;
+  ActualUnstakeDateTime: string;
 }
 
 export default function NFTDetailPage({
@@ -189,7 +208,7 @@ export default function NFTDetailPage({
                 {nft.TokenName || `Cosmic Signature #${id}`}
               </h1>
               <p className="text-text-secondary">
-                Minted on {formatTimestamp(nft.TimeStamp)}
+                Minted on {formatTimestamp(nft.Tx.TimeStamp)}
               </p>
             </div>
 
@@ -245,7 +264,7 @@ export default function NFTDetailPage({
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">Transaction</span>
                   <a
-                    href={`https://arbiscan.io/tx/${nft.TxHash}`}
+                    href={`https://arbiscan.io/tx/${nft.Tx.TxHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center text-primary hover:text-primary/80 transition-colors"
@@ -371,7 +390,7 @@ export default function NFTDetailPage({
                         Minted
                       </p>
                       <p className="text-xs text-text-secondary">
-                        {formatTimestamp(nft.TimeStamp)} • Round {nft.RoundNum}
+                        {formatTimestamp(nft.Tx.TimeStamp)} • Round {nft.RoundNum}
                       </p>
                     </div>
                   </div>

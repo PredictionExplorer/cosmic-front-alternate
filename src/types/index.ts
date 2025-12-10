@@ -73,12 +73,14 @@ export interface UserStats {
 
 export interface CSTToken {
 	RecordId: number;
-	EvtLogId: number;
-	BlockNum: number;
-	TimeStamp: number;
-	DateTime: string;
-	TxId: number;
-	TxHash: string;
+	Tx: {
+		EvtLogId: number;
+		BlockNum: number;
+		TxId: number;
+		TxHash: string;
+		TimeStamp: number;
+		DateTime: string;
+	};
 	ContractAddr: string;
 	TokenId: number;
 	WinnerAid: number;
