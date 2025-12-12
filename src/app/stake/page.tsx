@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Gem, TrendingUp, AlertCircle, Award, Zap } from "lucide-react";
+import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
 import { Container } from "@/components/ui/Container";
@@ -108,6 +108,10 @@ export default function StakePage() {
   const [unstakingRWLKActionId, setUnstakingRWLKActionId] = useState<
     number | null
   >(null);
+
+  // Help sections visibility
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
 
   // Dashboard data state
   const [dashboardData, setDashboardData] = useState<{
@@ -874,29 +878,8 @@ export default function StakePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
-      <section className="section-padding bg-background-surface/50">
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-4xl mx-auto"
-          >
-            <h1 className="heading-xl text-balance mb-6">
-              Stake NFTs,
-              <span className="text-gradient block mt-2">Earn Rewards</span>
-            </h1>
-            <p className="body-xl">
-              Lock your NFTs to earn a share of{" "}
-              {stakingPercentage}% of each round&apos;s prize
-              pool. Withdraw anytime with accumulated rewards.
-            </p>
-          </motion.div>
-        </Container>
-      </section>
-
-      {/* Tab Selector */}
-      <section className="py-6 bg-background-surface/30 sticky top-[72px] lg:top-[88px] z-40 backdrop-blur-xl border-b border-text-muted/10">
+      {/* Compact Tab Selector */}
+      <section className="py-4 bg-background-surface/50 sticky top-[72px] lg:top-[88px] z-40 backdrop-blur-xl border-b border-text-muted/10">
         <Container>
           <div className="flex justify-center">
             <div className="inline-flex p-1 rounded-lg bg-background-elevated border border-text-muted/10">
@@ -928,7 +911,20 @@ export default function StakePage() {
       {activeTab === "cosmic" && (
         <>
           {/* Overview Stats */}
-          <section className="py-12">
+          <section className="py-12 relative">
+            {/* Floating Info Card - Positioned over stats (hidden on mobile) */}
+            <div className="hidden lg:block absolute top-12 left-8 z-10 pointer-events-none">
+              <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
+                <h1 className="text-2xl font-serif font-semibold text-text-primary mb-2">
+                  Stake NFTs,
+                  <span className="text-gradient block">Earn Rewards</span>
+                </h1>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Lock your NFTs to earn a share of {stakingPercentage}% of each round&apos;s prize pool. Withdraw anytime with accumulated rewards.
+                </p>
+              </Card>
+            </div>
+
             <Container>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
@@ -961,14 +957,39 @@ export default function StakePage() {
             </Container>
           </section>
 
-          {/* How It Works */}
-          <section className="py-12 bg-background-surface/50">
+          {/* How It Works - Collapsible */}
+          <section className="py-6">
             <Container size="lg">
-              <Card glass className="p-8 md:p-12">
-                <h2 className="font-serif text-2xl font-semibold text-text-primary text-center mb-2">
-                  How Staking Works
-                </h2>
-                <p className="text-center text-text-secondary mb-8">Follow these simple steps</p>
+              <div className="flex justify-center mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHowItWorks(!showHowItWorks)}
+                  className="gap-2"
+                >
+                  <HelpCircle size={18} />
+                  {showHowItWorks ? 'Hide' : 'Show'} How Staking Works
+                  <ChevronDown 
+                    size={18} 
+                    className={`transition-transform ${showHowItWorks ? 'rotate-180' : ''}`}
+                  />
+                </Button>
+              </div>
+
+              {showHowItWorks && (
+                <Card glass className="p-8 md:p-12">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="font-serif text-2xl font-semibold text-text-primary">
+                      How Staking Works
+                    </h2>
+                    <button
+                      onClick={() => setShowHowItWorks(false)}
+                      className="p-2 hover:bg-background-elevated rounded-lg transition-colors"
+                      aria-label="Close"
+                    >
+                      <X size={20} className="text-text-secondary hover:text-text-primary" />
+                    </button>
+                  </div>
+                  <p className="text-center text-text-secondary mb-8">Follow these simple steps</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   {[
@@ -1065,6 +1086,7 @@ export default function StakePage() {
                   </p>
                 </div>
               </Card>
+              )}
             </Container>
           </section>
 
@@ -1669,18 +1691,54 @@ export default function StakePage() {
       {activeTab === "randomwalk" && (
         <>
           {/* Random Walk NFT Staking */}
-          <section className="py-12">
+          <section className="py-12 relative">
+            {/* Floating Info Card - Positioned over content (hidden on mobile) */}
+            <div className="hidden lg:block absolute top-12 left-8 z-10 pointer-events-none">
+              <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
+                <h2 className="text-2xl font-serif font-semibold text-text-primary mb-2">
+                  Random Walk
+                  <span className="text-gradient block">NFT Staking</span>
+                </h2>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Stake Random Walk NFTs to become eligible for raffle prize drawings each round.
+                </p>
+              </Card>
+            </div>
+
             <Container size="lg">
-              <Card glass className="p-8 md:p-12">
-                <div className="text-center mb-8">
-                  <h2 className="font-serif text-3xl font-semibold text-text-primary mb-4">
-                    Random Walk NFT Staking
-                  </h2>
-                  <p className="body-lg max-w-2xl mx-auto">
-                    Stake Random Walk NFTs to become eligible for raffle prize
-                    drawings
-                  </p>
-                </div>
+              {/* Empty State - No Random Walk NFTs */}
+              {!rwlkLoading && isConnected && availableRWLKTokens.length === 0 && stakedRWLKTokens.length === 0 && (
+                <Card glass className="p-12 text-center">
+                  <div className="max-w-md mx-auto">
+                    <Gem className="mx-auto mb-4 text-text-muted" size={64} />
+                    <h3 className="font-serif text-2xl font-semibold text-text-primary mb-3">
+                      No Random Walk NFTs
+                    </h3>
+                    <p className="text-text-secondary mb-6">
+                      You don&apos;t have anything staked at the moment. You need to own Random Walk NFTs to stake them for raffle eligibility.
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Not Connected State */}
+              {!isConnected && (
+                <Card glass className="p-12 text-center">
+                  <div className="max-w-md mx-auto">
+                    <AlertCircle className="mx-auto mb-4 text-text-muted" size={64} />
+                    <h3 className="font-serif text-2xl font-semibold text-text-primary mb-3">
+                      Connect Your Wallet
+                    </h3>
+                    <p className="text-text-secondary">
+                      Connect your wallet to view and stake your Random Walk NFTs.
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              {/* Random Walk Staking Interface */}
+              {(rwlkLoading || availableRWLKTokens.length > 0 || stakedRWLKTokens.length > 0) && (
+                <Card glass className="p-8 md:p-12">
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                   <div className="space-y-4">
@@ -1783,25 +1841,9 @@ export default function StakePage() {
                   </div>
                 </div>
               </Card>
+              )}
             </Container>
           </section>
-
-          {/* Not Connected State */}
-          {!isConnected && (
-          <section className="py-12">
-            <Container>
-              <Card glass className="p-8">
-                <div className="text-center py-12">
-                  <Gem size={48} className="text-text-muted mx-auto mb-4" />
-                  <p className="text-text-secondary mb-6">
-                      Connect your wallet to view and stake your Random Walk
-                      NFTs
-                  </p>
-                </div>
-              </Card>
-            </Container>
-          </section>
-          )}
 
           {/* Your Available Random Walk NFTs */}
           {isConnected && availableRWLKTokens.length > 0 && (
@@ -2428,19 +2470,38 @@ export default function StakePage() {
         </>
       )}
 
-      {/* FAQ Section */}
-      <section className="section-padding bg-background-surface/50">
+      {/* FAQ Section - Collapsible */}
+      <section className="py-6 bg-background-surface/50">
         <Container size="lg">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="heading-md mb-4">Staking FAQ</h2>
-          </motion.div>
+          <div className="flex justify-center mb-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowFAQ(!showFAQ)}
+              className="gap-2"
+            >
+              <HelpCircle size={18} />
+              {showFAQ ? 'Hide' : 'Show'} Staking FAQ
+              <ChevronDown 
+                size={18} 
+                className={`transition-transform ${showFAQ ? 'rotate-180' : ''}`}
+              />
+            </Button>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {showFAQ && (
+            <Card glass className="p-8 md:p-12">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="heading-md">Staking FAQ</h2>
+                <button
+                  onClick={() => setShowFAQ(false)}
+                  className="p-2 hover:bg-background-elevated rounded-lg transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={20} className="text-text-secondary hover:text-text-primary" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
                 q: "When do I receive staking rewards?",
@@ -2484,7 +2545,9 @@ export default function StakePage() {
                 </Card>
               </motion.div>
             ))}
-          </div>
+              </div>
+            </Card>
+          )}
         </Container>
       </section>
     </div>
