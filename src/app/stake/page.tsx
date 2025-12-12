@@ -111,6 +111,7 @@ export default function StakePage() {
 
   // Help sections visibility
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showRWalkHowItWorks, setShowRWalkHowItWorks] = useState(false);
   const [showFAQ, setShowFAQ] = useState(false);
 
   // Dashboard data state
@@ -239,17 +240,9 @@ export default function StakePage() {
         stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
       );
 
-      // Filter available tokens (owned, not staked, and not in partial action)
-      // Exclude tokens that have ActionType !== 1 (partial/incomplete actions)
+      // Filter available tokens (owned and not currently staked)
       const available: RWLKToken[] = ownedTokenIds
-        .filter(
-          (tokenId) =>
-            !stakedTokenIdsSet.has(tokenId) &&
-            !rwalkActions.some(
-              (action: StakedRWLKToken) =>
-                action.StakeActionId !== tokenId
-            )
-        )
+        .filter((tokenId) => !stakedTokenIdsSet.has(tokenId))
         .map((tokenId) => ({
           TokenId: tokenId,
           IsUsed: false,
@@ -293,17 +286,9 @@ export default function StakePage() {
           stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
         );
 
-        // Filter available tokens (owned, not staked, and not in partial action)
-        // Exclude tokens that have ActionType !== 1 (partial/incomplete actions)
+        // Filter available tokens (owned and not currently staked)
         const available: RWLKToken[] = ownedTokenIds
-          .filter(
-            (tokenId) =>
-              !stakedTokenIdsSet.has(tokenId) &&
-              !rwalkActions.some(
-                (action: StakedRWLKToken) =>
-                  action.StakeActionId !== tokenId
-              )
-          )
+          .filter((tokenId) => !stakedTokenIdsSet.has(tokenId))
           .map((tokenId) => ({
             TokenId: tokenId,
             IsUsed: false,
@@ -1736,15 +1721,43 @@ export default function StakePage() {
                 </Card>
               )}
 
-              {/* Random Walk Staking Interface */}
+              {/* Random Walk Staking Info Card - Collapsible */}
               {(rwlkLoading || availableRWLKTokens.length > 0 || stakedRWLKTokens.length > 0) && (
-                <Card glass className="p-8 md:p-12">
+                <>
+                  <div className="flex justify-center mb-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowRWalkHowItWorks(!showRWalkHowItWorks)}
+                      className="gap-2"
+                    >
+                      <HelpCircle size={18} />
+                      {showRWalkHowItWorks ? 'Hide' : 'Show'} How Random Walk Staking Works
+                      <ChevronDown 
+                        size={18} 
+                        className={`transition-transform ${showRWalkHowItWorks ? 'rotate-180' : ''}`}
+                      />
+                    </Button>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                  <div className="space-y-4">
-                    <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      How It Works
-                    </h3>
+                  {showRWalkHowItWorks && (
+                    <Card glass className="p-8 md:p-12 mb-8">
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="font-serif text-2xl font-semibold text-text-primary">
+                          Random Walk NFT Staking
+                        </h2>
+                        <button
+                          onClick={() => setShowRWalkHowItWorks(false)}
+                          className="p-2 hover:bg-background-elevated rounded-lg transition-colors"
+                          aria-label="Close"
+                        >
+                          <X size={20} className="text-text-secondary hover:text-text-primary" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <h3 className="font-serif text-xl font-semibold text-text-primary">
+                            How It Works
+                          </h3>
                     <ul className="space-y-3 text-text-secondary">
                       <li className="flex items-start space-x-2">
                         <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
@@ -1840,7 +1853,9 @@ export default function StakePage() {
                     </div>
                   </div>
                 </div>
-              </Card>
+                    </Card>
+                  )}
+                </>
               )}
             </Container>
           </section>
