@@ -31,7 +31,14 @@ interface NFTData {
 }
 
 interface StakedToken {
-  TokenId: number;
+  TokenInfo: NFTData;
+  StakeEvtLogId: number;
+  StakeBlockNum: number;
+  StakeActionId: number;
+  StakeTimeStamp: number;
+  StakeDateTime: string;
+  UserAddr: string;
+  UserAid: number;
 }
 
 export default function MyNFTsPage() {
@@ -41,7 +48,8 @@ export default function MyNFTsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [nfts, setNfts] = useState<NFTData[]>([]);
-  const [stakedNFTs, setStakedNFTs] = useState<number[]>([]);
+  const [stakedNFTs, setStakedNFTs] = useState<NFTData[]>([]);
+  const [stakedTokenIds, setStakedTokenIds] = useState<number[]>([]);
 
   // Fetch user's NFTs
   useEffect(() => {
@@ -61,7 +69,8 @@ export default function MyNFTsPage() {
         ]);
 
         setNfts(userNFTs);
-        setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenId));
+        setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
+        setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
       } catch (error) {
         console.error("Error fetching NFTs:", error);
       } finally {
@@ -73,7 +82,7 @@ export default function MyNFTsPage() {
   }, [address, isConnected]);
 
   // Transform API data to component format
-  const transformedNFTs = nfts.map((nft) => ({
+  const transformNFT = (nft: NFTData) => ({
     id: nft.TokenId,
     tokenId: nft.TokenId,
     name: `Cosmic Signature #${nft.TokenId}`,
@@ -85,12 +94,23 @@ export default function MyNFTsPage() {
     videoUrl: getAssetsUrl(`cosmicsignature/0x${nft.Seed}.mp4`),
     mintedAt: safeTimestamp(nft),
     attributes: [],
-  }));
+  });
 
-  const filteredNFTs = transformedNFTs.filter((nft) => {
+  // Combine owned and staked NFTs (staked NFTs are owned by staking contract)
+  const ownedTransformed = nfts.map(transformNFT);
+  const stakedTransformed = stakedNFTs.map(transformNFT);
+  
+  // Merge and deduplicate
+  const allNFTsMap = new Map();
+  [...ownedTransformed, ...stakedTransformed].forEach(nft => {
+    allNFTsMap.set(nft.tokenId, nft);
+  });
+  const allNFTs = Array.from(allNFTsMap.values());
+
+  const filteredNFTs = allNFTs.filter((nft) => {
     // Filter by staking status
-    if (filter === "staked" && !stakedNFTs.includes(nft.tokenId)) return false;
-    if (filter === "unstaked" && stakedNFTs.includes(nft.tokenId)) return false;
+    if (filter === "staked" && !stakedTokenIds.includes(nft.tokenId)) return false;
+    if (filter === "unstaked" && stakedTokenIds.includes(nft.tokenId)) return false;
 
     // Filter by search
     if (searchQuery) {
@@ -150,9 +170,9 @@ export default function MyNFTsPage() {
             <p className="body-lg">
               {loading
                 ? "Loading your NFTs..."
-                : `You own ${nfts.length} Cosmic Signature NFT${
-                    nfts.length !== 1 ? "s" : ""
-                  } • ${stakedNFTs.length} currently staked`}
+                : `You own ${allNFTs.length} Cosmic Signature NFT${
+                    allNFTs.length !== 1 ? "s" : ""
+                  } • ${stakedTokenIds.length} currently staked`}
             </p>
           </motion.div>
         </Container>
@@ -172,7 +192,7 @@ export default function MyNFTsPage() {
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                All ({nfts.length})
+                All ({allNFTs.length})
               </button>
               <button
                 onClick={() => setFilter("staked")}
@@ -182,7 +202,7 @@ export default function MyNFTsPage() {
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Staked ({stakedNFTs.length})
+                Staked ({stakedTokenIds.length})
               </button>
               <button
                 onClick={() => setFilter("unstaked")}
@@ -192,7 +212,7 @@ export default function MyNFTsPage() {
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Unstaked ({nfts.length - stakedNFTs.length})
+                Unstaked ({allNFTs.length - stakedTokenIds.length})
               </button>
             </div>
 
@@ -253,11 +273,11 @@ export default function MyNFTsPage() {
           ) : filteredNFTs.length === 0 ? (
             <Card glass className="p-12 text-center">
               <p className="text-text-secondary">
-                {nfts.length === 0
+                {allNFTs.length === 0
                   ? "You don't own any Cosmic Signature NFTs yet. Start playing to win!"
                   : "No NFTs found matching your criteria."}
               </p>
-              {nfts.length === 0 && (
+              {allNFTs.length === 0 && (
                 <Button className="mt-6" asChild>
                   <Link href="/game/play">Place Your First Bid</Link>
                 </Button>
@@ -273,7 +293,7 @@ export default function MyNFTsPage() {
               {viewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredNFTs.map((nft, index) => {
-                    const isStaked = stakedNFTs.includes(nft.tokenId);
+                    const isStaked = stakedTokenIds.includes(nft.tokenId);
 
                     return (
                       <div key={nft.id} className="relative">
@@ -304,7 +324,7 @@ export default function MyNFTsPage() {
               ) : (
                 <div className="space-y-4">
                   {filteredNFTs.map((nft) => {
-                    const isStaked = stakedNFTs.includes(nft.tokenId);
+                    const isStaked = stakedTokenIds.includes(nft.tokenId);
 
                     return (
                       <Card key={nft.id} glass hover className="p-6">
