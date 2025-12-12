@@ -19,7 +19,7 @@ export function Footer() {
 							</p>
 							<div className="flex space-x-4">
 								<a
-									href="https://twitter.com"
+									href="https://x.com/CosmicSignatureNFT"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-text-secondary hover:text-primary transition-colors"
@@ -28,7 +28,7 @@ export function Footer() {
 									<Twitter size={20} />
 								</a>
 								<a
-									href="https://github.com"
+									href="https://github.com/PredictionExplorer/Cosmic-Signature"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-text-secondary hover:text-primary transition-colors"
@@ -37,7 +37,7 @@ export function Footer() {
 									<Github size={20} />
 								</a>
 								<a
-									href="https://discord.com"
+									href="https://discord.gg/bGnPn96Qwt"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-text-secondary hover:text-primary transition-colors"
