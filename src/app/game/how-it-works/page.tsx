@@ -634,9 +634,9 @@ export default function HowItWorksPage() {
 							{[
 								{
 									name: 'Main Prize Winner',
-									percentage: 25,
+									percentage: dashboardData?.PrizePercentage || 0,
 									recipients: 1,
-									rewards: ['25% of ETH pool', '1 Cosmic Signature NFT'],
+									rewards: [`${dashboardData?.PrizePercentage || 0}% of ETH pool`, '1 Cosmic Signature NFT'],
 									color: 'primary'
 								},
 								{
@@ -656,40 +656,40 @@ export default function HowItWorksPage() {
 								},
 								{
 									name: 'Chrono-Warrior',
-									percentage: 8,
+									percentage: dashboardData?.ChronoWarriorPercentage || 0,
 									recipients: 1,
-									rewards: ['8% of ETH pool'],
+									rewards: [`${dashboardData?.ChronoWarriorPercentage || 0}% of ETH pool`],
 									color: 'info'
 								},
 								{
 									name: 'Raffle - ETH Prizes',
-									percentage: 4,
-									recipients: 3,
-									rewards: ['4% of ETH split among 3 random bidders'],
+									percentage: dashboardData?.RafflePercentage || 0,
+									recipients: dashboardData?.NumRaffleEthWinnersBidding || 0,
+									rewards: [`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} random bidders`],
 									color: 'warning'
 								},
 								{
 									name: 'Raffle - NFT Prizes',
 									percentage: 0,
-									recipients: 9,
+									recipients: (dashboardData?.NumRaffleNFTWinnersBidding || 0) + (dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0),
 									rewards: [
-										'5 Cosmic Signature NFTs to random bidders',
-										'4 Cosmic Signature NFTs to random RW NFT stakers'
+										`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to random bidders`,
+										`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to random RW NFT stakers`
 									],
 									color: 'warning'
 								},
 								{
 									name: 'NFT Stakers',
-									percentage: 6,
+									percentage: dashboardData?.StakignPercentage || 0,
 									recipients: 'All',
-									rewards: ['6% of ETH distributed proportionally'],
+									rewards: [`${dashboardData?.StakignPercentage || 0}% of ETH distributed proportionally`],
 									color: 'success'
 								},
 								{
 									name: 'Charity',
-									percentage: 7,
+									percentage: dashboardData?.CharityPercentage || 0,
 									recipients: 1,
-									rewards: ['7% of ETH to charitable causes'],
+									rewards: [`${dashboardData?.CharityPercentage || 0}% of ETH to charitable causes`],
 									color: 'error'
 								}
 							].map((prize, index) => (
@@ -733,8 +733,14 @@ export default function HowItWorksPage() {
 
 						<div className="mt-8 p-6 rounded-lg bg-primary/5 border border-primary/20">
 							<p className="text-center text-text-secondary">
-								<strong className="text-text-primary">Important:</strong> Approximately 50% of the prize
-								pool rolls over to the next round, ensuring growing prizes over time.
+								<strong className="text-text-primary">Important:</strong> Approximately{' '}
+								{100 - 
+									(dashboardData?.PrizePercentage || 0) - 
+									(dashboardData?.ChronoWarriorPercentage || 0) - 
+									(dashboardData?.RafflePercentage || 0) - 
+									(dashboardData?.StakignPercentage || 0) - 
+									(dashboardData?.CharityPercentage || 0)
+								}% of the prize pool rolls over to the next round, ensuring growing prizes over time.
 							</p>
 						</div>
 					</Card>
