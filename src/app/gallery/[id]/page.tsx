@@ -2,10 +2,11 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAccount } from "wagmi";
+import { isAddress } from "viem";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { shortenAddress } from "@/lib/utils";
 import { api, getAssetsUrl } from "@/services/api";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
+import { useNotification } from "@/contexts/NotificationContext";
 
 interface NFTData {
   RecordId: number;
@@ -67,6 +69,17 @@ export default function NFTDetailPage({
   // Name editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState("");
+  
+  // Transfer state
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferAddress, setTransferAddress] = useState("");
+  const [transferError, setTransferError] = useState("");
+  
+  // Name history state
+  const [nameHistory, setNameHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -92,6 +105,9 @@ export default function NFTDetailPage({
         const fileName = `0x${tokenInfo.Seed}`;
         setImageUrl(getAssetsUrl(`images/new/cosmicsignature/${fileName}.png`));
         setVideoUrl(getAssetsUrl(`images/new/cosmicsignature/${fileName}.mp4`));
+        
+        // Fetch name history
+        fetchNameHistory();
       } catch (err) {
         console.error("Error fetching NFT data:", err);
         setError("Failed to load NFT data");
@@ -102,6 +118,19 @@ export default function NFTDetailPage({
 
     fetchNFTData();
   }, [id]);
+  
+  // Fetch name change history
+  const fetchNameHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const history = await api.getNameHistory(parseInt(id));
+      setNameHistory(history);
+    } catch (err) {
+      console.error("Error fetching name history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   // Refetch NFT data when name change transaction is successful
   useEffect(() => {
@@ -183,9 +212,50 @@ export default function NFTDetailPage({
     setNewName("");
   };
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     if (!nft || !newName.trim()) return;
-    nftContract.write.setName(BigInt(nft.TokenId), newName.trim());
+    try {
+      await nftContract.write.setName(BigInt(nft.TokenId), newName.trim());
+      showSuccess("NFT name updated successfully!");
+      // Refetch name history after successful update
+      setTimeout(() => {
+        fetchNameHistory();
+      }, 2000);
+    } catch (error: any) {
+      showError(error.message || "Failed to update NFT name");
+    }
+  };
+  
+  // Handle transfer
+  const handleTransfer = async () => {
+    if (!nft || !transferAddress) return;
+    
+    // Validate address
+    if (!isAddress(transferAddress)) {
+      setTransferError("Invalid Ethereum address");
+      return;
+    }
+    
+    setTransferError("");
+    
+    try {
+      setIsTransferring(true);
+      await nftContract.write.transfer(
+        connectedAddress as `0x${string}`,
+        transferAddress as `0x${string}`,
+        BigInt(nft.TokenId)
+      );
+      showSuccess("NFT transferred successfully!");
+      setTransferAddress("");
+      // Refetch NFT data after transfer
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error: any) {
+      showError(error.message || "Failed to transfer NFT");
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   // Check if connected user is the owner
@@ -459,6 +529,65 @@ export default function NFTDetailPage({
               </CardContent>
             </Card>
 
+            {/* Transfer NFT (Owner Only) */}
+            {isOwner && (
+              <Card glass>
+                <CardContent className="p-6">
+                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4 flex items-center gap-2">
+                    <Send size={20} className="text-primary" />
+                    Transfer NFT
+                  </h3>
+                  <p className="text-sm text-text-secondary mb-4">
+                    Transfer this NFT to another address. This action cannot be undone.
+                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-2">
+                        Recipient Address
+                      </label>
+                      <input
+                        type="text"
+                        value={transferAddress}
+                        onChange={(e) => {
+                          setTransferAddress(e.target.value);
+                          setTransferError("");
+                        }}
+                        placeholder="0x..."
+                        className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
+                        disabled={isTransferring || nftContract.status.isPending}
+                      />
+                      {transferError && (
+                        <p className="text-xs text-status-error mt-1">{transferError}</p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleTransfer}
+                      disabled={!transferAddress || isTransferring || nftContract.status.isPending}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isTransferring || nftContract.status.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 animate-spin" size={20} />
+                          Transferring...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2" size={20} />
+                          Transfer NFT
+                        </>
+                      )}
+                    </Button>
+                    {nftContract.status.error && (
+                      <p className="text-xs text-status-error">
+                        Error: {nftContract.status.error.message}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
               {nft.Staked || nft.WasUnstaked ? (
@@ -597,6 +726,78 @@ export default function NFTDetailPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Name Change History */}
+            {nameHistory.length > 0 && (
+              <Card glass>
+                <CardContent className="p-6">
+                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
+                    Name Change History
+                  </h3>
+                  {loadingHistory ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="animate-spin text-primary" size={32} />
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-text-muted/10">
+                          <tr>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-text-secondary">
+                              Date
+                            </th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-text-secondary">
+                              Name
+                            </th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-text-secondary">
+                              Changed By
+                            </th>
+                            <th className="text-right py-3 px-2 text-sm font-medium text-text-secondary">
+                              Transaction
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-text-muted/10">
+                          {nameHistory.map((entry: any, index: number) => (
+                            <tr key={index} className="hover:bg-background-elevated/50 transition-colors">
+                              <td className="py-3 px-2 text-sm text-text-secondary">
+                                {entry.Tx?.DateTime 
+                                  ? new Date(entry.Tx.DateTime).toLocaleDateString()
+                                  : formatTimestamp(entry.Tx?.TimeStamp || 0)}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-text-primary font-medium">
+                                {entry.TokenName || "(unnamed)"}
+                              </td>
+                              <td className="py-3 px-2">
+                                <Link
+                                  href={`/account?address=${entry.OwnerAddr}`}
+                                  className="text-sm font-mono text-primary hover:text-primary/80 transition-colors"
+                                >
+                                  {shortenAddress(entry.OwnerAddr, 6)}
+                                </Link>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                {entry.Tx?.TxHash && (
+                                  <a
+                                    href={`https://arbiscan.io/tx/${entry.Tx.TxHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center text-sm text-primary hover:text-primary/80 transition-colors"
+                                  >
+                                    <span className="hidden sm:inline mr-1">View</span>
+                                    <ExternalLink size={14} />
+                                  </a>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </div>
       </Container>
