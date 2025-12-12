@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
+import { weiToEther } from "@/lib/utils";
 
 interface BidData {
   EvtLogId: number;
@@ -254,14 +255,14 @@ export default function MyActivityPage() {
                               <span className="font-mono font-semibold text-text-primary">
                                 {bid.BidType === 0
                                   ? `${bid.BidPriceEth.toFixed(6)} ETH`
-                                  : `${bid.BidPriceEth.toFixed(2)} CST`}
+                                  : `${weiToEther(bid.BidPrice).toFixed(2)} CST`}
                               </span>
                             </div>
                             {Number(bid.NumCSTTokens) > 0 && (
                               <div>
                                 <span className="text-text-secondary">Earned: </span>
                                 <span className="font-mono font-semibold text-status-success">
-                                  {Number(bid.NumCSTTokens)} CST
+                                  {weiToEther(bid.NumCSTTokens).toFixed(2)} CST
                                 </span>
                               </div>
                             )}
@@ -314,7 +315,7 @@ export default function MyActivityPage() {
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Total CST Earned</p>
                     <p className="text-2xl font-bold text-status-success font-mono">
-                      {bidHistory.reduce((sum, bid) => sum + Math.max(0, Number(bid.NumCSTTokens)), 0)}
+                      {bidHistory.reduce((sum, bid) => sum + weiToEther(bid.NumCSTTokens), 0).toFixed(2)}
                     </p>
                   </div>
                 </div>

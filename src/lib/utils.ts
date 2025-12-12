@@ -13,6 +13,16 @@ export function formatEth(value: number | string): string {
 	});
 }
 
+/**
+ * Convert Wei to Ether
+ * @param weiValue - Value in Wei (as string or number)
+ * @returns Value in Ether
+ */
+export function weiToEther(weiValue: string | number): number {
+	const wei = typeof weiValue === 'string' ? parseFloat(weiValue) : weiValue;
+	return wei / 1e18;
+}
+
 export function shortenAddress(address: string, chars = 4): string {
 	if (!address) return '';
 	return `${address.substring(0, chars + 2)}...${address.substring(address.length - chars)}`;
