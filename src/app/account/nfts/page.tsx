@@ -497,7 +497,7 @@ export default function MyNFTsPage() {
                               {isStaked && <StatusBadge status="staked" />}
                             </div>
                             <p className="text-sm text-text-secondary">
-                              Token ID: #{nft.tokenId} • Round {nft.round}
+                              Token ID: #{nft.tokenId} • Round {nft.round} minted
                             </p>
                             {isStaked && (
                               <p className="text-xs text-status-success mt-1">

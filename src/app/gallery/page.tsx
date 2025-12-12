@@ -251,7 +251,7 @@ export default function GalleryPage() {
                               {nft.customName || nft.name}
                             </h3>
                             <p className="text-sm text-text-secondary mb-2">
-                              Token ID: #{nft.tokenId} • Round {nft.round}
+                              Token ID: #{nft.tokenId} • Round {nft.round} minted
                             </p>
                             <p className="text-xs text-text-muted">
                               Owner: {nft.owner}

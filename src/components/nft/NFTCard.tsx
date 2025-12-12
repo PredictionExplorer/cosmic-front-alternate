@@ -96,7 +96,7 @@ export function NFTCard({ nft, delay = 0 }: NFTCardProps) {
                     {nft.customName || nft.name}
                   </p>
                   <p className="text-sm text-text-secondary">
-                    Round {nft.round} • {shortenAddress(nft.owner)}
+                    Round {nft.round} minted • {shortenAddress(nft.owner)}
                   </p>
                 </div>
               </div>
