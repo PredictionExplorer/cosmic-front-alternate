@@ -143,8 +143,6 @@ export default function ContractsPage() {
 	}, []);
 
 	const contractItems = [
-		{ name: 'Network', value: defaultChain.name },
-		{ name: 'Chain ID', value: defaultChain.id },
 		{
 			name: 'Cosmic Game Address',
 			value: data?.ContractAddrs.CosmicGameAddr,
@@ -297,52 +295,54 @@ export default function ContractsPage() {
 					<motion.div
 						initial={{ opacity: 0, y: 30 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="text-center max-w-4xl mx-auto"
 					>
-						<h1 className="heading-xl text-balance mb-6">
-							Contract
-							<span className="text-gradient block mt-2">Addresses</span>
-						</h1>
-						<p className="body-xl mb-8">
-							Get detailed information on Cosmic Signature&apos;s smart contracts, including addresses and current configuration
-						</p>
-
-						{/* Network Info Badge */}
-						<Card glass className="p-6 inline-block">
-							<div className="flex items-center space-x-6 text-left">
+						{/* Network Info Badge - Top */}
+						<Card glass className="p-4 md:p-6 mb-8 inline-block">
+							<div className="flex flex-wrap items-center gap-4 md:gap-6">
 								<div className="flex items-center space-x-3">
 									<Network className="text-primary" size={24} />
 									<div>
-										<p className="text-sm text-text-secondary">Network</p>
+										<p className="text-xs md:text-sm text-text-secondary">Network</p>
 										<p className="font-semibold text-text-primary">{defaultChain.name}</p>
 									</div>
 								</div>
-								<div className="h-10 w-px bg-text-muted/20" />
+								<div className="hidden md:block h-10 w-px bg-text-muted/20" />
 								<div>
-									<p className="text-sm text-text-secondary">Chain ID</p>
+									<p className="text-xs md:text-sm text-text-secondary">Chain ID</p>
 									<p className="font-semibold text-text-primary">{defaultChain.id}</p>
 								</div>
-								<div className="h-10 w-px bg-text-muted/20" />
+								<div className="hidden md:block h-10 w-px bg-text-muted/20" />
 								<div>
-									<p className="text-sm text-text-secondary">Currency</p>
+									<p className="text-xs md:text-sm text-text-secondary">Currency</p>
 									<p className="font-semibold text-text-primary">{defaultChain.nativeCurrency.symbol}</p>
 								</div>
 								{defaultChain.blockExplorers && (
 									<>
-										<div className="h-10 w-px bg-text-muted/20" />
+										<div className="hidden md:block h-10 w-px bg-text-muted/20" />
 										<a
 											href={defaultChain.blockExplorers.default.url}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors"
 										>
-											<span className="text-sm font-medium">Explorer</span>
+											<span className="text-xs md:text-sm font-medium">Explorer</span>
 											<ExternalLink size={16} />
 										</a>
 									</>
 								)}
 							</div>
 						</Card>
+
+						{/* Title and Description - Left Aligned */}
+						<div className="max-w-4xl">
+							<h1 className="heading-xl text-balance mb-4">
+								Contract
+								<span className="text-gradient block mt-2">Addresses</span>
+							</h1>
+							<p className="body-lg text-text-secondary">
+								Get detailed information on Cosmic Signature&apos;s smart contracts, including addresses and current configuration
+							</p>
+						</div>
 					</motion.div>
 				</Container>
 			</section>
@@ -367,7 +367,7 @@ export default function ContractsPage() {
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.2 }}
 							>
-								<h2 className="heading-md mb-8 text-center">Contract Addresses</h2>
+								<h2 className="heading-md mb-8">Contract Addresses</h2>
 								<Card glass className="p-6 md:p-8">
 									<div className="space-y-2">
 										{contractItems.map((item) => (
@@ -392,10 +392,10 @@ export default function ContractsPage() {
 								whileInView={{ opacity: 1, y: 0 }}
 								viewport={{ once: true }}
 							>
-								<h2 className="heading-md mb-4 text-center">
+								<h2 className="heading-md mb-4">
 									Current Configuration
 								</h2>
-								<p className="body-lg text-center mb-8 text-text-secondary">
+								<p className="body-lg mb-8 text-text-secondary">
 									Contract settings and game parameters
 								</p>
 								<Card glass className="p-6 md:p-8">
