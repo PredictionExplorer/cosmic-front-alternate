@@ -14,6 +14,10 @@ import { StatusBadge } from "@/components/features/StatusBadge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { api, getAssetsUrl } from "@/services/api";
 import { safeTimestamp } from "@/lib/utils";
+import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
+import { useStakingWalletCST } from "@/hooks/useStakingWallet";
+import { useNotification } from "@/contexts/NotificationContext";
+import { CONTRACTS } from "@/lib/web3/contracts";
 
 interface NFTData {
   TokenId: number;
@@ -50,6 +54,19 @@ export default function MyNFTsPage() {
   const [nfts, setNfts] = useState<NFTData[]>([]);
   const [stakedNFTs, setStakedNFTs] = useState<NFTData[]>([]);
   const [stakedTokenIds, setStakedTokenIds] = useState<number[]>([]);
+  const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
+  const [unstakingActionId, setUnstakingActionId] = useState<number | null>(null);
+
+  // Staking hooks
+  const nftContract = useCosmicSignatureNFT();
+  const stakingContract = useStakingWalletCST();
+  const { showSuccess, showError } = useNotification();
+
+  // Check approval status
+  const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
+    (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
+    CONTRACTS.STAKING_WALLET_CST
+  );
 
   // Fetch user's NFTs
   useEffect(() => {
@@ -80,6 +97,120 @@ export default function MyNFTsPage() {
 
     fetchNFTs();
   }, [address, isConnected]);
+
+  // Handle approval
+  const handleApprove = async () => {
+    try {
+      await nftContract.write.setApprovalForAll(CONTRACTS.STAKING_WALLET_CST, true);
+      showSuccess(
+        "Approval granted! You can now stake your NFTs. Please proceed with staking."
+      );
+      return true;
+    } catch (error: unknown) {
+      console.error("Approval error:", error);
+      showError(
+        error instanceof Error
+          ? error.message
+          : "Failed to approve. Please try again."
+      );
+      return false;
+    }
+  };
+
+  // Handle staking action
+  const handleStake = async (tokenId: number) => {
+    try {
+      // Check if contracts are initialized
+      if (!nftContract || !stakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setStakingTokenId(tokenId);
+
+      // Check if approval is needed
+      if (!isApprovedForAll) {
+        const approved = await handleApprove();
+        if (!approved) {
+          setStakingTokenId(null);
+          return;
+        }
+        // Wait for approval to be confirmed
+        showSuccess(
+          "Approval confirmed! Now proceeding with staking transaction..."
+        );
+      }
+
+      // Proceed with staking
+      await stakingContract.write.stake(BigInt(tokenId));
+      showSuccess(
+        `Successfully staked NFT #${tokenId}! It may take a moment to update.`
+      );
+
+      // Refresh NFT list
+      setTimeout(() => {
+        if (address) {
+          Promise.all([
+            api.getCSTTokensByUser(address),
+            api.getStakedCSTTokensByUser(address),
+          ]).then(([userNFTs, stakedTokens]) => {
+            setNfts(userNFTs);
+            setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
+            setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
+          });
+        }
+      }, 2000);
+    } catch (error: unknown) {
+      console.error("Staking error:", error);
+      showError(
+        error instanceof Error ? error.message : "Failed to stake NFT"
+      );
+    } finally {
+      setStakingTokenId(null);
+    }
+  };
+
+  // Handle unstaking action
+  const handleUnstake = async (actionId: number, tokenId: number) => {
+    try {
+      if (!stakingContract) {
+        showError(
+          "Please connect your wallet and ensure you are on the correct network."
+        );
+        return;
+      }
+
+      setUnstakingActionId(actionId);
+
+      await stakingContract.write.unstake(BigInt(actionId));
+      showSuccess(
+        `Successfully unstaked NFT #${tokenId}! It may take a moment to update.`
+      );
+
+      // Refresh NFT list
+      setTimeout(() => {
+        if (address) {
+          Promise.all([
+            api.getCSTTokensByUser(address),
+            api.getStakedCSTTokensByUser(address),
+          ]).then(([userNFTs, stakedTokens]) => {
+            setNfts(userNFTs);
+            setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
+            setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
+          });
+        }
+      }, 2000);
+    } catch (error: unknown) {
+      console.error("Unstaking error:", error);
+      showError(
+        error instanceof Error ? error.message : "Failed to unstake NFT"
+      );
+    } finally {
+      setUnstakingActionId(null);
+    }
+  };
 
   // Transform API data to component format
   const transformNFT = (nft: NFTData) => ({
@@ -311,11 +442,28 @@ export default function MyNFTsPage() {
                           <Button size="sm" variant="outline" className="flex-1" asChild>
                             <Link href={`/gallery/${nft.tokenId}`}>View Details</Link>
                           </Button>
-                          <Button size="sm" className="flex-1" asChild>
-                            <Link href="/stake">
-                              {isStaked ? "Manage" : "Stake"}
-                            </Link>
-                          </Button>
+                          {isStaked ? (
+                            <Button 
+                              size="sm" 
+                              className="flex-1" 
+                              asChild
+                            >
+                              <Link href="/stake">Manage</Link>
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => handleStake(nft.tokenId)}
+                              disabled={
+                                stakingTokenId === nft.tokenId ||
+                                stakingContract.status.isPending ||
+                                stakingContract.status.isConfirming
+                              }
+                            >
+                              {stakingTokenId === nft.tokenId ? "Staking..." : "Stake"}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
@@ -363,11 +511,23 @@ export default function MyNFTsPage() {
                             <Button size="sm" variant="outline" asChild>
                               <Link href={`/gallery/${nft.tokenId}`}>View</Link>
                             </Button>
-                            <Button size="sm" asChild>
-                              <Link href="/stake">
-                                {isStaked ? "Manage" : "Stake"}
-                              </Link>
-                            </Button>
+                            {isStaked ? (
+                              <Button size="sm" asChild>
+                                <Link href="/stake">Manage</Link>
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm"
+                                onClick={() => handleStake(nft.tokenId)}
+                                disabled={
+                                  stakingTokenId === nft.tokenId ||
+                                  stakingContract.status.isPending ||
+                                  stakingContract.status.isConfirming
+                                }
+                              >
+                                {stakingTokenId === nft.tokenId ? "Staking..." : "Stake"}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
