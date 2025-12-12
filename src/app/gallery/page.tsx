@@ -106,22 +106,10 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Filters and Controls */}
+      {/* Compact Filters and Controls Bar */}
       <section className="sticky top-[72px] lg:top-[88px] z-40 bg-background/95 backdrop-blur-xl border-b border-text-muted/10">
         <Container>
-          <div className="py-6 space-y-4">
-            {/* Title and Description - Compact */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-serif font-semibold text-text-primary mb-1">The Gallery</h1>
-                <p className="text-sm text-text-secondary">
-                  Explore the complete collection of Cosmic Signature NFTs
-                </p>
-              </div>
-            </div>
-
-            {/* Search and Controls */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="py-4 flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Search */}
             <div className="relative w-full md:w-96">
               <Search
@@ -177,13 +165,24 @@ export default function GalleryPage() {
                 </button>
               </div>
             </div>
-            </div>
           </div>
         </Container>
       </section>
 
       {/* NFT Grid/List */}
-      <section className="section-padding" id="nft-gallery-section">
+      <section className="section-padding relative" id="nft-gallery-section">
+        {/* Floating Info Card - Positioned over NFT grid (hidden on mobile) */}
+        <div className="hidden lg:block absolute top-8 left-8 z-10 pointer-events-none">
+          <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
+            <h1 className="text-2xl font-serif font-semibold text-text-primary mb-2">
+              The Gallery
+            </h1>
+            <p className="text-sm text-text-secondary leading-relaxed">
+              Explore the complete collection of Cosmic Signature NFTs. Each piece is unique generative art.
+            </p>
+          </Card>
+        </div>
+
         <Container>
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
