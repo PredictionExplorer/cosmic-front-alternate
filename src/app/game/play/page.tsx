@@ -475,27 +475,52 @@ export default function PlayPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <section className="section-padding bg-background-surface/50">
+      {/* Compact Header with Round Info */}
+      <section className="py-6 bg-background-surface/50 border-b border-text-muted/10">
         <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <Badge variant="success" className="mb-4">
-              Round {currentRound.roundNumber} Active
-            </Badge>
-            <h1 className="heading-lg text-balance mb-6">
-              Compete for
-              <span className="text-gradient block mt-2">
-                {currentRound.prizePool.toFixed(2)} ETH
-              </span>
-            </h1>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            {/* Left: Round Number */}
+            <div>
+              <div className="text-4xl font-bold font-serif text-gradient mb-2">
+                Round {currentRound.roundNumber}
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="success">Active</Badge>
+                <span className="text-sm text-text-muted">
+                  {currentRound.totalBids} bid{currentRound.totalBids !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            
+            {/* Center: Countdown Timer (Bigger) */}
             <div className="flex justify-center">
               <CountdownTimer targetSeconds={timeRemaining} size="lg" />
             </div>
-          </motion.div>
+            
+            {/* Right: Prize Pool */}
+            <div className="text-right">
+              <div className="text-sm text-text-secondary mb-1">Prize Pool</div>
+              <div className="text-2xl font-serif font-bold text-gradient">
+                {currentRound.prizePool.toFixed(2)} ETH
+              </div>
+            </div>
+          </div>
+          
+          {/* Last Bidder Info */}
+          {lastBidder && lastBidder !== "0x0000000000000000000000000000000000000000" && (
+            <div className="mt-4 pt-4 border-t border-text-muted/10">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-text-secondary">Last Bidder:</span>
+                <span className="font-mono text-primary">{lastBidder}</span>
+                {lastBidMessage && (
+                  <>
+                    <span className="text-text-muted">•</span>
+                    <span className="text-text-secondary italic">"{lastBidMessage}"</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </Container>
       </section>
 
@@ -1041,53 +1066,6 @@ export default function PlayPage() {
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Current Round Info */}
-              <Card glass>
-                <CardHeader>
-                  <CardTitle>Current Round Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-text-secondary mb-1">
-                        Round Number
-                      </p>
-                      <p className="font-mono text-xl text-primary">
-                        {currentRound.roundNumber}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-text-secondary mb-1">
-                        Total Bids
-                      </p>
-                      <p className="font-mono text-xl text-primary">
-                        {currentRound.totalBids}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-text-secondary mb-1">
-                        Last Bidder
-                      </p>
-                      <p className="font-mono text-sm text-text-primary break-all">
-                        {currentRound.lastBidder}
-                      </p>
-                    </div>
-                    {lastBidMessage && (
-                      <div className="col-span-2 mt-2">
-                        <p className="text-xs text-text-secondary mb-1">
-                          Last Bidder&apos;s Message
-                        </p>
-                        <div className="p-3 rounded-lg bg-background-elevated border border-text-muted/10">
-                          <p className="text-sm text-text-primary italic">
-                            &quot;{lastBidMessage}&quot;
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             </div>
