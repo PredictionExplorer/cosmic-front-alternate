@@ -26,46 +26,61 @@ interface RoundStats {
 	TotalDonatedAmountEth: number;
 }
 
-interface ApiRoundData {
-	EvtLogId: number;
-	BlockNum: number;
-	TxId: number;
-	TxHash: string;
-	TimeStamp: number;
-	DateTime: string;
+interface MainPrize {
 	WinnerAid: number;
 	WinnerAddr: string;
 	TimeoutTs: number;
-	Amount: string;
-	AmountEth: number;
-	RoundNum: number;
-	TokenId: number;
+	EthAmount: string;
+	EthAmountEth: number;
+	CstAmount: string;
+	CstAmountEth: number;
+	NftTokenId: number;
 	Seed: string;
-	CharityAddress: string;
-	CharityAmount: string;
-	CharityAmountETH: number;
+}
+
+interface StakingDeposit {
 	StakingDepositId: number;
 	StakingDepositAmount: string;
 	StakingDepositAmountEth: number;
 	StakingPerToken: string;
 	StakingPerTokenEth: number;
 	StakingNumStakedTokens: number;
-	MainPrizeCstAmount: string;
-	MainPrizeCstAmountEth: number;
-	EnduranceWinnerAddr: string;
-	EnduranceERC721TokenId: number;
-	LastCstBidderAddr: string;
-	LastCstBidderERC721TokenId: number;
-	EnduranceERC20Amount: string;
-	EnduranceERC20AmountEth: number;
-	LastCstBidderERC20Amount: string;
-	LastCstBidderERC20AmountEth: number;
-	ChronoWarriorAddr: string;
-	ChronoWarriorEthAmount: string;
-	ChronoWarriorEthAmountEth: number;
-	ChronoWarriorCstAmount: string;
-	ChronoWarriorCstAmountEth: number;
-	ChronoWarriorNftId: number;
+}
+
+interface EnduranceChampion {
+	WinnerAddr: string;
+	NftTokenId: number;
+	CstAmount: string;
+	CstAmountEth: number;
+}
+
+interface ChronoWarrior {
+	WinnerAddr: string;
+	EthAmount: string;
+	EthAmountEth: number;
+	CstAmount: string;
+	CstAmountEth: number;
+	NftTokenId: number;
+}
+
+interface ClaimPrizeTx {
+	Tx: {
+		EvtLogId: number;
+		BlockNum: number;
+		TxId: number;
+		TxHash: string;
+		TimeStamp: number;
+		DateTime: string;
+	};
+}
+
+interface ApiRoundData {
+	RoundNum: number;
+	ClaimPrizeTx: ClaimPrizeTx;
+	MainPrize: MainPrize;
+	StakingDeposit: StakingDeposit;
+	EnduranceChampion: EnduranceChampion;
+	ChronoWarrior: ChronoWarrior;
 	RoundStats: RoundStats;
 	RaffleNFTWinners: unknown;
 	StakingNFTWinners: unknown;
@@ -89,7 +104,9 @@ export default function RoundsArchivePage() {
 			try {
 				const data = await api.getRoundList();
 				// Sort by timestamp (most recent first)
-				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => b.TimeStamp - a.TimeStamp);
+				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => 
+					b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp
+				);
 				setRounds(sortedData);
 			} catch (err) {
 				console.error('Error fetching rounds:', err);
@@ -117,7 +134,7 @@ export default function RoundsArchivePage() {
 		const q = searchQuery.toLowerCase();
 		return (
 			round.RoundNum.toString().includes(q) ||
-			round.WinnerAddr.toLowerCase().includes(q)
+			round.MainPrize.WinnerAddr.toLowerCase().includes(q)
 		);
 	});
 
@@ -197,11 +214,11 @@ export default function RoundsArchivePage() {
 							<div className="space-y-6">
 								{paginatedRounds.map((round, index) => {
 									// Calculate round duration
-									const duration = round.TimeoutTs - round.TimeStamp;
+									const duration = round.MainPrize.TimeoutTs - round.ClaimPrizeTx.Tx.TimeStamp;
 									// Calculate total winners
 									const totalWinners = round.RoundStats.TotalRaffleNFTs + 3; // raffle NFTs + main + endurance + chrono
 									// Calculate total pool (main prize + staking + raffle)
-									const totalPool = round.AmountEth + round.StakingDepositAmountEth + round.RoundStats.TotalRaffleEthDepositsEth;
+									const totalPool = (round.MainPrize?.EthAmountEth || 0) + (round.StakingDeposit?.StakingDepositAmountEth || 0) + (round.RoundStats?.TotalRaffleEthDepositsEth || 0);
 
 									return (
 										<motion.div
@@ -220,7 +237,7 @@ export default function RoundsArchivePage() {
 																	Round {round.RoundNum}
 																</Badge>
 																<span className="text-sm text-text-muted">
-																	{formatDate(new Date(safeTimestamp(round)))}
+																	{formatDate(new Date(safeTimestamp(round.ClaimPrizeTx.Tx)))}
 																</span>
 															</div>
 
@@ -231,7 +248,7 @@ export default function RoundsArchivePage() {
 																		Winner:
 																	</span>
 																	<AddressDisplay
-																		address={round.WinnerAddr}
+																		address={round.MainPrize.WinnerAddr}
 																		showCopy={false}
 																		showLink={false}
 																	/>
@@ -266,7 +283,7 @@ export default function RoundsArchivePage() {
 																Main Prize
 															</p>
 															<p className="font-mono text-3xl font-bold text-primary mb-1">
-																{round.AmountEth.toFixed(4)}
+																{(round.MainPrize?.EthAmountEth || 0).toFixed(4)}
 															</p>
 															<p className="text-xs text-text-muted">ETH</p>
 
@@ -281,26 +298,26 @@ export default function RoundsArchivePage() {
 
 													{/* Champions Preview */}
 													<div className="mt-6 pt-6 border-t border-text-muted/10 grid grid-cols-1 md:grid-cols-2 gap-4">
-														{round.EnduranceWinnerAddr && (
+														{round.EnduranceChampion?.WinnerAddr && (
 															<div className="p-3 rounded-lg bg-background-elevated/50">
 																<p className="text-xs text-text-secondary mb-1">
 																	Endurance Champion
 																</p>
 																<AddressDisplay
-																	address={round.EnduranceWinnerAddr}
+																	address={round.EnduranceChampion.WinnerAddr}
 																	showCopy={false}
 																	showLink={false}
 																	className="text-sm"
 																/>
 															</div>
 														)}
-														{round.ChronoWarriorAddr && (
+														{round.ChronoWarrior?.WinnerAddr && (
 															<div className="p-3 rounded-lg bg-background-elevated/50">
 																<p className="text-xs text-text-secondary mb-1">
 																	Chrono-Warrior
 																</p>
 																<AddressDisplay
-																	address={round.ChronoWarriorAddr}
+																	address={round.ChronoWarrior.WinnerAddr}
 																	showCopy={false}
 																	showLink={false}
 																	className="text-sm"
