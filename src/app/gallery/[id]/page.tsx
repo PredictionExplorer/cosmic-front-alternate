@@ -71,7 +71,6 @@ export default function NFTDetailPage({
   const [newName, setNewName] = useState("");
   
   // Transfer state
-  const [isTransferring, setIsTransferring] = useState(false);
   const [transferAddress, setTransferAddress] = useState("");
   const [transferError, setTransferError] = useState("");
   
@@ -239,7 +238,6 @@ export default function NFTDetailPage({
     setTransferError("");
     
     try {
-      setIsTransferring(true);
       await nftContract.write.transfer(
         connectedAddress as `0x${string}`,
         transferAddress as `0x${string}`,
@@ -253,8 +251,6 @@ export default function NFTDetailPage({
       }, 2000);
     } catch (error: any) {
       showError(error.message || "Failed to transfer NFT");
-    } finally {
-      setIsTransferring(false);
     }
   };
 
@@ -554,7 +550,7 @@ export default function NFTDetailPage({
                         }}
                         placeholder="0x..."
                         className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
-                        disabled={isTransferring || nftContract.status.isPending}
+                        disabled={nftContract.status.isPending}
                       />
                       {transferError && (
                         <p className="text-xs text-status-error mt-1">{transferError}</p>
@@ -562,11 +558,11 @@ export default function NFTDetailPage({
                     </div>
                     <Button
                       onClick={handleTransfer}
-                      disabled={!transferAddress || isTransferring || nftContract.status.isPending}
+                      disabled={!transferAddress || nftContract.status.isPending}
                       className="w-full"
                       size="lg"
                     >
-                      {isTransferring || nftContract.status.isPending ? (
+                      {nftContract.status.isPending ? (
                         <>
                           <Loader2 className="mr-2 animate-spin" size={20} />
                           Transferring...
