@@ -154,15 +154,22 @@ export default function MyWinningsPage() {
     eth: false,
     nft: null as number | null,
     erc20: null as number | null,
-    staking: null as number | null,
   });
 
   const prizesWallet = usePrizesWallet();
   const stakingWallet = useStakingWalletCST();
   const { showSuccess, showError, showInfo } = useNotification();
 
-  // Track the claiming operation for ETH
-  const [ethClaimAmount, setEthClaimAmount] = useState<number | null>(null);
+  // Track claiming operations for success messages
+  const [pendingClaim, setPendingClaim] = useState<{
+    type: 'eth' | 'nft' | 'nft-all' | 'erc20' | 'erc20-all' | 'staking-all' | null;
+    data?: {
+      amount?: number;
+      count?: number;
+      symbol?: string;
+      nftIndex?: number;
+    };
+  }>({ type: null });
 
   // Fetch all unclaimed winnings
   const fetchWinnings = useCallback(async () => {
@@ -275,43 +282,112 @@ export default function MyWinningsPage() {
     fetchWinnings();
   }, [fetchWinnings]);
 
-  // Watch for successful ETH claim transaction
+  // Watch for successful prizes wallet transactions
   useEffect(() => {
     if (
-      ethClaimAmount !== null &&
+      pendingClaim.type &&
+      ['eth', 'nft', 'nft-all', 'erc20', 'erc20-all'].includes(pendingClaim.type) &&
       !prizesWallet.isTransactionPending &&
       prizesWallet.write.status.isSuccess
     ) {
-      showSuccess(`Successfully claimed ${ethClaimAmount.toFixed(6)} ETH!`);
-      setEthClaimAmount(null);
-      setClaiming((prev) => ({ ...prev, eth: false }));
+      // Show appropriate success message
+      switch (pendingClaim.type) {
+        case 'eth':
+          showSuccess(`Successfully claimed ${pendingClaim.data?.amount?.toFixed(6)} ETH!`);
+          setClaiming((prev) => ({ ...prev, eth: false }));
+          break;
+        case 'nft':
+          showSuccess("NFT claimed successfully!");
+          setClaiming((prev) => ({ ...prev, nft: null }));
+          break;
+        case 'nft-all':
+          showSuccess(`Successfully claimed ${pendingClaim.data?.count} NFT(s)!`);
+          break;
+        case 'erc20':
+          showSuccess(`${pendingClaim.data?.symbol} tokens claimed successfully!`);
+          setClaiming((prev) => ({ ...prev, erc20: null }));
+          break;
+        case 'erc20-all':
+          showSuccess(`Successfully claimed ${pendingClaim.data?.count} ERC20 token(s)!`);
+          break;
+      }
+      
+      setPendingClaim({ type: null });
       // Refresh winnings data
       fetchWinnings();
     }
   }, [
-    ethClaimAmount,
+    pendingClaim,
     prizesWallet.isTransactionPending,
     prizesWallet.write.status.isSuccess,
     fetchWinnings,
     showSuccess,
   ]);
 
-  // Watch for failed ETH claim transaction
+  // Watch for failed prizes wallet transactions
   useEffect(() => {
     if (
-      ethClaimAmount !== null &&
+      pendingClaim.type &&
+      ['eth', 'nft', 'nft-all', 'erc20', 'erc20-all'].includes(pendingClaim.type) &&
       !prizesWallet.isTransactionPending &&
       prizesWallet.write.status.error
     ) {
       const errorMessage = getErrorMessage(prizesWallet.write.status.error);
       showError(errorMessage);
-      setEthClaimAmount(null);
-      setClaiming((prev) => ({ ...prev, eth: false }));
+      
+      // Reset claiming states
+      if (pendingClaim.type === 'eth') {
+        setClaiming((prev) => ({ ...prev, eth: false }));
+      } else if (pendingClaim.type === 'nft') {
+        setClaiming((prev) => ({ ...prev, nft: null }));
+      } else if (pendingClaim.type === 'erc20') {
+        setClaiming((prev) => ({ ...prev, erc20: null }));
+      }
+      
+      setPendingClaim({ type: null });
     }
   }, [
-    ethClaimAmount,
+    pendingClaim,
     prizesWallet.isTransactionPending,
     prizesWallet.write.status.error,
+    showError,
+  ]);
+
+  // Watch for successful staking wallet transactions
+  useEffect(() => {
+    if (
+      pendingClaim.type === 'staking-all' &&
+      !stakingWallet.status.isPending &&
+      stakingWallet.status.isSuccess
+    ) {
+      showSuccess(`Successfully unstaked ${pendingClaim.data?.count} NFT(s) and claimed all rewards!`);
+      setPendingClaim({ type: null });
+      // Refresh winnings data
+      fetchWinnings();
+    }
+  }, [
+    pendingClaim,
+    stakingWallet.status.isPending,
+    stakingWallet.status.isSuccess,
+    fetchWinnings,
+    showSuccess,
+  ]);
+
+  // Watch for failed staking wallet transactions
+  useEffect(() => {
+    if (
+      pendingClaim.type === 'staking-all' &&
+      !stakingWallet.status.isPending &&
+      stakingWallet.status.error
+    ) {
+      const errorMessage = getErrorMessage(stakingWallet.status.error);
+      showError(errorMessage);
+      setPendingClaim({ type: null });
+    }
+  }, [
+    pendingClaim,
+    stakingWallet.status.isPending,
+    stakingWallet.status.error,
     showError,
   ]);
 
@@ -326,9 +402,6 @@ export default function MyWinningsPage() {
       // Get all unique round numbers from raffle winnings
       const roundNumbers = [...new Set(raffleETHWinnings.map(w => BigInt(w.RoundNum)))];
       
-      // Store the amount for the success message
-      setEthClaimAmount(totalEthToClaim);
-      
       // Use withdrawEverything to claim all ETH in one transaction
       await prizesWallet.write.withdrawEverything(
         roundNumbers,  // ETH prize round numbers
@@ -336,15 +409,13 @@ export default function MyWinningsPage() {
         []             // No NFTs
       );
       
-      // Show waiting for confirmation
+      // Show waiting for confirmation and set pending claim for success handling
       showInfo("Transaction submitted! Waiting for confirmation...");
-      
-      // Success will be handled by useEffect when transaction confirms
+      setPendingClaim({ type: 'eth', data: { amount: totalEthToClaim } });
     } catch (error) {
       console.error("Error claiming ETH:", error);
       const errorMessage = getErrorMessage(error);
       showError(errorMessage);
-      setEthClaimAmount(null);
       setClaiming((prev) => ({ ...prev, eth: false }));
     }
   };
@@ -353,20 +424,15 @@ export default function MyWinningsPage() {
   const handleClaimNFT = async (nftIndex: number) => {
     setClaiming((prev) => ({ ...prev, nft: nftIndex }));
     try {
-      showInfo("Claiming NFT...");
+      showInfo("Please confirm the transaction in your wallet...");
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
       
-      showSuccess("NFT claimed successfully!");
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      setPendingClaim({ type: 'nft', data: { nftIndex } });
     } catch (error) {
       console.error("Error claiming NFT:", error);
       const errorMessage = getErrorMessage(error);
       showError(errorMessage);
-    } finally {
       setClaiming((prev) => ({ ...prev, nft: null }));
     }
   };
@@ -377,17 +443,13 @@ export default function MyWinningsPage() {
     if (unclaimedNFTs.length === 0) return;
 
     try {
-      showInfo(`Claiming ${unclaimedNFTs.length} NFT(s)...`);
+      showInfo("Please confirm the transaction in your wallet...");
       
       const indexes = unclaimedNFTs.map((nft) => BigInt(nft.Index));
       await prizesWallet.write.claimManyDonatedNfts(indexes);
       
-      showSuccess(`Successfully claimed ${unclaimedNFTs.length} NFT(s)!`);
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      setPendingClaim({ type: 'nft-all', data: { count: unclaimedNFTs.length } });
     } catch (error) {
       console.error("Error claiming all NFTs:", error);
       const errorMessage = getErrorMessage(error);
@@ -399,7 +461,7 @@ export default function MyWinningsPage() {
   const handleClaimERC20 = async (token: DonatedERC20) => {
     setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
     try {
-      showInfo(`Claiming ${token.TokenSymbol} tokens...`);
+      showInfo("Please confirm the transaction in your wallet...");
       
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
@@ -407,17 +469,12 @@ export default function MyWinningsPage() {
         BigInt(token.AmountEth)
       );
       
-      showSuccess(`${token.TokenSymbol} tokens claimed successfully!`);
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      setPendingClaim({ type: 'erc20', data: { symbol: token.TokenSymbol } });
     } catch (error) {
       console.error("Error claiming ERC20:", error);
       const errorMessage = getErrorMessage(error);
       showError(errorMessage);
-    } finally {
       setClaiming((prev) => ({ ...prev, erc20: null }));
     }
   };
@@ -428,7 +485,7 @@ export default function MyWinningsPage() {
     if (unclaimedTokens.length === 0) return;
 
     try {
-      showInfo(`Claiming ${unclaimedTokens.length} ERC20 token(s)...`);
+      showInfo("Please confirm the transaction in your wallet...");
       
       const tokens = unclaimedTokens.map((token) => ({
         roundNum: BigInt(token.RoundNum),
@@ -438,68 +495,12 @@ export default function MyWinningsPage() {
 
       await prizesWallet.write.claimManyDonatedTokens(tokens);
       
-      showSuccess(`Successfully claimed ${unclaimedTokens.length} ERC20 token(s)!`);
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      setPendingClaim({ type: 'erc20-all', data: { count: unclaimedTokens.length } });
     } catch (error) {
       console.error("Error claiming all ERC20:", error);
       const errorMessage = getErrorMessage(error);
       showError(errorMessage);
-    }
-  };
-
-  // Unstake and claim single deposit
-  const handleUnstakeSingle = async (depositId: number) => {
-    setClaiming((prev) => ({ ...prev, staking: depositId }));
-    try {
-      showInfo("Unstaking NFTs and claiming rewards...");
-      
-      // Find the corresponding reward to get the staked tokens
-      const reward = stakingRewards.find((r) => r.DepositId === depositId);
-      if (!reward) {
-        showError("Could not find staking information.");
-        setClaiming((prev) => ({ ...prev, staking: null }));
-        return;
-      }
-      
-      // Get all action IDs for tokens in this deposit
-      // We need to get action IDs from the staked tokens that belong to this deposit
-      const depositActionIds = stakedTokenActions
-        .filter((token) => {
-          // Match by timestamp - tokens staked around the same time belong to same deposit
-          const timeDiff = Math.abs(token.StakeTimeStamp - reward.DepositTimeStamp);
-          return timeDiff < 60; // Within 60 seconds (same transaction batch)
-        })
-        .map((token) => BigInt(token.StakeActionId));
-      
-      if (depositActionIds.length === 0) {
-        showError("No staked tokens found for this deposit.");
-        setClaiming((prev) => ({ ...prev, staking: null }));
-        return;
-      }
-      
-      // If only one action, use unstake, otherwise use unstakeMany
-      if (depositActionIds.length === 1) {
-        await stakingWallet.write.unstake(depositActionIds[0]);
-      } else {
-        await stakingWallet.write.unstakeMany(depositActionIds);
-      }
-      
-      showSuccess("NFTs unstaked and rewards claimed successfully!");
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
-    } catch (error) {
-      console.error("Error unstaking:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
-    } finally {
-      setClaiming((prev) => ({ ...prev, staking: null }));
     }
   };
 
@@ -508,7 +509,7 @@ export default function MyWinningsPage() {
     if (stakingRewards.length === 0 || stakedTokenActions.length === 0) return;
 
     try {
-      showInfo("Unstaking all NFTs and claiming all rewards...");
+      showInfo("Please confirm the transaction in your wallet...");
       
       // Get all action IDs from currently staked tokens
       const allActionIds = stakedTokenActions.map((token) => BigInt(token.StakeActionId));
@@ -520,12 +521,8 @@ export default function MyWinningsPage() {
       
       await stakingWallet.write.unstakeMany(allActionIds);
       
-      showSuccess(`Successfully unstaked ${allActionIds.length} NFT(s) and claimed all rewards!`);
-      
-      // Refresh after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      setPendingClaim({ type: 'staking-all', data: { count: allActionIds.length } });
     } catch (error) {
       console.error("Error claiming all staking rewards:", error);
       const errorMessage = getErrorMessage(error);
@@ -960,8 +957,7 @@ export default function MyWinningsPage() {
                   </p>
                   <p>
                     When you unstake your NFTs, the pending rewards will be automatically 
-                    transferred to your wallet. Click &quot;Unstake & Claim&quot; to unstake 
-                    individual deposits, or use &quot;Claim All&quot; to unstake all deposits 
+                    transferred to your wallet. Use &quot;Claim All&quot; to unstake all deposits 
                     and claim all rewards at once.
                   </p>
                 </div>
@@ -993,9 +989,6 @@ export default function MyWinningsPage() {
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Your Reward
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Action
                       </th>
                     </tr>
                   </thead>
@@ -1031,26 +1024,6 @@ export default function MyWinningsPage() {
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-status-success font-semibold">
                           {reward.PendingToClaimEth.toFixed(7)}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <Button 
-                            size="sm" 
-                            variant="primary"
-                            onClick={() => handleUnstakeSingle(reward.DepositId)}
-                            disabled={
-                              claiming.staking === reward.DepositId ||
-                              stakingWallet.status.isPending
-                            }
-                          >
-                            {claiming.staking === reward.DepositId ? (
-                              <>
-                                <Loader2 className="mr-1 animate-spin" size={14} />
-                                Processing...
-                              </>
-                            ) : (
-                              "Unstake & Claim"
-                            )}
-                          </Button>
                         </td>
                       </tr>
                     ))}
