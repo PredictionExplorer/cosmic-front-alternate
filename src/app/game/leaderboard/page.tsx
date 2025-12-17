@@ -18,7 +18,7 @@ interface LeaderboardEntry {
 }
 
 export default function LeaderboardPage() {
-  const [timeframe, setTimeframe] = useState<"all-time" | "current">("current");
+  const [timeframe, setTimeframe] = useState<"all-time" | "current">("all-time");
   const [category, setCategory] = useState<"prizes" | "bids" | "spending">(
     "prizes"
   );
@@ -26,66 +26,163 @@ export default function LeaderboardPage() {
     []
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [currentRound, setCurrentRound] = useState<number>(0);
+
+  // Fetch current round number
+  useEffect(() => {
+    async function fetchCurrentRound() {
+      try {
+        const dashboardData = await api.getDashboardInfo();
+        setCurrentRound(dashboardData?.CurRoundNum || 0);
+      } catch (error) {
+        console.error("Failed to fetch current round:", error);
+      }
+    }
+    fetchCurrentRound();
+  }, []);
 
   // Fetch leaderboard data
   useEffect(() => {
     async function fetchLeaderboard() {
+      // Wait for current round to be loaded if we're in current mode
+      if (timeframe === "current" && currentRound === 0) {
+        return; // Wait for currentRound to be fetched
+      }
+
       try {
         setIsLoading(true);
+        setLeaderboardData([]); // Clear previous data
 
         let data: LeaderboardEntry[] = [];
 
+        // Fetch bids based on timeframe
+        const bids = timeframe === "current" && currentRound > 0
+          ? await api.getBidListByRound(currentRound)
+          : await api.getBidList();
+
+        console.log(`Fetched ${bids.length} bids for ${timeframe === "current" ? `round ${currentRound}` : 'all-time'}`);
+        if (bids.length > 0) {
+          console.log('Sample bid:', bids[0]);
+        }
+
         if (category === "prizes") {
-          // Get top prize winners
+          // Get winners from all-time data
           const winners = await api.getUniqueWinners();
-          data = winners
-            .slice(0, 50)
-            .map((winner: Record<string, unknown>, index: number) => ({
-              rank: index + 1,
-              address: (winner.Address as string) || "0x0",
-              value: (winner.TotalWinningsEth as number) || 0,
-              nftsWon: (winner.NumWinnings as number) || 0,
-            }));
+          
+          if (timeframe === "current" && currentRound > 0) {
+            // Filter winners by current round from prize history
+            const prizeHistory = await api.getClaimHistory();
+            const currentRoundWinners = prizeHistory.filter(
+              (prize: any) => prize.RoundNum === currentRound
+            );
+            
+            // Count prizes per winner in current round
+            const winnerCounts = currentRoundWinners.reduce((acc: Record<string, number>, prize: any) => {
+              const addr = prize.WinnerAddr || prize.BeneficiaryAddr || prize.Address;
+              if (addr) {
+                acc[addr] = (acc[addr] || 0) + 1;
+              }
+              return acc;
+            }, {});
+            
+            // Convert to leaderboard format
+            data = Object.entries(winnerCounts)
+              .map(([address, count]) => ({
+                rank: 0,
+                address,
+                value: count as number,
+                nftsWon: count as number,
+              }))
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 50)
+              .map((entry, index) => ({
+                ...entry,
+                rank: index + 1,
+              }));
+          } else {
+            // All-time winners
+            const sorted = [...winners].sort(
+              (a: Record<string, unknown>, b: Record<string, unknown>) =>
+                ((b.PrizesCount as number) || 0) - ((a.PrizesCount as number) || 0)
+            );
+            
+            data = sorted
+              .slice(0, 50)
+              .map((winner: Record<string, unknown>, index: number) => ({
+                rank: index + 1,
+                address: (winner.WinnerAddr as string) || "0x0",
+                value: (winner.PrizesCount as number) || 0,
+                nftsWon: (winner.PrizesCount as number) || 0,
+              }));
+          }
         } else if (category === "bids") {
-          // Get top bidders
-          const bidders = await api.getUniqueBidders();
-          data = bidders
+          // Count bids per bidder
+          const bidderCounts = bids.reduce((acc: Record<string, number>, bid: any) => {
+            const addr = bid.BidderAddr;
+            if (addr) {
+              acc[addr] = (acc[addr] || 0) + 1;
+            }
+            return acc;
+          }, {});
+          
+          console.log('Bidder counts:', Object.keys(bidderCounts).length, 'unique bidders');
+          
+          // Convert to leaderboard format
+          data = Object.entries(bidderCounts)
+            .map(([address, count]) => ({
+              rank: 0,
+              address,
+              value: count as number,
+              nftsWon: 0,
+            }))
+            .sort((a, b) => b.value - a.value)
             .slice(0, 50)
-            .map((bidder: Record<string, unknown>, index: number) => ({
+            .map((entry, index) => ({
+              ...entry,
               rank: index + 1,
-              address: (bidder.Address as string) || "0x0",
-              value: (bidder.NumBids as number) || 0,
-              nftsWon: (bidder.NumWinnings as number) || 0,
             }));
         } else {
-          // Get top spenders
-          const bidders = await api.getUniqueBidders();
-          // Sort by total spent
-          const sorted = [...bidders].sort(
-            (a: Record<string, unknown>, b: Record<string, unknown>) =>
-              ((b.TotalSpentEth as number) || 0) -
-              ((a.TotalSpentEth as number) || 0)
-          );
-          data = sorted
+          // Calculate total spending per bidder
+          const bidderSpending = bids.reduce((acc: Record<string, number>, bid: any) => {
+            const addr = bid.BidderAddr;
+            const amount = bid.BidPriceEth || 0;
+            if (addr) {
+              acc[addr] = (acc[addr] || 0) + amount;
+            }
+            return acc;
+          }, {});
+          
+          console.log('Bidder spending:', Object.keys(bidderSpending).length, 'unique spenders');
+          console.log('Top 3 spenders:', Object.entries(bidderSpending).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 3));
+          
+          // Convert to leaderboard format
+          data = Object.entries(bidderSpending)
+            .map(([address, total]) => ({
+              rank: 0,
+              address,
+              value: total as number,
+              nftsWon: 0,
+            }))
+            .sort((a, b) => b.value - a.value)
             .slice(0, 50)
-            .map((bidder: Record<string, unknown>, index: number) => ({
+            .map((entry, index) => ({
+              ...entry,
               rank: index + 1,
-              address: (bidder.Address as string) || "0x0",
-              value: (bidder.TotalSpentEth as number) || 0,
-              nftsWon: (bidder.NumWinnings as number) || 0,
             }));
         }
 
+        console.log('Final leaderboard data:', data.length, data.slice(0, 3));
         setLeaderboardData(data);
       } catch (error) {
         console.error("Failed to fetch leaderboard:", error);
+        setLeaderboardData([]);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchLeaderboard();
-  }, [category, timeframe]);
+  }, [category, timeframe, currentRound]);
 
   const getMedalColor = (rank: number) => {
     if (rank === 1) return "text-primary";
@@ -120,16 +217,6 @@ export default function LeaderboardPage() {
             {/* Timeframe Selector */}
             <div className="flex p-1 rounded-lg bg-background-elevated border border-text-muted/10">
               <button
-                onClick={() => setTimeframe("current")}
-                className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  timeframe === "current"
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-secondary hover:text-primary"
-                }`}
-              >
-                Current Round
-              </button>
-              <button
                 onClick={() => setTimeframe("all-time")}
                 className={`px-6 py-2 rounded-md font-medium transition-all ${
                   timeframe === "all-time"
@@ -138,6 +225,16 @@ export default function LeaderboardPage() {
                 }`}
               >
                 All-Time
+              </button>
+              <button
+                onClick={() => setTimeframe("current")}
+                className={`px-6 py-2 rounded-md font-medium transition-all ${
+                  timeframe === "current"
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-secondary hover:text-primary"
+                }`}
+              >
+                Current Round
               </button>
             </div>
 
@@ -171,17 +268,30 @@ export default function LeaderboardPage() {
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Highest Spending
+                Total Spending
               </button>
             </div>
           </div>
         </Container>
       </section>
 
+      {/* Current Round Notice */}
+      {timeframe === "current" && currentRound > 0 && (
+        <section className="py-4">
+          <Container>
+            <div className="text-center">
+              <p className="text-sm text-text-secondary">
+                Showing data for <span className="text-primary font-semibold">Round {currentRound}</span>
+              </p>
+            </div>
+          </Container>
+        </section>
+      )}
+
       {/* Top 3 Podium */}
       <section className="py-12">
         <Container>
-          {!isLoading && leaderboardData.length >= 3 && (
+          {!isLoading && leaderboardData.length >= 3 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {/* 2nd Place */}
               <motion.div
@@ -204,15 +314,21 @@ export default function LeaderboardPage() {
                   </div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
                     {leaderboardData[1]?.ensName ||
-                      shortenAddress(leaderboardData[1]?.address)}
+                      shortenAddress(leaderboardData[1]?.address || "0x0")}
                   </h3>
                   <p className="font-mono text-2xl font-bold text-accent-platinum mb-2">
-                    {category === "bids"
-                      ? Math.floor(leaderboardData[1]?.value)
-                      : formatEth(leaderboardData[1]?.value) + " ETH"}
+                    {category === "prizes"
+                      ? leaderboardData[1]?.value || 0
+                      : category === "bids"
+                      ? leaderboardData[1]?.value || 0
+                      : `${formatEth(leaderboardData[1]?.value || 0)} ETH`}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    {leaderboardData[1]?.nftsWon} NFTs Won
+                    {category === "prizes"
+                      ? "Prizes Won"
+                      : category === "bids"
+                      ? "Bids Placed"
+                      : "Total Spent"}
                   </p>
                 </Card>
               </motion.div>
@@ -234,15 +350,21 @@ export default function LeaderboardPage() {
                   </div>
                   <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
                     {leaderboardData[0]?.ensName ||
-                      shortenAddress(leaderboardData[0]?.address)}
+                      shortenAddress(leaderboardData[0]?.address || "0x0")}
                   </h3>
                   <p className="font-mono text-3xl font-bold text-primary mb-3">
-                    {category === "bids"
-                      ? Math.floor(leaderboardData[0]?.value)
-                      : formatEth(leaderboardData[0]?.value) + " ETH"}
+                    {category === "prizes"
+                      ? leaderboardData[0]?.value || 0
+                      : category === "bids"
+                      ? leaderboardData[0]?.value || 0
+                      : `${formatEth(leaderboardData[0]?.value || 0)} ETH`}
                   </p>
                   <p className="text-sm text-text-secondary">
-                    {leaderboardData[0]?.nftsWon} NFTs Won
+                    {category === "prizes"
+                      ? "Prizes Won"
+                      : category === "bids"
+                      ? "Bids Placed"
+                      : "Total Spent"}
                   </p>
                 </Card>
               </motion.div>
@@ -268,18 +390,36 @@ export default function LeaderboardPage() {
                   </div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
                     {leaderboardData[2]?.ensName ||
-                      shortenAddress(leaderboardData[2]?.address)}
+                      shortenAddress(leaderboardData[2]?.address || "0x0")}
                   </h3>
                   <p className="font-mono text-2xl font-bold text-status-warning mb-2">
-                    {category === "bids"
-                      ? Math.floor(leaderboardData[2]?.value)
-                      : formatEth(leaderboardData[2]?.value) + " ETH"}
+                    {category === "prizes"
+                      ? leaderboardData[2]?.value || 0
+                      : category === "bids"
+                      ? leaderboardData[2]?.value || 0
+                      : `${formatEth(leaderboardData[2]?.value || 0)} ETH`}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    {leaderboardData[2]?.nftsWon} NFTs Won
+                    {category === "prizes"
+                      ? "Prizes Won"
+                      : category === "bids"
+                      ? "Bids Placed"
+                      : "Total Spent"}
                   </p>
                 </Card>
               </motion.div>
+            </div>
+          ) : (
+            <div className="mb-12 text-center">
+              {isLoading ? (
+                <p className="text-text-secondary">Loading leaderboard...</p>
+              ) : (
+                <p className="text-text-secondary">
+                  {leaderboardData.length === 0 
+                    ? "No data available yet. Start playing to appear on the leaderboard!"
+                    : `Not enough data for podium (${leaderboardData.length} entries)`}
+                </p>
+              )}
             </div>
           )}
 
@@ -291,7 +431,7 @@ export default function LeaderboardPage() {
                   ? "Top Prize Winners"
                   : category === "bids"
                   ? "Most Active Bidders"
-                  : "Highest Spenders"}
+                  : "Top Spenders"}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -307,13 +447,10 @@ export default function LeaderboardPage() {
                       </th>
                       <th className="p-4 text-right text-sm font-medium text-text-secondary">
                         {category === "prizes"
-                          ? "Prizes Won"
+                          ? "Number of Prizes"
                           : category === "bids"
                           ? "Total Bids"
                           : "Total Spent"}
-                      </th>
-                      <th className="p-4 text-right text-sm font-medium text-text-secondary">
-                        NFTs
                       </th>
                     </tr>
                   </thead>
@@ -329,9 +466,6 @@ export default function LeaderboardPage() {
                             </td>
                             <td className="p-4 text-right">
                               <div className="h-6 bg-background-elevated rounded w-24 ml-auto" />
-                            </td>
-                            <td className="p-4 text-right">
-                              <div className="h-6 bg-background-elevated rounded w-12 ml-auto" />
                             </td>
                           </tr>
                         ))
@@ -368,16 +502,22 @@ export default function LeaderboardPage() {
                             </td>
                             <td className="p-4 text-right">
                               <p className="font-mono font-semibold text-primary">
-                                {category === "bids"
-                                  ? Math.floor(entry.value)
-                                  : formatEth(entry.value) + " ETH"}
+                                {category === "prizes"
+                                  ? entry.value || 0
+                                  : category === "bids"
+                                  ? entry.value || 0
+                                  : `${formatEth(entry.value || 0)} ETH`}
                               </p>
-                            </td>
-                            <td className="p-4 text-right">
-                              <Badge variant="outline">{entry.nftsWon}</Badge>
                             </td>
                           </motion.tr>
                         ))}
+                    {!isLoading && leaderboardData.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="p-12 text-center text-text-secondary">
+                          No data available yet. Start playing to appear on the leaderboard!
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
