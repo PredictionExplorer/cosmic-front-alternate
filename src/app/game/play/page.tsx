@@ -515,7 +515,7 @@ export default function PlayPage() {
                 {lastBidMessage && (
                   <>
                     <span className="text-text-muted">•</span>
-                    <span className="text-text-secondary italic">"{lastBidMessage}"</span>
+                    <span className="text-text-secondary italic">{lastBidMessage}</span>
                   </>
                 )}
               </div>

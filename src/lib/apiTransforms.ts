@@ -107,3 +107,60 @@ export function transformBidList(apiBids: ApiBidResponse[]): ComponentBidData[] 
   return apiBids.map(transformBidData);
 }
 
+/**
+ * API Raffle Deposit Response (nested structure from backend)
+ */
+interface ApiRaffleDepositResponse {
+  RecordId?: number;
+  Tx?: {
+    EvtLogId?: number;
+    BlockNum?: number;
+    TxId?: number;
+    TxHash?: string;
+    TimeStamp?: number;
+    DateTime?: string;
+  };
+  RecordType?: number;
+  WinnerAddr?: string;
+  WinnerAid?: number;
+  WinnerIndex?: number;
+  RoundNum?: number;
+  Amount?: number;
+  Claimed?: boolean;
+  ClaimTimeStamp?: number;
+  ClaimDateTime?: string;
+}
+
+/**
+ * Component Raffle Deposit Data (flattened structure)
+ */
+export interface ComponentRaffleDepositData {
+  EvtLogId: number;
+  TxHash: string;
+  TimeStamp: number;
+  RoundNum: number;
+  Amount: number;
+}
+
+/**
+ * Transform raffle deposit data from API format to component format
+ * API returns: { RecordId, Tx: { EvtLogId, TxHash, TimeStamp, ... }, RoundNum, Amount, ... }
+ * Components expect: { EvtLogId, TxHash, TimeStamp, RoundNum, Amount }
+ */
+export function transformRaffleDepositData(apiDeposit: ApiRaffleDepositResponse): ComponentRaffleDepositData {
+  return {
+    EvtLogId: apiDeposit.Tx?.EvtLogId || apiDeposit.RecordId || 0,
+    TxHash: apiDeposit.Tx?.TxHash || "",
+    TimeStamp: apiDeposit.Tx?.TimeStamp || 0,
+    RoundNum: apiDeposit.RoundNum || 0,
+    Amount: apiDeposit.Amount || 0,
+  };
+}
+
+/**
+ * Transform array of raffle deposits
+ */
+export function transformRaffleDepositList(apiDeposits: ApiRaffleDepositResponse[]): ComponentRaffleDepositData[] {
+  return apiDeposits.map(transformRaffleDepositData);
+}
+

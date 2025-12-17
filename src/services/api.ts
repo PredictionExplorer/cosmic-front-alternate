@@ -13,7 +13,7 @@
 
 import axios, { AxiosInstance, AxiosError } from "axios";
 import { getDefaultChainId } from "@/lib/networkConfig";
-import { transformBidList } from "@/lib/apiTransforms";
+import { transformBidList, transformRaffleDepositList } from "@/lib/apiTransforms";
 
 /**
  * API Base URLs by network
@@ -276,7 +276,8 @@ class CosmicSignatureAPI {
     const { data } = await apiClient.get(
       `prizes/deposits/unclaimed/by_user/${address}/0/1000000`
     );
-    return data.UnclaimedDeposits || [];
+    const deposits = data.UnclaimedDeposits || [];
+    return transformRaffleDepositList(deposits);
   }
 
   /**

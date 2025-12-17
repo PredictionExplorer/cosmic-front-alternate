@@ -161,6 +161,9 @@ export default function MyWinningsPage() {
   const stakingWallet = useStakingWalletCST();
   const { showSuccess, showError, showInfo } = useNotification();
 
+  // Track the claiming operation for ETH
+  const [ethClaimAmount, setEthClaimAmount] = useState<number | null>(null);
+
   // Fetch all unclaimed winnings
   const fetchWinnings = useCallback(async () => {
     if (!address || !isConnected) {
@@ -272,26 +275,76 @@ export default function MyWinningsPage() {
     fetchWinnings();
   }, [fetchWinnings]);
 
+  // Watch for successful ETH claim transaction
+  useEffect(() => {
+    if (
+      ethClaimAmount !== null &&
+      !prizesWallet.isTransactionPending &&
+      prizesWallet.write.status.isSuccess
+    ) {
+      showSuccess(`Successfully claimed ${ethClaimAmount.toFixed(6)} ETH!`);
+      setEthClaimAmount(null);
+      setClaiming((prev) => ({ ...prev, eth: false }));
+      // Refresh winnings data
+      fetchWinnings();
+    }
+  }, [
+    ethClaimAmount,
+    prizesWallet.isTransactionPending,
+    prizesWallet.write.status.isSuccess,
+    fetchWinnings,
+    showSuccess,
+  ]);
+
+  // Watch for failed ETH claim transaction
+  useEffect(() => {
+    if (
+      ethClaimAmount !== null &&
+      !prizesWallet.isTransactionPending &&
+      prizesWallet.write.status.error
+    ) {
+      const errorMessage = getErrorMessage(prizesWallet.write.status.error);
+      showError(errorMessage);
+      setEthClaimAmount(null);
+      setClaiming((prev) => ({ ...prev, eth: false }));
+    }
+  }, [
+    ethClaimAmount,
+    prizesWallet.isTransactionPending,
+    prizesWallet.write.status.error,
+    showError,
+  ]);
+
   // Claim all ETH (raffle prizes)
   const handleClaimETH = async () => {
-    if (totalEthToClaim === 0) return;
+    if (totalEthToClaim === 0 || raffleETHWinnings.length === 0) return;
     
     setClaiming((prev) => ({ ...prev, eth: true }));
     try {
-      showInfo("Claiming your ETH rewards...");
-      await prizesWallet.write.withdrawEth();
+      showInfo("Please confirm the transaction in your wallet...");
       
-      showSuccess(`Successfully claimed ${totalEthToClaim.toFixed(6)} ETH!`);
+      // Get all unique round numbers from raffle winnings
+      const roundNumbers = [...new Set(raffleETHWinnings.map(w => BigInt(w.RoundNum)))];
       
-      // Refresh status and unclaimed data after short delay
-      setTimeout(() => {
-        fetchWinnings();
-      }, 3000);
+      // Store the amount for the success message
+      setEthClaimAmount(totalEthToClaim);
+      
+      // Use withdrawEverything to claim all ETH in one transaction
+      await prizesWallet.write.withdrawEverything(
+        roundNumbers,  // ETH prize round numbers
+        [],            // No ERC20 tokens
+        []             // No NFTs
+      );
+      
+      // Show waiting for confirmation
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      
+      // Success will be handled by useEffect when transaction confirms
     } catch (error) {
       console.error("Error claiming ETH:", error);
       const errorMessage = getErrorMessage(error);
       showError(errorMessage);
-    } finally {
+      setEthClaimAmount(null);
       setClaiming((prev) => ({ ...prev, eth: false }));
     }
   };

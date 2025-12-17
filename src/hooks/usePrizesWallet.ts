@@ -90,26 +90,27 @@ export function usePrizesWalletWrite() {
 	} as const;
 
 	return {
-		/**
-		 * Withdraw your ETH prizes
-		 */
-		withdrawEth: () => {
-			return writeContract({
-				...contractConfig,
-				functionName: 'withdrawEth'
-			});
-		},
+	/**
+	 * Withdraw your ETH prizes for a specific round
+	 */
+	withdrawEth: (roundNum: bigint) => {
+		return writeContract({
+			...contractConfig,
+			functionName: 'withdrawEth',
+			args: [roundNum]
+		});
+	},
 
-		/**
-		 * Withdraw ETH for someone else (after timeout)
-		 */
-		withdrawEthFor: (address: Address) => {
-			return writeContract({
-				...contractConfig,
-				functionName: 'withdrawEth',
-				args: [address]
-			});
-		},
+	/**
+	 * Withdraw ETH for someone else (after timeout)
+	 */
+	withdrawEthFor: (roundNum: bigint, address: Address) => {
+		return writeContract({
+			...contractConfig,
+			functionName: 'withdrawEth',
+			args: [roundNum, address]
+		});
+	},
 
 		/**
 		 * Claim a donated NFT
@@ -161,20 +162,20 @@ export function usePrizesWalletWrite() {
 			});
 		},
 
-		/**
-		 * Withdraw everything (ETH + tokens + NFTs) in one transaction
-		 */
-		withdrawEverything: (
-			withdrawEth: boolean,
-			donatedTokens: Array<{ roundNum: bigint; tokenAddress: Address; amount: bigint }>,
-			donatedNftIndexes: bigint[]
-		) => {
-			return writeContract({
-				...contractConfig,
-				functionName: 'withdrawEverything',
-				args: [withdrawEth, donatedTokens, donatedNftIndexes]
-			});
-		},
+	/**
+	 * Withdraw everything (ETH + tokens + NFTs) in one transaction
+	 */
+	withdrawEverything: (
+		ethPrizeRoundNums: bigint[],
+		donatedTokens: Array<{ roundNum: bigint; tokenAddress: Address; amount: bigint }>,
+		donatedNftIndexes: bigint[]
+	) => {
+		return writeContract({
+			...contractConfig,
+			functionName: 'withdrawEverything',
+			args: [ethPrizeRoundNums, donatedTokens, donatedNftIndexes]
+		});
+	},
 
 		/**
 		 * Transaction status
