@@ -127,7 +127,7 @@ export default function StakePage() {
   } | null>(null);
 
   // Hooks
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess, showError, showInfo } = useNotification();
   const nftContract = useCosmicSignatureNFT();
   const rwlkNftContract = useRandomWalkNFT();
   const stakingContract = useStakingWalletCST();
@@ -335,9 +335,15 @@ export default function StakePage() {
 
   // Watch for transaction success and refresh data
   useEffect(() => {
-    if (stakingContract.status.isSuccess && address) {
-      // Transaction completed successfully
-      const timer = setTimeout(async () => {
+    if (
+      stakingContract.status.isSuccess &&
+      !stakingContract.status.isPending &&
+      !stakingContract.status.isConfirming &&
+      address &&
+      (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
+    ) {
+      // Transaction is fully confirmed, refresh data and show success
+      const handleSuccess = async () => {
         await refreshTokenData();
 
         // Show success message
@@ -347,6 +353,7 @@ export default function StakePage() {
               selectedTokenIds.size > 1 ? "s" : ""
             }!`
           );
+          setSelectedTokenIds(new Set());
         } else if (stakingTokenId) {
           showSuccess(`Successfully staked token #${stakingTokenId}!`);
         } else if (unstakingActionId) {
@@ -357,19 +364,47 @@ export default function StakePage() {
         setStakingTokenId(null);
         setIsStakingMultiple(false);
         setUnstakingActionId(null);
-      }, 2000); // Small delay to allow blockchain state to update
+      };
 
-      return () => clearTimeout(timer);
+      handleSuccess();
     }
   }, [
     stakingContract.status.isSuccess,
+    stakingContract.status.isPending,
+    stakingContract.status.isConfirming,
     address,
-    refreshTokenData,
-    isStakingMultiple,
-    selectedTokenIds.size,
     stakingTokenId,
+    isStakingMultiple,
     unstakingActionId,
+    refreshTokenData,
+    selectedTokenIds.size,
     showSuccess,
+  ]);
+
+  // Watch for CST transaction failures
+  useEffect(() => {
+    if (
+      stakingContract.status.error &&
+      !stakingContract.status.isPending &&
+      !stakingContract.status.isConfirming &&
+      (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
+    ) {
+      // Transaction failed, show error and reset states
+      const errorMessage = (stakingContract.status.error as Error)?.message || "Transaction failed";
+      showError(errorMessage);
+      
+      setStakingTokenId(null);
+      setIsStakingMultiple(false);
+      setUnstakingActionId(null);
+    }
+  }, [
+    stakingContract.status.error,
+    stakingContract.status.isPending,
+    stakingContract.status.isConfirming,
+    stakingTokenId,
+    isStakingMultiple,
+    unstakingActionId,
+    showError,
   ]);
 
   // Get reward for a specific token
@@ -543,8 +578,9 @@ export default function StakePage() {
       }
 
       // Stake the NFT
+      showInfo("Please confirm the transaction in your wallet...");
       await stakingContract.write.stake(BigInt(tokenId));
-      showSuccess("Transaction submitted! Waiting for confirmation...");
+      showInfo("Transaction submitted! Waiting for confirmation...");
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: unknown) {
@@ -588,9 +624,10 @@ export default function StakePage() {
       }
 
       // Stake multiple NFTs
+      showInfo("Please confirm the transaction in your wallet...");
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await stakingContract.write.stakeMany(tokenIdsBigInt);
-      showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
+      showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
 
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: unknown) {
@@ -614,8 +651,9 @@ export default function StakePage() {
       setUnstakingActionId(stakeActionId);
 
       // Unstake the NFT
+      showInfo("Please confirm the transaction in your wallet...");
       await stakingContract.write.unstake(BigInt(stakeActionId));
-      showSuccess(
+      showInfo(
         `Transaction submitted! Unstaking token #${tokenId} and claiming rewards...`
       );
 
@@ -674,8 +712,10 @@ export default function StakePage() {
       }
 
       // Stake the NFT
+      showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.stake(BigInt(tokenId));
-      showSuccess("Transaction submitted! Waiting for confirmation...");
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Staking failed:", error);
       showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
@@ -715,9 +755,11 @@ export default function StakePage() {
       }
 
       // Stake multiple NFTs
+      showInfo("Please confirm the transaction in your wallet...");
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
-      showSuccess(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
+      showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
+      // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Multi-staking failed:", error);
       showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
@@ -737,8 +779,10 @@ export default function StakePage() {
 
       setUnstakingRWLKActionId(stakeActionId);
 
+      showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.unstake(BigInt(stakeActionId));
-      showSuccess(`Transaction submitted! Unstaking token #${tokenId}...`);
+      showInfo(`Transaction submitted! Unstaking token #${tokenId}...`);
+      // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Unstaking failed:", error);
       showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
@@ -767,10 +811,12 @@ export default function StakePage() {
         BigInt(id)
       );
 
+      showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.unstakeMany(stakeActionIds);
-      showSuccess(
+      showInfo(
         `Transaction submitted! Unstaking ${selectedStakedRWLKIds.size} NFTs...`
       );
+      // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Unstake selected failed:", error);
       showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
@@ -780,38 +826,87 @@ export default function StakePage() {
 
   // Watch for RWLK transaction success and refresh data
   useEffect(() => {
-    if (rwlkStakingContract.status.isSuccess && address) {
-      const timer = setTimeout(async () => {
+    if (
+      rwlkStakingContract.status.isSuccess &&
+      !rwlkStakingContract.status.isPending &&
+      !rwlkStakingContract.status.isConfirming &&
+      address &&
+      (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
+    ) {
+      // Transaction is fully confirmed, refresh data and show success
+      const handleSuccess = async () => {
         await refreshRWLKTokenData();
 
+        // Handle success messages based on what operation was performed
         if (isStakingRWLKMultiple && selectedRWLKTokenIds.size > 0) {
+          // Staking multiple NFTs
           showSuccess(
             `Successfully staked ${selectedRWLKTokenIds.size} NFT${
               selectedRWLKTokenIds.size > 1 ? "s" : ""
             }!`
           );
+          setSelectedRWLKTokenIds(new Set());
+        } else if (isStakingRWLKMultiple && selectedStakedRWLKIds.size > 0) {
+          // Unstaking multiple NFTs
+          showSuccess(
+            `Successfully unstaked ${selectedStakedRWLKIds.size} NFT${
+              selectedStakedRWLKIds.size > 1 ? "s" : ""
+            }!`
+          );
+          setSelectedStakedRWLKIds(new Set());
         } else if (stakingRWLKTokenId) {
+          // Staking single NFT
           showSuccess(`Successfully staked token #${stakingRWLKTokenId}!`);
         } else if (unstakingRWLKActionId) {
+          // Unstaking single NFT
           showSuccess(`Successfully unstaked NFT!`);
         }
 
         setStakingRWLKTokenId(null);
         setIsStakingRWLKMultiple(false);
         setUnstakingRWLKActionId(null);
-      }, 2000);
+      };
 
-      return () => clearTimeout(timer);
+      handleSuccess();
     }
   }, [
     rwlkStakingContract.status.isSuccess,
+    rwlkStakingContract.status.isPending,
+    rwlkStakingContract.status.isConfirming,
     address,
-    refreshRWLKTokenData,
-    isStakingRWLKMultiple,
-    selectedRWLKTokenIds.size,
     stakingRWLKTokenId,
+    isStakingRWLKMultiple,
     unstakingRWLKActionId,
+    refreshRWLKTokenData,
+    selectedRWLKTokenIds.size,
+    selectedStakedRWLKIds.size,
     showSuccess,
+  ]);
+
+  // Watch for RWLK transaction failures
+  useEffect(() => {
+    if (
+      rwlkStakingContract.status.error &&
+      !rwlkStakingContract.status.isPending &&
+      !rwlkStakingContract.status.isConfirming &&
+      (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
+    ) {
+      // Transaction failed, show error and reset states
+      const errorMessage = (rwlkStakingContract.status.error as Error)?.message || "Transaction failed";
+      showError(errorMessage);
+      
+      setStakingRWLKTokenId(null);
+      setIsStakingRWLKMultiple(false);
+      setUnstakingRWLKActionId(null);
+    }
+  }, [
+    rwlkStakingContract.status.error,
+    rwlkStakingContract.status.isPending,
+    rwlkStakingContract.status.isConfirming,
+    stakingRWLKTokenId,
+    isStakingRWLKMultiple,
+    unstakingRWLKActionId,
+    showError,
   ]);
 
   // Calculate pagination for available tokens
