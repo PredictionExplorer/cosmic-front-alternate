@@ -563,9 +563,6 @@ export default function StatisticsPage() {
                         <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
                           Bidder
                         </th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                          Type
-                        </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                           Price
                         </th>
@@ -600,13 +597,8 @@ export default function StatisticsPage() {
                               />
                             </Link>
                           </td>
-                          <td className="px-6 py-4 text-center">
-                            <Badge variant={bid.BidType === 0 ? "default" : "warning"}>
-                              {bid.BidType === 0 ? "ETH" : "CST"}
-                            </Badge>
-                          </td>
                           <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
-                            {bid.BidPriceEth?.toFixed(6)}
+                            {bid.BidPriceEth?.toFixed(6)} {bid.BidType === 0 ? "ETH" : "CST"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             <a
