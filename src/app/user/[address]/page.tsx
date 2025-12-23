@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { 
@@ -160,8 +160,71 @@ const StatItem = ({ title, value }: StatItemProps) => (
   </div>
 );
 
-export default function UserStatisticsPage({ params }: { params: { address: string } }) {
-  const userAddress = params.address;
+interface PaginationProps {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}
+
+const Pagination = ({ currentPage, totalItems, itemsPerPage, onPageChange }: PaginationProps) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  if (totalPages <= 1) return null;
+  
+  return (
+    <div className="mt-6 flex items-center justify-center gap-2">
+      <button
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        disabled={currentPage === 1}
+        className="px-4 py-2 rounded-lg border border-text-muted/20 bg-background-elevated hover:bg-background-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        Previous
+      </button>
+      
+      <div className="flex items-center gap-1">
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(page => {
+            // Show first page, last page, current page, and pages around current
+            return (
+              page === 1 ||
+              page === totalPages ||
+              Math.abs(page - currentPage) <= 1
+            );
+          })
+          .map((page, index, array) => (
+            <div key={page} className="flex items-center gap-1">
+              {index > 0 && array[index - 1] !== page - 1 && (
+                <span className="px-2 text-text-muted">...</span>
+              )}
+              <button
+                onClick={() => onPageChange(page)}
+                className={`min-w-[40px] px-3 py-2 rounded-lg border transition-colors ${
+                  currentPage === page
+                    ? "border-primary bg-primary/10 text-primary font-semibold"
+                    : "border-text-muted/20 bg-background-elevated hover:bg-background-surface"
+                }`}
+              >
+                {page}
+              </button>
+            </div>
+          ))}
+      </div>
+      
+      <button
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage >= totalPages}
+        className="px-4 py-2 rounded-lg border border-text-muted/20 bg-background-elevated hover:bg-background-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        Next
+      </button>
+    </div>
+  );
+};
+
+export default function UserStatisticsPage({ params }: { params: Promise<{ address: string }> }) {
+  const { address } = use(params);
+  const userAddress = address;
   const [loading, setLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [balance, setBalance] = useState({ CosmicToken: 0, ETH: 0 });
@@ -191,6 +254,18 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
   
   // UI state
   const [stakingTab, setStakingTab] = useState<"cst" | "rwlk">("cst");
+  
+  // Pagination states
+  const [bidHistoryPage, setBidHistoryPage] = useState(1);
+  const [cstStakingActionsPage, setCstStakingActionsPage] = useState(1);
+  const [cstStakingRewardsPage, setCstStakingRewardsPage] = useState(1);
+  const [collectedRewardsPage, setCollectedRewardsPage] = useState(1);
+  const [rwlkStakingActionsPage, setRwlkStakingActionsPage] = useState(1);
+  const [rwlkMintsPage, setRwlkMintsPage] = useState(1);
+  const [claimHistoryPage, setClaimHistoryPage] = useState(1);
+  const [marketingRewardsPage, setMarketingRewardsPage] = useState(1);
+  
+  const itemsPerPage = 20;
 
   const fetchUserData = useCallback(async () => {
     // Validate address
@@ -566,9 +641,14 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
               {/* CST Staking Actions */}
               {stakingCSTActions.length > 0 && (
                 <div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Stake / Unstake Actions
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      Stake / Unstake Actions
+                    </h3>
+                    <p className="text-sm text-text-secondary">
+                      Total: {stakingCSTActions.length} actions
+                    </p>
+                  </div>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -589,7 +669,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                           </tr>
                         </thead>
                         <tbody>
-                          {stakingCSTActions.slice(0, 20).map((action: StakingAction, index: number) => (
+                          {stakingCSTActions
+                            .slice((cstStakingActionsPage - 1) * itemsPerPage, cstStakingActionsPage * itemsPerPage)
+                            .map((action: StakingAction, index: number) => (
                             <tr
                               key={action.ActionId}
                               className={`border-b border-text-muted/5 ${
@@ -620,15 +702,26 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       </table>
                     </div>
                   </Card>
+                  <Pagination
+                    currentPage={cstStakingActionsPage}
+                    totalItems={stakingCSTActions.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCstStakingActionsPage}
+                  />
                 </div>
               )}
 
               {/* CST Staking Rewards */}
               {cstStakingRewards.length > 0 && (
                 <div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Staking Rewards by Token
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      Staking Rewards by Token
+                    </h3>
+                    <p className="text-sm text-text-secondary">
+                      Total: {cstStakingRewards.length} tokens
+                    </p>
+                  </div>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -649,7 +742,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                           </tr>
                         </thead>
                         <tbody>
-                          {cstStakingRewards.map((reward: StakingReward, index: number) => (
+                          {cstStakingRewards
+                            .slice((cstStakingRewardsPage - 1) * itemsPerPage, cstStakingRewardsPage * itemsPerPage)
+                            .map((reward: StakingReward, index: number) => (
                             <tr
                               key={reward.TokenId}
                               className={`border-b border-text-muted/5 ${
@@ -678,15 +773,26 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       </table>
                     </div>
                   </Card>
+                  <Pagination
+                    currentPage={cstStakingRewardsPage}
+                    totalItems={cstStakingRewards.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCstStakingRewardsPage}
+                  />
                 </div>
               )}
 
               {/* Collected Staking Rewards */}
               {collectedCstStakingRewards.length > 0 && (
                 <div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Collected Staking Rewards
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      Collected Staking Rewards
+                    </h3>
+                    <p className="text-sm text-text-secondary">
+                      Total: {collectedCstStakingRewards.length} rewards
+                    </p>
+                  </div>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -707,7 +813,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                           </tr>
                         </thead>
                         <tbody>
-                          {collectedCstStakingRewards.slice(0, 20).map((reward: CollectedStakingReward, index: number) => (
+                          {collectedCstStakingRewards
+                            .slice((collectedRewardsPage - 1) * itemsPerPage, collectedRewardsPage * itemsPerPage)
+                            .map((reward: CollectedStakingReward, index: number) => (
                             <tr
                               key={`${reward.ActionId}-${index}`}
                               className={`border-b border-text-muted/5 ${
@@ -736,6 +844,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       </table>
                     </div>
                   </Card>
+                  <Pagination
+                    currentPage={collectedRewardsPage}
+                    totalItems={collectedCstStakingRewards.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setCollectedRewardsPage}
+                  />
                 </div>
               )}
             </div>
@@ -780,9 +894,14 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
               {/* RWLK Staking Actions */}
               {stakingRWLKActions.length > 0 && (
                 <div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Stake / Unstake Actions
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      Stake / Unstake Actions
+                    </h3>
+                    <p className="text-sm text-text-secondary">
+                      Total: {stakingRWLKActions.length} actions
+                    </p>
+                  </div>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -803,7 +922,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                           </tr>
                         </thead>
                         <tbody>
-                          {stakingRWLKActions.slice(0, 20).map((action: StakingAction, index: number) => (
+                          {stakingRWLKActions
+                            .slice((rwlkStakingActionsPage - 1) * itemsPerPage, rwlkStakingActionsPage * itemsPerPage)
+                            .map((action: StakingAction, index: number) => (
                             <tr
                               key={action.ActionId}
                               className={`border-b border-text-muted/5 ${
@@ -830,15 +951,26 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       </table>
                     </div>
                   </Card>
+                  <Pagination
+                    currentPage={rwlkStakingActionsPage}
+                    totalItems={stakingRWLKActions.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setRwlkStakingActionsPage}
+                  />
                 </div>
               )}
 
               {/* RWLK Minted Rewards */}
               {rwlkMints.length > 0 && (
                 <div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Staking Reward Tokens
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      Staking Reward Tokens
+                    </h3>
+                    <p className="text-sm text-text-secondary">
+                      Total: {rwlkMints.length} tokens
+                    </p>
+                  </div>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -856,7 +988,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                           </tr>
                         </thead>
                         <tbody>
-                          {rwlkMints.map((mint: RWLKMint, index: number) => (
+                          {rwlkMints
+                            .slice((rwlkMintsPage - 1) * itemsPerPage, rwlkMintsPage * itemsPerPage)
+                            .map((mint: RWLKMint, index: number) => (
                             <tr
                               key={mint.TokenId}
                               className={`border-b border-text-muted/5 ${
@@ -882,6 +1016,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       </table>
                     </div>
                   </Card>
+                  <Pagination
+                    currentPage={rwlkMintsPage}
+                    totalItems={rwlkMints.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={setRwlkMintsPage}
+                  />
                 </div>
               )}
             </div>
@@ -893,7 +1033,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
       {bidHistory.length > 0 && (
         <section className="py-12">
           <Container>
-            <h2 className="heading-md mb-6">Bid History</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="heading-md">Bid History</h2>
+              <p className="text-sm text-text-secondary">
+                Total: {bidHistory.length} bids
+              </p>
+            </div>
             <Card glass className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -905,9 +1050,6 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Round
                       </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Type
-                      </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Price
                       </th>
@@ -917,7 +1059,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                     </tr>
                   </thead>
                   <tbody>
-                    {bidHistory.slice(0, 50).map((bid: Bid, index: number) => (
+                    {bidHistory
+                      .slice((bidHistoryPage - 1) * itemsPerPage, bidHistoryPage * itemsPerPage)
+                      .map((bid: Bid, index: number) => (
                       <tr
                         key={bid.EvtLogId}
                         className={`border-b border-text-muted/5 ${
@@ -930,13 +1074,8 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                         <td className="px-6 py-4 text-center">
                           <Badge variant="default">Round {bid.RoundNum}</Badge>
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <Badge variant={bid.BidType === 0 ? "default" : "warning"}>
-                            {bid.BidType === 0 ? "ETH" : "CST"}
-                          </Badge>
-                        </td>
                         <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
-                          {bid.BidPriceEth?.toFixed(6)}
+                          {bid.BidPriceEth?.toFixed(6)} {bid.BidType === 0 ? "ETH" : "CST"}
                         </td>
                         <td className="px-6 py-4 text-center">
                           <a
@@ -954,6 +1093,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                 </table>
               </div>
             </Card>
+            <Pagination
+              currentPage={bidHistoryPage}
+              totalItems={bidHistory.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setBidHistoryPage}
+            />
           </Container>
         </section>
       )}
@@ -993,7 +1138,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
       {claimHistory.length > 0 && (
         <section className="py-12">
           <Container>
-            <h2 className="heading-md mb-6">History of Winnings</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="heading-md">History of Winnings</h2>
+              <p className="text-sm text-text-secondary">
+                Total: {claimHistory.length} winnings
+              </p>
+            </div>
             <Card glass className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1017,7 +1167,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                     </tr>
                   </thead>
                   <tbody>
-                    {claimHistory.slice(0, 50).map((claim: ClaimHistory, index: number) => (
+                    {claimHistory
+                      .slice((claimHistoryPage - 1) * itemsPerPage, claimHistoryPage * itemsPerPage)
+                      .map((claim: ClaimHistory, index: number) => (
                       <tr
                         key={claim.EvtLogId}
                         className={`border-b border-text-muted/5 ${
@@ -1045,6 +1197,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                 </table>
               </div>
             </Card>
+            <Pagination
+              currentPage={claimHistoryPage}
+              totalItems={claimHistory.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setClaimHistoryPage}
+            />
           </Container>
         </section>
       )}
@@ -1053,7 +1211,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
       {marketingRewards.length > 0 && (
         <section className="py-12 bg-background-surface/50">
           <Container>
-            <h2 className="heading-md mb-6">Marketing Rewards</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="heading-md">Marketing Rewards</h2>
+              <p className="text-sm text-text-secondary">
+                Total: {marketingRewards.length} rewards
+              </p>
+            </div>
             <Card glass className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -1071,7 +1234,9 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                     </tr>
                   </thead>
                   <tbody>
-                    {marketingRewards.map((reward: MarketingReward, index: number) => (
+                    {marketingRewards
+                      .slice((marketingRewardsPage - 1) * itemsPerPage, marketingRewardsPage * itemsPerPage)
+                      .map((reward: MarketingReward, index: number) => (
                       <tr
                         key={reward.EvtLogId}
                         className={`border-b border-text-muted/5 ${
@@ -1093,6 +1258,12 @@ export default function UserStatisticsPage({ params }: { params: { address: stri
                 </table>
               </div>
             </Card>
+            <Pagination
+              currentPage={marketingRewardsPage}
+              totalItems={marketingRewards.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setMarketingRewardsPage}
+            />
           </Container>
         </section>
       )}
