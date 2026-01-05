@@ -21,6 +21,7 @@ interface Bid {
   BidderAddr: string;
   BidType: number;
   BidPriceEth: number;
+  CstPriceEth?: number;
   RoundNum: number;
   TimeStamp: number;
   TxHash: string;
@@ -597,7 +598,10 @@ export default function StatisticsPage() {
                             </Link>
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
-                            {bid.BidPriceEth?.toFixed(6)} {bid.BidType === 0 ? "ETH" : "CST"}
+                            {bid.BidType === 0 
+                              ? `${bid.BidPriceEth?.toFixed(6)} ETH`
+                              : `${(bid.CstPriceEth || 0).toFixed(2)} CST`
+                            }
                           </td>
                           <td className="px-6 py-4 text-center">
                             <a
