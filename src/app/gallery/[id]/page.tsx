@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -48,6 +48,21 @@ interface NFTData {
   ActualUnstakeDateTime: string;
 }
 
+interface TokenListItem {
+  TokenId: number;
+}
+
+interface NameHistoryEntry {
+  Tx?: {
+    DateTime?: string;
+    TimeStamp?: number;
+    TxHash?: string;
+  };
+  TokenName?: string;
+  NewTokenName?: string;
+  OwnerAddr?: string;
+}
+
 export default function NFTDetailPage({
   params,
 }: {
@@ -75,10 +90,23 @@ export default function NFTDetailPage({
   const [transferError, setTransferError] = useState("");
   
   // Name history state
-  const [nameHistory, setNameHistory] = useState<any[]>([]);
+  const [nameHistory, setNameHistory] = useState<NameHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
   const { showSuccess, showError } = useNotification();
+
+  // Fetch name change history
+  const fetchNameHistory = useCallback(async () => {
+    try {
+      setLoadingHistory(true);
+      const history = await api.getNameHistory(parseInt(id));
+      setNameHistory(history);
+    } catch (err) {
+      console.error("Error fetching name history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     const fetchNFTData = async () => {
@@ -96,7 +124,7 @@ export default function NFTDetailPage({
 
         // Find the highest token ID
         if (tokenList && tokenList.length > 0) {
-          const maxId = Math.max(...tokenList.map((token: any) => token.TokenId));
+          const maxId = Math.max(...tokenList.map((token: TokenListItem) => token.TokenId));
           setMaxTokenId(maxId);
         }
 
@@ -116,20 +144,7 @@ export default function NFTDetailPage({
     };
 
     fetchNFTData();
-  }, [id]);
-  
-  // Fetch name change history
-  const fetchNameHistory = async () => {
-    try {
-      setLoadingHistory(true);
-      const history = await api.getNameHistory(parseInt(id));
-      setNameHistory(history);
-    } catch (err) {
-      console.error("Error fetching name history:", err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
+  }, [id, fetchNameHistory]);
 
   // Refetch NFT data when name change transaction is successful
   useEffect(() => {
@@ -220,8 +235,8 @@ export default function NFTDetailPage({
       setTimeout(() => {
         fetchNameHistory();
       }, 2000);
-    } catch (error: any) {
-      showError(error.message || "Failed to update NFT name");
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : "Failed to update NFT name");
     }
   };
   
@@ -249,8 +264,8 @@ export default function NFTDetailPage({
       setTimeout(() => {
         window.location.reload();
       }, 2000);
-    } catch (error: any) {
-      showError(error.message || "Failed to transfer NFT");
+    } catch (error: unknown) {
+      showError(error instanceof Error ? error.message : "Failed to transfer NFT");
     }
   };
 
@@ -754,7 +769,7 @@ export default function NFTDetailPage({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-text-muted/10">
-                          {nameHistory.map((entry: any, index: number) => (
+                          {nameHistory.map((entry: NameHistoryEntry, index: number) => (
                             <tr key={index} className="hover:bg-background-elevated/50 transition-colors">
                               <td className="py-3 px-2 text-sm text-text-secondary">
                                 {entry.Tx?.DateTime 
@@ -766,10 +781,10 @@ export default function NFTDetailPage({
                               </td>
                               <td className="py-3 px-2">
                                 <Link
-                                  href={`/account?address=${entry.OwnerAddr}`}
+                                  href={`/account?address=${entry.OwnerAddr || ''}`}
                                   className="text-sm font-mono text-primary hover:text-primary/80 transition-colors"
                                 >
-                                  {shortenAddress(entry.OwnerAddr, 6)}
+                                  {entry.OwnerAddr ? shortenAddress(entry.OwnerAddr, 6) : 'N/A'}
                                 </Link>
                               </td>
                               <td className="py-3 px-2 text-right">

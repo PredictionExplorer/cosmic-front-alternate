@@ -225,7 +225,7 @@ export default function StakePage() {
 
     try {
       // Fetch staked tokens and staking actions
-      const [stakedTokens, rwalkActions] = await Promise.all([
+      const [stakedTokens, _rwalkActions] = await Promise.all([
         api.getStakedRWLKTokensByUser(address),
         api.getStakingRWLKActionsByUser(address),
       ]);
@@ -271,7 +271,7 @@ export default function StakePage() {
       setRwlkLoading(true);
       try {
         // Fetch staked tokens and staking actions
-        const [stakedTokens, rwalkActions] = await Promise.all([
+        const [stakedTokens, _rwalkActions] = await Promise.all([
           api.getStakedRWLKTokensByUser(address),
           api.getStakingRWLKActionsByUser(address),
         ]);

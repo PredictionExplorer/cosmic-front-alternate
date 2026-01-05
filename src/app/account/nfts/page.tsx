@@ -55,7 +55,7 @@ export default function MyNFTsPage() {
   const [stakedNFTs, setStakedNFTs] = useState<NFTData[]>([]);
   const [stakedTokenIds, setStakedTokenIds] = useState<number[]>([]);
   const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
-  const [unstakingActionId, setUnstakingActionId] = useState<number | null>(null);
+  const [_unstakingActionId, _setUnstakingActionId] = useState<number | null>(null);
 
   // Staking hooks
   const nftContract = useCosmicSignatureNFT();
@@ -173,7 +173,7 @@ export default function MyNFTsPage() {
   };
 
   // Handle unstaking action
-  const handleUnstake = async (actionId: number, tokenId: number) => {
+  const _handleUnstake = async (actionId: number, tokenId: number) => {
     try {
       if (!stakingContract) {
         showError(
@@ -182,7 +182,7 @@ export default function MyNFTsPage() {
         return;
       }
 
-      setUnstakingActionId(actionId);
+      _setUnstakingActionId(actionId);
 
       await stakingContract.write.unstake(BigInt(actionId));
       showSuccess(
@@ -208,7 +208,7 @@ export default function MyNFTsPage() {
         error instanceof Error ? error.message : "Failed to unstake NFT"
       );
     } finally {
-      setUnstakingActionId(null);
+      _setUnstakingActionId(null);
     }
   };
 

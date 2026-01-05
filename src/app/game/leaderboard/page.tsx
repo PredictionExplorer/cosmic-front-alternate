@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Trophy, Medal } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { formatEth, shortenAddress } from "@/lib/utils";
 import api from "@/services/api";
 
@@ -15,6 +14,18 @@ interface LeaderboardEntry {
   ensName?: string;
   value: number;
   nftsWon?: number;
+}
+
+interface PrizeHistoryItem {
+  RoundNum?: number;
+  WinnerAddr?: string;
+  BeneficiaryAddr?: string;
+  Address?: string;
+}
+
+interface BidItem {
+  BidderAddr?: string;
+  BidPriceEth?: number;
 }
 
 export default function LeaderboardPage() {
@@ -73,11 +84,11 @@ export default function LeaderboardPage() {
             // Filter winners by current round from prize history
             const prizeHistory = await api.getClaimHistory();
             const currentRoundWinners = prizeHistory.filter(
-              (prize: any) => prize.RoundNum === currentRound
+              (prize: PrizeHistoryItem) => prize.RoundNum === currentRound
             );
             
             // Count prizes per winner in current round
-            const winnerCounts = currentRoundWinners.reduce((acc: Record<string, number>, prize: any) => {
+            const winnerCounts = currentRoundWinners.reduce((acc: Record<string, number>, prize: PrizeHistoryItem) => {
               const addr = prize.WinnerAddr || prize.BeneficiaryAddr || prize.Address;
               if (addr) {
                 acc[addr] = (acc[addr] || 0) + 1;
@@ -117,7 +128,7 @@ export default function LeaderboardPage() {
           }
         } else if (category === "bids") {
           // Count bids per bidder
-          const bidderCounts = bids.reduce((acc: Record<string, number>, bid: any) => {
+          const bidderCounts = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
             const addr = bid.BidderAddr;
             if (addr) {
               acc[addr] = (acc[addr] || 0) + 1;
@@ -143,7 +154,7 @@ export default function LeaderboardPage() {
             }));
         } else {
           // Calculate total spending per bidder
-          const bidderSpending = bids.reduce((acc: Record<string, number>, bid: any) => {
+          const bidderSpending = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
             const addr = bid.BidderAddr;
             const amount = bid.BidPriceEth || 0;
             if (addr) {
