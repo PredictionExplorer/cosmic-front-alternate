@@ -180,11 +180,19 @@ export default function PlayPage() {
     timeRemaining === 0 &&
     Date.now() / 1000 > applyOffset(Number(mainPrizeTime)) + dashboardData.TimeoutClaimPrize;
 
+  // Check if there are any bids
+  const numBids = (dashboardData?.CurNumBids as number) || 0;
+  const hasBids =
+    numBids > 0 &&
+    lastBidder &&
+    lastBidder !== "0x0000000000000000000000000000000000000000" &&
+    (lastBidder as string).toLowerCase() !== "0x0000000000000000000000000000000000000000";
+
   // Check if user can claim main prize
   const canClaimMainPrize =
     isConnected &&
     address &&
-    lastBidder &&
+    hasBids &&
     timeRemaining === 0 &&
     (address.toLowerCase() === (lastBidder as string).toLowerCase() || claimTimeoutExpired);
 
