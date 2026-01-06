@@ -536,12 +536,12 @@ export default function PlayPage() {
               <div className="inline-flex items-center space-x-2 mb-4">
                 <Trophy size={32} className="text-primary animate-pulse" />
                 <h2 className="text-3xl font-serif font-bold text-primary">
-                  You Won the Main Prize!
+                  Claim Your Main Prize!
                 </h2>
                 <Trophy size={32} className="text-primary animate-pulse" />
               </div>
               <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
-                Congratulations! The countdown has ended and you are the last
+                The countdown has ended and you are the last
                 bidder. Claim your prize now to receive{" "}
                 <span className="text-primary font-semibold">
                   {(currentRound.prizePool * 0.25).toFixed(4)} ETH
