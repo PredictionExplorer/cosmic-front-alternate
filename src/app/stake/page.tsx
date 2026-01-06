@@ -57,10 +57,16 @@ function getNFTImageUrl(tokenId: number): string {
   return `/nfts/${tokenId}.jpg`;
 }
 
+/**
+ * Placeholder image for failed loads
+ */
+const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
+
 export default function StakePage() {
   const { address, isConnected } = useAccount();
   const { dashboardData: apiDashboardData } = useApiData();
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
   const [stakedTokens, setStakedTokens] = useState<StakedCSTToken[]>([]);
   const [loading, setLoading] = useState(false);
@@ -132,6 +138,16 @@ export default function StakePage() {
   const rwlkNftContract = useRandomWalkNFT();
   const stakingContract = useStakingWalletCST();
   const rwlkStakingContract = useStakingWalletRWLK();
+
+  // Handle image load errors
+  const handleImageError = (tokenId: number) => {
+    setFailedImages((prev) => new Set(prev).add(tokenId));
+  };
+
+  // Get image URL with fallback for failed images
+  const getImageUrl = (tokenId: number) => {
+    return failedImages.has(tokenId) ? PLACEHOLDER_IMAGE : getNFTImageUrl(tokenId);
+  };
 
   // Fetch dashboard data for global staking stats
   useEffect(() => {
@@ -1287,13 +1303,14 @@ export default function StakePage() {
                           >
                       <div className="aspect-square bg-background-elevated relative">
                         <Image
-                                src={getNFTImageUrl(token.TokenId)}
+                                src={getImageUrl(token.TokenId)}
                                 alt={
                                   token.TokenName || `Token #${token.TokenId}`
                                 }
                           fill
                           className="object-cover"
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                onError={() => handleImageError(token.TokenId)}
                         />
                               <div className="absolute top-3 left-3 flex items-center gap-2">
                                 <Badge variant="default">
@@ -1604,7 +1621,7 @@ export default function StakePage() {
                                 <div className="flex items-center space-x-3">
                                   <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
                                     <Image
-                                        src={getNFTImageUrl(token.TokenId)}
+                                        src={getImageUrl(token.TokenId)}
                                         alt={
                                           token.TokenName ||
                                           `Token #${token.TokenId}`
@@ -1612,6 +1629,7 @@ export default function StakePage() {
                                       fill
                                       className="object-cover"
                                       sizes="48px"
+                                        onError={() => handleImageError(token.TokenId)}
                                     />
                                   </div>
                                   <div>
@@ -2070,7 +2088,7 @@ export default function StakePage() {
                             >
                               <div className="aspect-square bg-background-elevated relative">
                                 <Image
-                                  src={getNFTImageUrl(token.TokenId)}
+                                  src={getImageUrl(token.TokenId)}
                                   alt={
                                     token.TokenName ||
                                     `Random Walk #${token.TokenId}`
@@ -2078,6 +2096,7 @@ export default function StakePage() {
                                   fill
                                   className="object-cover"
                                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                  onError={() => handleImageError(token.TokenId)}
                                 />
                                 <div className="absolute top-3 left-3 flex items-center gap-2">
                                   <Badge variant="default">
@@ -2420,7 +2439,7 @@ export default function StakePage() {
                                     <div className="flex items-center space-x-3">
                                       <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
                                         <Image
-                                          src={getNFTImageUrl(
+                                          src={getImageUrl(
                                             stakedToken.TokenId
                                           )}
                                           alt={
@@ -2430,6 +2449,7 @@ export default function StakePage() {
                                           fill
                                           className="object-cover"
                                           sizes="48px"
+                                          onError={() => handleImageError(stakedToken.TokenId)}
                                         />
                                       </div>
                                       <div>

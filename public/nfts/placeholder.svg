@@ -1,0 +1,16 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#1a1a1a"/>
+  
+  <!-- Question Mark Circle -->
+  <circle cx="100" cy="100" r="60" fill="#2a2a2a" stroke="#4a4a4a" stroke-width="2"/>
+  
+  <!-- Question Mark -->
+  <path d="M100 70C105.523 70 110 74.477 110 80C110 83.5 108 86 105 88L100 92V98" stroke="#888888" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <circle cx="100" cy="110" r="4" fill="#888888"/>
+  
+  <!-- "NFT" Text at bottom -->
+  <text x="100" y="150" font-family="Arial, sans-serif" font-size="16" fill="#666666" text-anchor="middle">NFT Image</text>
+  <text x="100" y="168" font-family="Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Not Available</text>
+</svg>
+
