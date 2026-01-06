@@ -346,17 +346,28 @@ export default function StakePage() {
       const handleSuccess = async () => {
         await refreshTokenData();
 
-        // Show success message
+        // Handle success messages based on what operation was performed
         if (isStakingMultiple && selectedTokenIds.size > 0) {
+          // Staking multiple NFTs
           showSuccess(
             `Successfully staked ${selectedTokenIds.size} NFT${
               selectedTokenIds.size > 1 ? "s" : ""
             }!`
           );
           setSelectedTokenIds(new Set());
+        } else if (isStakingMultiple && selectedStakedIds.size > 0) {
+          // Unstaking multiple NFTs
+          showSuccess(
+            `Successfully unstaked ${selectedStakedIds.size} NFT${
+              selectedStakedIds.size > 1 ? "s" : ""
+            } and claimed rewards!`
+          );
+          setSelectedStakedIds(new Set());
         } else if (stakingTokenId) {
+          // Staking single NFT
           showSuccess(`Successfully staked token #${stakingTokenId}!`);
         } else if (unstakingActionId) {
+          // Unstaking single NFT
           showSuccess(`Successfully unstaked NFT and claimed rewards!`);
         }
 
@@ -378,6 +389,7 @@ export default function StakePage() {
     unstakingActionId,
     refreshTokenData,
     selectedTokenIds.size,
+    selectedStakedIds.size,
     showSuccess,
   ]);
 
