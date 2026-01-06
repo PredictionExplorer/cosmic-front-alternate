@@ -173,13 +173,20 @@ export default function PlayPage() {
     }
   }, [mainPrizeTime, applyOffset]);
 
+  // Check if claim timeout has expired
+  const claimTimeoutExpired =
+    mainPrizeTime &&
+    dashboardData?.TimeoutClaimPrize &&
+    timeRemaining === 0 &&
+    Date.now() / 1000 > applyOffset(Number(mainPrizeTime)) + dashboardData.TimeoutClaimPrize;
+
   // Check if user can claim main prize
   const canClaimMainPrize =
     isConnected &&
     address &&
     lastBidder &&
-    address.toLowerCase() === (lastBidder as string).toLowerCase() &&
-    timeRemaining === 0;
+    timeRemaining === 0 &&
+    (address.toLowerCase() === (lastBidder as string).toLowerCase() || claimTimeoutExpired);
 
   // Format prices
   const ethBidPrice = ethBidPriceRaw
@@ -541,8 +548,17 @@ export default function PlayPage() {
                 <Trophy size={32} className="text-primary animate-pulse" />
               </div>
               <p className="text-text-secondary mb-6 max-w-2xl mx-auto">
-                The countdown has ended and you are the last
-                bidder. Claim your prize now to receive{" "}
+                {claimTimeoutExpired ? (
+                  <>
+                    The winner didn&apos;t claim within 24 hours! Claim the prize
+                    now to receive{" "}
+                  </>
+                ) : (
+                  <>
+                    The countdown has ended and you are the last bidder. Claim
+                    your prize now to receive{" "}
+                  </>
+                )}
                 <span className="text-primary font-semibold">
                   {(currentRound.prizePool * 0.25).toFixed(4)} ETH
                 </span>{" "}
@@ -567,10 +583,12 @@ export default function PlayPage() {
                   Claim Main Prize
                 </Button>
               )}
-              <p className="text-xs text-text-muted mt-4">
-                ⚠️ Important: You have 1 day to claim. After that, anyone can
-                claim and receive your prize.
-              </p>
+              {!claimTimeoutExpired && (
+                <p className="text-xs text-text-muted mt-4">
+                  ⚠️ Important: You have 1 day to claim. After that, anyone can
+                  claim and receive your prize.
+                </p>
+              )}
             </motion.div>
           </Container>
         </section>
