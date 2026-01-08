@@ -241,10 +241,22 @@ export default function StakePage() {
 
     try {
       // Fetch staked tokens and staking actions
-      const [stakedTokens, _rwalkActions] = await Promise.all([
+      const [stakedTokensRaw, _rwalkActions] = await Promise.all([
         api.getStakedRWLKTokensByUser(address),
         api.getStakingRWLKActionsByUser(address),
       ]);
+
+      // Transform API response to match StakedRWLKToken interface
+      // API returns StakedTokenId, we need TokenId
+      const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: any) => ({
+        TokenId: token.StakedTokenId ?? token.TokenId,
+        TokenName: token.TokenName,
+        StakeActionId: token.StakeActionId,
+        StakeTimeStamp: token.StakeTimeStamp,
+        StakeDateTime: token.StakeDateTime,
+        UserAddr: token.UserAddr,
+        UserAid: token.UserAid,
+      }));
 
       // Convert BigInt array to number array and sort
       const ownedTokenIds = (rwlkTokenIds as bigint[])
@@ -287,10 +299,22 @@ export default function StakePage() {
       setRwlkLoading(true);
       try {
         // Fetch staked tokens and staking actions
-        const [stakedTokens, _rwalkActions] = await Promise.all([
+        const [stakedTokensRaw, _rwalkActions] = await Promise.all([
           api.getStakedRWLKTokensByUser(address),
           api.getStakingRWLKActionsByUser(address),
         ]);
+
+        // Transform API response to match StakedRWLKToken interface
+        // API returns StakedTokenId, we need TokenId
+        const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: any) => ({
+          TokenId: token.StakedTokenId ?? token.TokenId,
+          TokenName: token.TokenName,
+          StakeActionId: token.StakeActionId,
+          StakeTimeStamp: token.StakeTimeStamp,
+          StakeDateTime: token.StakeDateTime,
+          UserAddr: token.UserAddr,
+          UserAid: token.UserAid,
+        }));
 
         // Convert BigInt array to number array and sort
         const ownedTokenIds = (rwlkTokenIds as bigint[])
@@ -1018,21 +1042,23 @@ export default function StakePage() {
 
       {activeTab === "cosmic" && (
         <>
-          {/* Overview Stats */}
-          <section className="py-12 relative">
-            {/* Floating Info Card - Positioned over stats (hidden on mobile) */}
-            <div className="hidden lg:block absolute top-12 left-8 z-10 pointer-events-none">
-              <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
-                <h1 className="text-2xl font-serif font-semibold text-text-primary mb-2">
+          {/* Staking Header */}
+          <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
+            <Container>
+              <div className="max-w-3xl">
+                <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
                   Stake NFTs,
                   <span className="text-gradient block">Earn Rewards</span>
                 </h1>
-                <p className="text-sm text-text-secondary leading-relaxed">
+                <p className="text-lg text-text-secondary leading-relaxed">
                   Lock your NFTs to earn a share of {stakingPercentage}% of each round&apos;s prize pool. Withdraw anytime with accumulated rewards.
                 </p>
-              </Card>
-            </div>
+              </div>
+            </Container>
+          </section>
 
+          {/* Overview Stats */}
+          <section className="py-12">
             <Container>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
@@ -1800,21 +1826,23 @@ export default function StakePage() {
 
       {activeTab === "randomwalk" && (
         <>
-          {/* Random Walk NFT Staking */}
-          <section className="py-12 relative">
-            {/* Floating Info Card - Positioned over content (hidden on mobile) */}
-            <div className="hidden lg:block absolute top-12 left-8 z-10 pointer-events-none">
-              <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
-                <h2 className="text-2xl font-serif font-semibold text-text-primary mb-2">
+          {/* Random Walk Header */}
+          <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
+            <Container>
+              <div className="max-w-3xl">
+                <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
                   Random Walk
                   <span className="text-gradient block">NFT Staking</span>
-                </h2>
-                <p className="text-sm text-text-secondary leading-relaxed">
+                </h1>
+                <p className="text-lg text-text-secondary leading-relaxed">
                   Stake Random Walk NFTs to become eligible for raffle prize drawings each round.
                 </p>
-              </Card>
-            </div>
+              </div>
+            </Container>
+          </section>
 
+          {/* Random Walk NFT Staking */}
+          <section className="py-12">
             <Container size="lg">
               {/* Empty State - No Random Walk NFTs */}
               {!rwlkLoading && isConnected && availableRWLKTokens.length === 0 && stakedRWLKTokens.length === 0 && (
