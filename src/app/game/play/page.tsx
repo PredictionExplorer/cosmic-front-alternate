@@ -1082,7 +1082,7 @@ export default function PlayPage() {
                       <p className="text-sm text-text-secondary">
                         Transaction:{" "}
                         <a
-                          href={`http://161.129.67.42:22945/tx/${transactionHash}`}
+                          href={`https://arbiscan.io/tx/${transactionHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline font-mono"
