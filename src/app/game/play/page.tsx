@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trophy, AlertCircle, Loader2, ChevronDown } from "lucide-react";
+import { Trophy, AlertCircle, Loader2, ChevronDown, X } from "lucide-react";
 import { useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { Container } from "@/components/ui/Container";
@@ -41,6 +41,7 @@ export default function PlayPage() {
   >(null); // Track last action
   const [lastBidMessage, setLastBidMessage] = useState<string>("");
   const [shouldRefreshNfts, setShouldRefreshNfts] = useState(false); // Track if NFTs should be refreshed
+  const [showHelpCard, setShowHelpCard] = useState(true); // Track if help card is visible
 
   // Advanced Options State
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -1244,31 +1245,40 @@ export default function PlayPage() {
               </Card>
 
               {/* Help Card */}
-              <Card glass className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle
-                      size={20}
-                      className="text-primary flex-shrink-0 mt-0.5"
-                    />
-                    <div className="text-sm text-text-secondary">
-                      <p className="font-medium text-text-primary mb-1">
-                        New to the game?
-                      </p>
-                      <p>
-                        Read our{" "}
-                        <a
-                          href="/game/how-it-works"
-                          className="text-primary hover:underline"
-                        >
-                          comprehensive guide
-                        </a>{" "}
-                        to understand bidding strategies and prize mechanics.
-                      </p>
+              {showHelpCard && (
+                <Card glass className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-4 relative">
+                    <button
+                      onClick={() => setShowHelpCard(false)}
+                      className="absolute top-3 right-3 text-text-muted hover:text-text-primary transition-colors"
+                      aria-label="Close"
+                    >
+                      <X size={18} />
+                    </button>
+                    <div className="flex items-start space-x-3 pr-6">
+                      <AlertCircle
+                        size={20}
+                        className="text-primary flex-shrink-0 mt-0.5"
+                      />
+                      <div className="text-sm text-text-secondary">
+                        <p className="font-medium text-text-primary mb-1">
+                          New to the game?
+                        </p>
+                        <p>
+                          Read our{" "}
+                          <a
+                            href="/game/how-it-works"
+                            className="text-primary hover:underline"
+                          >
+                            comprehensive guide
+                          </a>{" "}
+                          to understand bidding strategies and prize mechanics.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </Container>
