@@ -106,6 +106,20 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen">
+      {/* Gallery Header */}
+      <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
+        <Container>
+          <div className="max-w-3xl">
+            <h1 className="text-4xl font-serif font-bold text-gradient mb-4">
+              The Gallery
+            </h1>
+            <p className="text-lg text-text-secondary leading-relaxed">
+              Explore the complete collection of Cosmic Signature NFTs. Each piece is unique generative art.
+            </p>
+          </div>
+        </Container>
+      </section>
+
       {/* Compact Filters and Controls Bar */}
       <section className="sticky top-[72px] lg:top-[88px] z-40 bg-background/95 backdrop-blur-xl border-b border-text-muted/10">
         <Container>
@@ -170,19 +184,7 @@ export default function GalleryPage() {
       </section>
 
       {/* NFT Grid/List */}
-      <section className="section-padding relative" id="nft-gallery-section">
-        {/* Floating Info Card - Positioned over NFT grid (hidden on mobile) */}
-        <div className="hidden lg:block absolute top-8 left-8 z-10 pointer-events-none">
-          <Card glass className="w-80 p-6 shadow-2xl border-2 border-text-muted/20 backdrop-blur-md">
-            <h1 className="text-2xl font-serif font-semibold text-text-primary mb-2">
-              The Gallery
-            </h1>
-            <p className="text-sm text-text-secondary leading-relaxed">
-              Explore the complete collection of Cosmic Signature NFTs. Each piece is unique generative art.
-            </p>
-          </Card>
-        </div>
-
+      <section className="section-padding" id="nft-gallery-section">
         <Container>
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
