@@ -210,7 +210,7 @@ export default function StakePage() {
     );
 
   // Get user's Random Walk NFT token IDs
-  const { data: rwlkTokenIds } = rwlkNftContract.read.useWalletOfOwner(
+  const { data: rwlkTokenIds, refetch: refetchRWLKWallet } = rwlkNftContract.read.useWalletOfOwner(
     address as `0x${string}` | undefined
   );
 
@@ -240,6 +240,9 @@ export default function StakePage() {
     if (!address || !isConnected || !rwlkTokenIds) return;
 
     try {
+      // Refetch wallet data first
+      await refetchRWLKWallet();
+      
       // Fetch staked tokens and staking actions
       const [stakedTokensRaw, _rwalkActions] = await Promise.all([
         api.getStakedRWLKTokensByUser(address),
@@ -284,7 +287,7 @@ export default function StakePage() {
     } catch (error) {
       console.error("Failed to refresh Random Walk token data:", error);
     }
-  }, [address, isConnected, rwlkTokenIds]);
+  }, [address, isConnected, rwlkTokenIds, refetchRWLKWallet]);
 
   // Fetch user's Random Walk NFTs
   useEffect(() => {
@@ -887,6 +890,8 @@ export default function StakePage() {
     ) {
       // Transaction is fully confirmed, refresh data and show success
       const handleSuccess = async () => {
+        // Add delay to give API time to sync with blockchain
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await refreshRWLKTokenData();
 
         // Handle success messages based on what operation was performed
