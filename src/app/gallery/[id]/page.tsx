@@ -61,6 +61,8 @@ interface NameHistoryEntry {
   TokenName?: string;
   NewTokenName?: string;
   OwnerAddr?: string;
+  ChangedBy?: string;
+  ChangedByAId?: number;
 }
 
 export default function NFTDetailPage({
@@ -815,12 +817,23 @@ export default function NFTDetailPage({
                                 {entry.TokenName || "(unnamed)"}
                               </td>
                               <td className="py-3 px-2">
-                                <Link
-                                  href={`/account?address=${entry.OwnerAddr || ''}`}
-                                  className="text-sm font-mono text-primary hover:text-primary/80 transition-colors"
-                                >
-                                  {entry.OwnerAddr ? shortenAddress(entry.OwnerAddr, 6) : 'N/A'}
-                                </Link>
+                                {entry.ChangedBy ? (
+                                  <Link
+                                    href={`/account?address=${entry.ChangedBy}`}
+                                    className="text-sm font-mono text-primary hover:text-primary/80 transition-colors"
+                                  >
+                                    {shortenAddress(entry.ChangedBy, 6)}
+                                  </Link>
+                                ) : entry.OwnerAddr ? (
+                                  <Link
+                                    href={`/account?address=${entry.OwnerAddr}`}
+                                    className="text-sm font-mono text-primary hover:text-primary/80 transition-colors"
+                                  >
+                                    {shortenAddress(entry.OwnerAddr, 6)}
+                                  </Link>
+                                ) : (
+                                  <span className="text-sm text-text-muted">N/A</span>
+                                )}
                               </td>
                               <td className="py-3 px-2 text-right">
                                 {entry.Tx?.TxHash && (
