@@ -601,19 +601,21 @@ export default function NFTDetailPage({
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">
-              {nft.Staked || nft.WasUnstaked ? (
-                <Button
-                  className="flex-1"
-                  size="lg"
-                  disabled
-                  title="This NFT has already been staked and cannot be staked again"
-                >
-                  Stake NFT
-                </Button>
-              ) : (
-                <Button asChild className="flex-1" size="lg">
-                  <Link href="/stake">Stake NFT</Link>
-                </Button>
+              {isOwner && (
+                nft.Staked || nft.WasUnstaked ? (
+                  <Button
+                    className="flex-1"
+                    size="lg"
+                    disabled
+                    title="This NFT has already been staked and cannot be staked again"
+                  >
+                    Stake NFT
+                  </Button>
+                ) : (
+                  <Button asChild className="flex-1" size="lg">
+                    <Link href="/stake">Stake NFT</Link>
+                  </Button>
+                )
               )}
               <Button
                 variant="outline"
