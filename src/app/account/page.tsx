@@ -353,7 +353,7 @@ function AccountPageContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard
               label="Total NFTs Won"
-              value={userInfo.TotalCSTokensWon}
+              value={userInfo.RaffleNFTsCount + userInfo.RewardNFTsCount}
               icon={Gem}
             />
             <StatCard
