@@ -149,12 +149,12 @@ export default function ContractsPage() {
 			copyable: true,
 		},
 		{
-			name: 'Cosmic Signature Token Address',
+			name: 'Cosmic Signature (ERC20) Token Address',
 			value: data?.ContractAddrs.CosmicTokenAddr,
 			copyable: true,
 		},
 		{
-			name: 'Cosmic Signature Address',
+			name: 'Cosmic Signature (ERC721) Address',
 			value: data?.ContractAddrs.CosmicSignatureAddr,
 			copyable: true,
 		},
