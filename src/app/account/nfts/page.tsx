@@ -55,7 +55,6 @@ export default function MyNFTsPage() {
   const [stakedNFTs, setStakedNFTs] = useState<NFTData[]>([]);
   const [stakedTokenIds, setStakedTokenIds] = useState<number[]>([]);
   const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
-  const [_unstakingActionId, _setUnstakingActionId] = useState<number | null>(null);
 
   // Staking hooks
   const nftContract = useCosmicSignatureNFT();
@@ -172,45 +171,6 @@ export default function MyNFTsPage() {
     }
   };
 
-  // Handle unstaking action
-  const _handleUnstake = async (actionId: number, tokenId: number) => {
-    try {
-      if (!stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      _setUnstakingActionId(actionId);
-
-      await stakingContract.write.unstake(BigInt(actionId));
-      showSuccess(
-        `Successfully unstaked NFT #${tokenId}! It may take a moment to update.`
-      );
-
-      // Refresh NFT list
-      setTimeout(() => {
-        if (address) {
-          Promise.all([
-            api.getCSTTokensByUser(address),
-            api.getStakedCSTTokensByUser(address),
-          ]).then(([userNFTs, stakedTokens]) => {
-            setNfts(userNFTs);
-            setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
-            setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
-          });
-        }
-      }, 2000);
-    } catch (error: unknown) {
-      console.error("Unstaking error:", error);
-      showError(
-        error instanceof Error ? error.message : "Failed to unstake NFT"
-      );
-    } finally {
-      _setUnstakingActionId(null);
-    }
-  };
 
   // Transform API data to component format
   const transformNFT = (nft: NFTData) => ({

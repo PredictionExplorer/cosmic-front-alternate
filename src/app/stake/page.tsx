@@ -243,15 +243,12 @@ export default function StakePage() {
       // Refetch wallet data first
       await refetchRWLKWallet();
       
-      // Fetch staked tokens and staking actions
-      const [stakedTokensRaw, _rwalkActions] = await Promise.all([
-        api.getStakedRWLKTokensByUser(address),
-        api.getStakingRWLKActionsByUser(address),
-      ]);
+      // Fetch staked tokens
+      const stakedTokensRaw = await api.getStakedRWLKTokensByUser(address);
 
       // Transform API response to match StakedRWLKToken interface
       // API returns StakedTokenId, we need TokenId
-      const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: any) => ({
+      const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
         TokenId: token.StakedTokenId ?? token.TokenId,
         TokenName: token.TokenName,
         StakeActionId: token.StakeActionId,
@@ -301,15 +298,12 @@ export default function StakePage() {
     const fetchRWLKTokens = async () => {
       setRwlkLoading(true);
       try {
-        // Fetch staked tokens and staking actions
-        const [stakedTokensRaw, _rwalkActions] = await Promise.all([
-          api.getStakedRWLKTokensByUser(address),
-          api.getStakingRWLKActionsByUser(address),
-        ]);
+        // Fetch staked tokens
+        const stakedTokensRaw = await api.getStakedRWLKTokensByUser(address);
 
         // Transform API response to match StakedRWLKToken interface
         // API returns StakedTokenId, we need TokenId
-        const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: any) => ({
+        const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
           TokenId: token.StakedTokenId ?? token.TokenId,
           TokenName: token.TokenName,
           StakeActionId: token.StakeActionId,
