@@ -88,6 +88,7 @@ export default function NFTDetailPage({
   // Transfer state
   const [transferAddress, setTransferAddress] = useState("");
   const [transferError, setTransferError] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
   
   // Name history state
   const [nameHistory, setNameHistory] = useState<NameHistoryEntry[]>([]);
@@ -162,6 +163,27 @@ export default function NFTDetailPage({
       refetchData();
     }
   }, [nftContract.status.isSuccess, id, isEditingName]);
+
+  // Refetch NFT data when transfer transaction is successful
+  useEffect(() => {
+    if (nftContract.status.isSuccess && isTransferring) {
+      const refetchData = async () => {
+        try {
+          // Wait a bit longer for the API to update after transfer
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          const tokenInfo = await api.getCSTInfo(parseInt(id));
+          setNft(tokenInfo);
+          setIsTransferring(false);
+          setTransferAddress("");
+          showSuccess("NFT transferred successfully! Owner information updated.");
+        } catch (err) {
+          console.error("Failed to refetch NFT data:", err);
+          showError("Transfer completed but failed to refresh data. Please reload the page.");
+        }
+      };
+      refetchData();
+    }
+  }, [nftContract.status.isSuccess, id, isTransferring, showSuccess, showError]);
 
   if (loading) {
     return (
@@ -251,6 +273,7 @@ export default function NFTDetailPage({
     }
     
     setTransferError("");
+    setIsTransferring(true);
     
     try {
       await nftContract.write.transfer(
@@ -258,14 +281,10 @@ export default function NFTDetailPage({
         transferAddress as `0x${string}`,
         BigInt(nft.TokenId)
       );
-      showSuccess("NFT transferred successfully!");
-      setTransferAddress("");
-      // Refetch NFT data after transfer
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Success message will be shown after data is refetched in useEffect
     } catch (error: unknown) {
       showError(error instanceof Error ? error.message : "Failed to transfer NFT");
+      setIsTransferring(false);
     }
   };
 
@@ -565,7 +584,7 @@ export default function NFTDetailPage({
                         }}
                         placeholder="0x..."
                         className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
-                        disabled={nftContract.status.isPending}
+                        disabled={nftContract.status.isPending || nftContract.status.isConfirming || isTransferring}
                       />
                       {transferError && (
                         <p className="text-xs text-status-error mt-1">{transferError}</p>
@@ -573,14 +592,19 @@ export default function NFTDetailPage({
                     </div>
                     <Button
                       onClick={handleTransfer}
-                      disabled={!transferAddress || nftContract.status.isPending}
+                      disabled={!transferAddress || nftContract.status.isPending || nftContract.status.isConfirming || isTransferring}
                       className="w-full"
                       size="lg"
                     >
                       {nftContract.status.isPending ? (
                         <>
                           <Loader2 className="mr-2 animate-spin" size={20} />
-                          Transferring...
+                          Waiting for confirmation...
+                        </>
+                      ) : nftContract.status.isConfirming || isTransferring ? (
+                        <>
+                          <Loader2 className="mr-2 animate-spin" size={20} />
+                          {nftContract.status.isConfirming ? "Confirming transaction..." : "Updating owner info..."}
                         </>
                       ) : (
                         <>
@@ -589,6 +613,15 @@ export default function NFTDetailPage({
                         </>
                       )}
                     </Button>
+                    {nftContract.status.isPending && (
+                      <p className="text-xs text-status-warning">Waiting for wallet confirmation...</p>
+                    )}
+                    {nftContract.status.isConfirming && (
+                      <p className="text-xs text-status-warning">Transaction confirming on blockchain...</p>
+                    )}
+                    {isTransferring && !nftContract.status.isPending && !nftContract.status.isConfirming && (
+                      <p className="text-xs text-status-info">Transfer successful! Refreshing owner information...</p>
+                    )}
                     {nftContract.status.error && (
                       <p className="text-xs text-status-error">
                         Error: {nftContract.status.error.message}
