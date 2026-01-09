@@ -154,33 +154,69 @@ export default function LeaderboardPage() {
               rank: index + 1,
             }));
         } else {
-          // Calculate total spending per bidder
-          const bidderSpending = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
-            const addr = bid.BidderAddr;
-            const amount = bid.BidPriceEth || 0;
-            if (addr) {
-              acc[addr] = (acc[addr] || 0) + amount;
+          // Total Spending category
+          if (timeframe === "current" && currentRound > 0) {
+            // For current round, calculate from bids
+            const bidderSpending = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
+              const addr = bid.BidderAddr;
+              const amount = bid.BidPriceEth || 0;
+              if (addr) {
+                acc[addr] = (acc[addr] || 0) + amount;
+              }
+              return acc;
+            }, {});
+            
+            console.log('Current round spending:', Object.keys(bidderSpending).length, 'unique spenders');
+            
+            // Convert to leaderboard format
+            data = Object.entries(bidderSpending)
+              .map(([address, total]) => ({
+                rank: 0,
+                address,
+                value: total as number,
+                nftsWon: 0,
+              }))
+              .sort((a, b) => b.value - a.value)
+              .slice(0, 50)
+              .map((entry, index) => ({
+                ...entry,
+                rank: index + 1,
+              }));
+          } else {
+            // All-time spending - use WinnerStats.TotalSpentEth from winners data
+            const winners = await api.getUniqueWinners();
+            
+            // Filter winners with spending data and sort by TotalSpentEth
+            const sorted = winners
+              .filter((winner: Record<string, unknown>) => {
+                const stats = winner.WinnerStats as Record<string, unknown> | undefined;
+                return stats && (stats.TotalSpentEth as number) > 0;
+              })
+              .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+                const aStats = a.WinnerStats as Record<string, unknown>;
+                const bStats = b.WinnerStats as Record<string, unknown>;
+                return ((bStats.TotalSpentEth as number) || 0) - ((aStats.TotalSpentEth as number) || 0);
+              });
+            
+            console.log('All-time spenders:', sorted.length, 'total');
+            if (sorted.length > 0) {
+              const topSpender = sorted[0];
+              const topStats = topSpender.WinnerStats as Record<string, unknown>;
+              console.log('Top spender:', topSpender.WinnerAddr, 'spent:', topStats.TotalSpentEth);
             }
-            return acc;
-          }, {});
-          
-          console.log('Bidder spending:', Object.keys(bidderSpending).length, 'unique spenders');
-          console.log('Top 3 spenders:', Object.entries(bidderSpending).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 3));
-          
-          // Convert to leaderboard format
-          data = Object.entries(bidderSpending)
-            .map(([address, total]) => ({
-              rank: 0,
-              address,
-              value: total as number,
-              nftsWon: 0,
-            }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 50)
-            .map((entry, index) => ({
-              ...entry,
-              rank: index + 1,
-            }));
+            
+            data = sorted
+              .slice(0, 50)
+              .map((winner: Record<string, unknown>, index: number) => {
+                const stats = winner.WinnerStats as Record<string, unknown>;
+                return {
+                  rank: index + 1,
+                  address: (winner.WinnerAddr as string) || "0x0",
+                  value: (stats.TotalSpentEth as number) || 0,
+                  nftsWon: 0,
+                };
+              });
+          }
         }
 
         console.log('Final leaderboard data:', data.length, data.slice(0, 3));
