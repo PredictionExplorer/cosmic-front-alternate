@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Medal } from "lucide-react";
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { formatEth, shortenAddress } from "@/lib/utils";
@@ -323,10 +324,15 @@ export default function LeaderboardPage() {
                   <div className="font-mono text-sm text-text-secondary mb-2">
                     #2
                   </div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-                    {leaderboardData[1]?.ensName ||
-                      shortenAddress(leaderboardData[1]?.address || "0x0")}
-                  </h3>
+                  <Link 
+                    href={`/account?address=${leaderboardData[1]?.address}`}
+                    className="block"
+                  >
+                    <h3 className="font-serif text-xl font-semibold text-text-primary mb-1 hover:text-primary transition-colors cursor-pointer">
+                      {leaderboardData[1]?.ensName ||
+                        shortenAddress(leaderboardData[1]?.address || "0x0")}
+                    </h3>
+                  </Link>
                   <p className="font-mono text-2xl font-bold text-accent-platinum mb-2">
                     {category === "prizes"
                       ? leaderboardData[1]?.value || 0
@@ -359,10 +365,15 @@ export default function LeaderboardPage() {
                   <div className="font-mono text-sm text-text-secondary mb-2">
                     #1
                   </div>
-                  <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                    {leaderboardData[0]?.ensName ||
-                      shortenAddress(leaderboardData[0]?.address || "0x0")}
-                  </h3>
+                  <Link 
+                    href={`/account?address=${leaderboardData[0]?.address}`}
+                    className="block"
+                  >
+                    <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2 hover:text-primary transition-colors cursor-pointer">
+                      {leaderboardData[0]?.ensName ||
+                        shortenAddress(leaderboardData[0]?.address || "0x0")}
+                    </h3>
+                  </Link>
                   <p className="font-mono text-3xl font-bold text-primary mb-3">
                     {category === "prizes"
                       ? leaderboardData[0]?.value || 0
@@ -399,10 +410,15 @@ export default function LeaderboardPage() {
                   <div className="font-mono text-sm text-text-secondary mb-2">
                     #3
                   </div>
-                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-                    {leaderboardData[2]?.ensName ||
-                      shortenAddress(leaderboardData[2]?.address || "0x0")}
-                  </h3>
+                  <Link 
+                    href={`/account?address=${leaderboardData[2]?.address}`}
+                    className="block"
+                  >
+                    <h3 className="font-serif text-xl font-semibold text-text-primary mb-1 hover:text-primary transition-colors cursor-pointer">
+                      {leaderboardData[2]?.ensName ||
+                        shortenAddress(leaderboardData[2]?.address || "0x0")}
+                    </h3>
+                  </Link>
                   <p className="font-mono text-2xl font-bold text-status-warning mb-2">
                     {category === "prizes"
                       ? leaderboardData[2]?.value || 0
@@ -506,10 +522,13 @@ export default function LeaderboardPage() {
                               </div>
                             </td>
                             <td className="p-4">
-                              <p className="font-mono text-text-primary">
+                              <Link 
+                                href={`/account?address=${entry.address}`}
+                                className="font-mono text-text-primary hover:text-primary transition-colors"
+                              >
                                 {entry.ensName ||
                                   shortenAddress(entry.address, 6)}
-                              </p>
+                              </Link>
                             </td>
                             <td className="p-4 text-right">
                               <p className="font-mono font-semibold text-primary">
