@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X } from "lucide-react";
 import { useAccount } from "wagmi";
-import { parseEther } from "viem";
+import { parseEther, erc20Abi } from "viem";
+import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
+import { wagmiConfig } from "@/lib/web3/config";
+import { CONTRACTS } from "@/lib/web3/contracts";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -216,6 +219,54 @@ export default function PlayPage() {
     setSelectedNftId(nftId);
   };
 
+  // Helper function to check and approve ERC20 token allowance
+  const checkAndApproveERC20 = async (
+    tokenAddress: string,
+    amount: bigint
+  ): Promise<boolean> => {
+    if (!address) return false;
+
+    try {
+      // Check current allowance
+      const allowance = await readContract(wagmiConfig, {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [address, CONTRACTS.COSMIC_GAME],
+      });
+
+      // If allowance is sufficient, no need to approve
+      if (allowance >= amount) {
+        return true;
+      }
+
+      // Request approval
+      showInfo("Requesting token approval... Please confirm the transaction.");
+      
+      const hash = await writeContract(wagmiConfig, {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [CONTRACTS.COSMIC_GAME, amount],
+      });
+
+      showInfo("Approval transaction submitted. Waiting for confirmation...");
+
+      // Wait for approval transaction to be mined
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+
+      showSuccess("Token approval confirmed! Proceeding with bid...");
+      return true;
+    } catch (error) {
+      console.error("Token approval error:", error);
+      const friendlyError = parseContractError(error);
+      showError(`Token approval failed: ${friendlyError}`);
+      return false;
+    }
+  };
+
   // Handle ETH bid
   const handleEthBid = async () => {
     if (!isConnected) {
@@ -272,11 +323,19 @@ export default function PlayPage() {
         donationTokenAmount
       ) {
         // Bid with ERC20 token donation
+        const tokenAmount = parseEther(donationTokenAmount);
+        
+        // Check and approve token if needed
+        const approved = await checkAndApproveERC20(donationTokenAddress, tokenAmount);
+        if (!approved) {
+          return; // Approval failed, stop here
+        }
+
         await write.bidWithEthAndDonateToken(
           nftIdToSend,
           bidMessage,
           donationTokenAddress as `0x${string}`,
-          parseEther(donationTokenAmount),
+          tokenAmount,
           finalValue
         );
       } else {
@@ -342,11 +401,19 @@ export default function PlayPage() {
         donationTokenAmount
       ) {
         // Bid with ERC20 token donation
+        const tokenAmount = parseEther(donationTokenAmount);
+        
+        // Check and approve token if needed
+        const approved = await checkAndApproveERC20(donationTokenAddress, tokenAmount);
+        if (!approved) {
+          return; // Approval failed, stop here
+        }
+
         await write.bidWithCstAndDonateToken(
           maxLimit,
           bidMessage,
           donationTokenAddress as `0x${string}`,
-          parseEther(donationTokenAmount)
+          tokenAmount
         );
       } else {
         // Regular bid without donation

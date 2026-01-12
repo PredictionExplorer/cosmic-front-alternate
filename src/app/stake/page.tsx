@@ -114,6 +114,10 @@ export default function StakePage() {
   const [unstakingRWLKActionId, setUnstakingRWLKActionId] = useState<
     number | null
   >(null);
+  const [pendingRWLKStake, setPendingRWLKStake] = useState<{
+    type: 'single' | 'multiple' | null;
+    tokenIds: number[];
+  }>({ type: null, tokenIds: [] });
 
   // Help sections visibility
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -202,7 +206,7 @@ export default function StakePage() {
     CONTRACTS.STAKING_WALLET_CST
   );
 
-  const { data: isRWLKApprovedForAll } =
+  const { data: isRWLKApprovedForAll, refetch: refetchRWLKApproval } =
     rwlkNftContract.read.useIsApprovedForAll(
       (address as `0x${string}`) ||
         "0x0000000000000000000000000000000000000000",
@@ -721,18 +725,22 @@ export default function StakePage() {
     if (!rwlkNftContract) return false;
 
     try {
+      showInfo("Requesting approval... Please confirm in your wallet.");
       await rwlkNftContract.write.setApprovalForAll(
         CONTRACTS.STAKING_WALLET_RWLK,
         true
       );
-      showSuccess("Approval requested! Please confirm the transaction.");
+      showInfo("Approval transaction submitted! Waiting for confirmation...");
+      
+      // Wait for the transaction to be confirmed by watching the contract status
+      // The useEffect below will handle success/error
       return true;
     } catch (error: unknown) {
       console.error("RWLK Approval failed:", error);
       showError((error as Error)?.message || "Failed to approve. Please try again.");
       return false;
     }
-  }, [rwlkNftContract, showSuccess, showError]);
+  }, [rwlkNftContract, showInfo, showError]);
 
   // Handle RWLK staking action
   const handleRWLKStake = async (tokenId: number) => {
@@ -748,15 +756,14 @@ export default function StakePage() {
 
       // Check if approval is needed
       if (!isRWLKApprovedForAll) {
+        setPendingRWLKStake({ type: 'single', tokenIds: [tokenId] });
         const approved = await handleRWLKApprove();
         if (!approved) {
           setStakingRWLKTokenId(null);
+          setPendingRWLKStake({ type: null, tokenIds: [] });
           return;
         }
-        showSuccess(
-          "Waiting for approval confirmation... You can then stake your NFT."
-        );
-        setStakingRWLKTokenId(null);
+        // Approval is pending - will automatically proceed when confirmed (see useEffect)
         return;
       }
 
@@ -791,15 +798,14 @@ export default function StakePage() {
 
       // Check if approval is needed
       if (!isRWLKApprovedForAll) {
+        setPendingRWLKStake({ type: 'multiple', tokenIds });
         const approved = await handleRWLKApprove();
         if (!approved) {
           setIsStakingRWLKMultiple(false);
+          setPendingRWLKStake({ type: null, tokenIds: [] });
           return;
         }
-        showSuccess(
-          "Waiting for approval confirmation... You can then stake your NFTs."
-        );
-        setIsStakingRWLKMultiple(false);
+        // Approval is pending - will automatically proceed when confirmed (see useEffect)
         return;
       }
 
@@ -872,6 +878,59 @@ export default function StakePage() {
       setIsStakingRWLKMultiple(false);
     }
   };
+
+  // Watch for RWLK approval completion and auto-proceed with staking
+  useEffect(() => {
+    const proceedWithStaking = async () => {
+      if (
+        pendingRWLKStake.type &&
+        rwlkNftContract.write.status &&
+        !rwlkNftContract.write.status.isPending &&
+        !rwlkNftContract.write.status.isConfirming &&
+        rwlkNftContract.write.status.isSuccess
+      ) {
+        // Approval transaction confirmed, refetch approval status
+        showSuccess("Approval confirmed! Proceeding with staking...");
+        await refetchRWLKApproval();
+        
+        // Small delay to ensure approval state is updated
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        try {
+          if (pendingRWLKStake.type === 'single' && pendingRWLKStake.tokenIds.length === 1) {
+            // Proceed with single NFT staking
+            const tokenId = pendingRWLKStake.tokenIds[0];
+            showInfo("Please confirm the staking transaction in your wallet...");
+            await rwlkStakingContract.write.stake(BigInt(tokenId));
+            showInfo("Staking transaction submitted! Waiting for confirmation...");
+          } else if (pendingRWLKStake.type === 'multiple' && pendingRWLKStake.tokenIds.length > 0) {
+            // Proceed with multiple NFTs staking
+            const tokenIdsBigInt = pendingRWLKStake.tokenIds.map((id) => BigInt(id));
+            showInfo("Please confirm the staking transaction in your wallet...");
+            await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
+            showInfo(`Staking transaction submitted! Staking ${pendingRWLKStake.tokenIds.length} NFTs...`);
+          }
+        } catch (error: unknown) {
+          console.error("RWLK Staking failed after approval:", error);
+          showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
+          setStakingRWLKTokenId(null);
+          setIsStakingRWLKMultiple(false);
+        } finally {
+          setPendingRWLKStake({ type: null, tokenIds: [] });
+        }
+      }
+    };
+
+    proceedWithStaking();
+  }, [
+    pendingRWLKStake,
+    rwlkNftContract.write.status,
+    rwlkStakingContract,
+    refetchRWLKApproval,
+    showSuccess,
+    showInfo,
+    showError,
+  ]);
 
   // Watch for RWLK transaction success and refresh data
   useEffect(() => {

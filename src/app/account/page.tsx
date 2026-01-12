@@ -460,12 +460,12 @@ function AccountPageContent() {
                   RandomWalk Staking
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
+                  {/* <div className="flex justify-between">
                     <span className="text-text-secondary">Active Stakers</span>
                     <span className="font-mono text-text-primary">
                       {userInfo.StakingStatisticsRWalk.NumActiveStakers}
                     </span>
-                  </div>
+                  </div> */}
                   <div className="flex justify-between">
                     <span className="text-text-secondary">Stake Actions</span>
                     <span className="font-mono text-text-primary">

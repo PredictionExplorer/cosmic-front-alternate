@@ -204,9 +204,28 @@ export default function MyWinningsPage() {
         )
       );
 
-      // Combine and sort donated NFTs
+      // Transform and combine donated NFTs (API returns NFTTokenId, we need TokenId)
+      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
+        const tx = nft.Tx as Record<string, unknown> | undefined;
+        return {
+          Index: nft.Index as number,
+          NftAddr: (nft.TokenAddr ?? nft.NftAddr) as string,
+          TokenId: (nft.NFTTokenId ?? nft.TokenId) as number,
+          RoundNum: nft.RoundNum as number,
+          TimeStamp: (tx?.TimeStamp as number) ?? 0,
+          Claimed: claimed,
+        };
+      };
+
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, false)
+      );
+      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, true)
+      );
+
       setDonatedNFTs(
-        [...unclaimedNFTs, ...claimedNFTs].sort(
+        [...transformedUnclaimedNFTs, ...transformedClaimedNFTs].sort(
           (a: DonatedNFT, b: DonatedNFT) => a.TimeStamp - b.TimeStamp
         )
       );
@@ -293,28 +312,30 @@ export default function MyWinningsPage() {
       // Show appropriate success message
       switch (pendingClaim.type) {
         case 'eth':
-          showSuccess(`Successfully claimed ${pendingClaim.data?.amount?.toFixed(6)} ETH!`);
+          showSuccess(`Successfully claimed ${pendingClaim.data?.amount?.toFixed(6)} ETH! Refreshing data...`);
           setClaiming((prev) => ({ ...prev, eth: false }));
           break;
         case 'nft':
-          showSuccess("NFT claimed successfully!");
+          showSuccess("NFT claimed successfully! Refreshing data...");
           setClaiming((prev) => ({ ...prev, nft: null }));
           break;
         case 'nft-all':
-          showSuccess(`Successfully claimed ${pendingClaim.data?.count} NFT(s)!`);
+          showSuccess(`Successfully claimed ${pendingClaim.data?.count} NFT(s)! Refreshing data...`);
           break;
         case 'erc20':
-          showSuccess(`${pendingClaim.data?.symbol} tokens claimed successfully!`);
+          showSuccess(`${pendingClaim.data?.symbol} tokens claimed successfully! Refreshing data...`);
           setClaiming((prev) => ({ ...prev, erc20: null }));
           break;
         case 'erc20-all':
-          showSuccess(`Successfully claimed ${pendingClaim.data?.count} ERC20 token(s)!`);
+          showSuccess(`Successfully claimed ${pendingClaim.data?.count} ERC20 token(s)! Refreshing data...`);
           break;
       }
       
       setPendingClaim({ type: null });
-      // Refresh winnings data
-      fetchWinnings();
+      // Refresh winnings data after a delay to allow backend to index the transaction
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     }
   }, [
     pendingClaim,
@@ -360,10 +381,12 @@ export default function MyWinningsPage() {
       !stakingWallet.status.isPending &&
       stakingWallet.status.isSuccess
     ) {
-      showSuccess(`Successfully unstaked ${pendingClaim.data?.count} NFT(s) and claimed all rewards!`);
+      showSuccess(`Successfully unstaked ${pendingClaim.data?.count} NFT(s) and claimed all rewards! Refreshing data...`);
       setPendingClaim({ type: null });
-      // Refresh winnings data
-      fetchWinnings();
+      // Refresh winnings data after a delay to allow backend to index the transaction
+      setTimeout(() => {
+        fetchWinnings();
+      }, 3000);
     }
   }, [
     pendingClaim,
@@ -1207,8 +1230,14 @@ export default function MyWinningsPage() {
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span className="font-mono text-xs text-text-muted">
-                            {nft.NftAddr.substring(0, 6)}...
-                            {nft.NftAddr.slice(-4)}
+                            {nft.NftAddr ? (
+                              <>
+                                {nft.NftAddr.substring(0, 6)}...
+                                {nft.NftAddr.slice(-4)}
+                              </>
+                            ) : (
+                              'N/A'
+                            )}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-center">
