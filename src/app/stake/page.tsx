@@ -884,10 +884,10 @@ export default function StakePage() {
     const proceedWithStaking = async () => {
       if (
         pendingRWLKStake.type &&
-        rwlkNftContract.write.status &&
-        !rwlkNftContract.write.status.isPending &&
-        !rwlkNftContract.write.status.isConfirming &&
-        rwlkNftContract.write.status.isSuccess
+        rwlkNftContract.status &&
+        !rwlkNftContract.status.isPending &&
+        !rwlkNftContract.status.isConfirming &&
+        rwlkNftContract.status.isSuccess
       ) {
         // Approval transaction confirmed, refetch approval status
         showSuccess("Approval confirmed! Proceeding with staking...");
@@ -924,7 +924,7 @@ export default function StakePage() {
     proceedWithStaking();
   }, [
     pendingRWLKStake,
-    rwlkNftContract.write.status,
+    rwlkNftContract.status,
     rwlkStakingContract,
     refetchRWLKApproval,
     showSuccess,

@@ -20,6 +20,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
+import { formatTime } from "@/lib/utils";
 import { api } from "@/services/api";
 
 export default function PlayPage() {
@@ -192,6 +193,31 @@ export default function PlayPage() {
     lastBidder !== "0x0000000000000000000000000000000000000000" &&
     (lastBidder as string).toLowerCase() !== "0x0000000000000000000000000000000000000000";
 
+  // Check if round is active
+  const roundStartTime = dashboardData?.RoundStartTime ?? dashboardData?.RoundStartTimeStamp ?? dashboardData?.ActivationTime;
+  const [timeUntilRoundStarts, setTimeUntilRoundStarts] = useState(0);
+  
+  // Update time until round starts
+  useEffect(() => {
+    if (!roundStartTime) {
+      setTimeUntilRoundStarts(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const adjustedStartTime = applyOffset(roundStartTime);
+      const remaining = Math.max(0, adjustedStartTime - currentTime);
+      setTimeUntilRoundStarts(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [roundStartTime, applyOffset]);
+
+  const isRoundActive = !roundStartTime || timeUntilRoundStarts === 0;
+
   // Check if user can claim main prize
   const canClaimMainPrize =
     isConnected &&
@@ -271,6 +297,11 @@ export default function PlayPage() {
   const handleEthBid = async () => {
     if (!isConnected) {
       showWarning("Please connect your wallet first");
+      return;
+    }
+
+    if (!isRoundActive) {
+      showWarning(`Round has not started yet. Please wait ${formatTime(timeUntilRoundStarts)}.`);
       return;
     }
 
@@ -354,6 +385,11 @@ export default function PlayPage() {
   const handleCstBid = async () => {
     if (!isConnected) {
       showWarning("Please connect your wallet first");
+      return;
+    }
+
+    if (!isRoundActive) {
+      showWarning(`Round has not started yet. Please wait ${formatTime(timeUntilRoundStarts)}.`);
       return;
     }
 
@@ -1102,6 +1138,23 @@ export default function PlayPage() {
                     )}
                   </div>
 
+                  {/* Round Activation Notice */}
+                  {!isRoundActive && timeUntilRoundStarts > 0 && (
+                    <div className="p-4 rounded-lg bg-status-info/10 border border-status-info/20 mb-4">
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-status-info mb-2">
+                          Round Not Yet Active
+                        </p>
+                        <p className="text-sm text-text-secondary">
+                          This round will become active in{" "}
+                          <span className="font-mono text-primary font-semibold">
+                            {formatTime(timeUntilRoundStarts)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Submit Button */}
                   {!isConnected ? (
                     <div className="p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
@@ -1114,6 +1167,11 @@ export default function PlayPage() {
                     <Button size="lg" className="w-full" disabled>
                       <Loader2 className="mr-2 animate-spin" size={20} />
                       Processing Transaction...
+                    </Button>
+                  ) : !isRoundActive ? (
+                    <Button size="lg" className="w-full" disabled>
+                      <Trophy className="mr-2" size={20} />
+                      Round Not Active Yet
                     </Button>
                   ) : (
                     <Button

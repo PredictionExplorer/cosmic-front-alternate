@@ -40,6 +40,10 @@ interface DashboardData {
 	// Game configuration
 	InitialSecondsUntilPrize: number;
 	TimeoutClaimPrize: number;
+	// Round activation
+	RoundStartTime?: number;
+	RoundStartTimeStamp?: number;
+	ActivationTime?: number;
 	// Add more fields as needed based on API response
 	[key: string]: unknown;
 }
