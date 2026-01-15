@@ -70,6 +70,26 @@ export default function PlayPage() {
     readRandomWalk.useWalletOfOwner(address);
   const ownedNfts = (userNfts as bigint[] | undefined) || [];
 
+  // Auto-refresh blockchain data every 5 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchEthPrice();
+      refetchCstPrice();
+      refetchPrizeAmount();
+    }, 5000); // 5 seconds
+
+    return () => clearInterval(interval);
+  }, [refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
+
+  // Refetch contract data when dashboard data changes (round change, new bid, etc.)
+  useEffect(() => {
+    if (dashboardData) {
+      refetchEthPrice();
+      refetchCstPrice();
+      refetchPrizeAmount();
+    }
+  }, [dashboardData?.CurRoundNum, dashboardData?.CurNumBids, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
+
   // Fetch used NFTs from API
   useEffect(() => {
     const fetchUsedNfts = async () => {
@@ -100,6 +120,10 @@ export default function PlayPage() {
     };
 
     fetchUsedNfts();
+    
+    // Refresh used NFTs list every 15 seconds
+    const interval = setInterval(fetchUsedNfts, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch last bid message from API
@@ -122,6 +146,10 @@ export default function PlayPage() {
     };
 
     fetchLastBidMessage();
+    
+    // Refresh last bid message every 5 seconds
+    const interval = setInterval(fetchLastBidMessage, 5000);
+    return () => clearInterval(interval);
   }, [roundNum]);
 
   // Filter out used NFTs from owned NFTs and sort by token ID

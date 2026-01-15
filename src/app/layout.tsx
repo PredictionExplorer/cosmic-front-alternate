@@ -58,7 +58,7 @@ export default function RootLayout({
 				<Web3Provider>
 					<NotificationProvider>
 						<TimeOffsetProvider>
-							<ApiDataProvider>
+							<ApiDataProvider refreshInterval={5000}>
 								<div className="flex min-h-screen flex-col">
 									<Header />
 									<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>

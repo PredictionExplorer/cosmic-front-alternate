@@ -891,14 +891,14 @@ export default function MyWinningsPage() {
                                   <div
                                     className={
                                       expiration.isExpired
-                                        ? "text-status-error"
+                                        ? "text-red-400"
                                         : "text-text-secondary"
                                     }
                                   >
                                     {formatTimestamp(expiration.timeout, true)}
                                   </div>
                                   {expiration.isExpired ? (
-                                    <div className="text-xs text-status-error mt-1">
+                                    <div className="text-xs text-red-400 mt-1">
                                       (Expired)
                                     </div>
                                   ) : (
@@ -1256,7 +1256,7 @@ export default function MyWinningsPage() {
                   <tbody>
                     {paginatedDonatedNFTs.map((nft, index) => (
                       <tr
-                        key={nft.Index}
+                        key={`${nft.RecordId}-${nft.Index}-${nft.TokenId}-${nft.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         } ${nft.Claimed ? "opacity-50" : ""}`}
