@@ -8,7 +8,9 @@ import {
   Loader2, 
   ExternalLink, 
   BarChart3,
-  Trophy
+  Trophy,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
@@ -102,10 +104,29 @@ interface RWLKMint {
 }
 
 interface DonatedNFT {
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
   Index: number;
+  TokenAddr: string;
+  NFTTokenId: number;
+  NFTTokenURI: string;
+  RoundNum: number;
+  DonorAid: number;
+  DonorAddr: string;
+  TokenAddressId?: number; // Only in unclaimed
+  WinnerIndex?: number; // Only in claimed
+  WinnerAid?: number; // Only in claimed
+  WinnerAddr?: string; // Only in claimed
+  // Transformed fields for UI (always set by transformation)
   NftAddr: string;
   TokenId: number;
-  RoundNum: number;
   TimeStamp: number;
   Claimed: boolean;
 }
@@ -169,6 +190,46 @@ const StatItem = ({ title, value }: StatItemProps) => (
   </div>
 );
 
+// Pagination Component
+interface PaginationProps {
+  currentPage: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+}
+
+const Pagination = ({ currentPage, totalItems, itemsPerPage, onPageChange }: PaginationProps) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  if (totalPages <= 1) return null;
+  
+  return (
+    <div className="flex items-center justify-center gap-2 py-4">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        <ChevronLeft size={16} />
+      </Button>
+      
+      <span className="text-sm text-text-secondary px-4">
+        Page {currentPage} of {totalPages}
+      </span>
+      
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        <ChevronRight size={16} />
+      </Button>
+    </div>
+  );
+};
+
 export default function UserStatisticsPage() {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
@@ -199,17 +260,32 @@ export default function UserStatisticsPage() {
   
   // UI state
   const [stakingTab, setStakingTab] = useState<"cst" | "rwlk">("cst");
+  const [claimingNFT, setClaimingNFT] = useState<number | null>(null);
+  const [claimingERC20, setClaimingERC20] = useState<number | null>(null);
+  
+  // Pagination state
+  const [bidHistoryPage, setBidHistoryPage] = useState(1);
+  const [claimHistoryPage, setClaimHistoryPage] = useState(1);
+  const [cstStakingActionsPage, setCstStakingActionsPage] = useState(1);
+  const [rwlkStakingActionsPage, setRwlkStakingActionsPage] = useState(1);
+  const [cstStakingRewardsPage, setCstStakingRewardsPage] = useState(1);
+  const [collectedRewardsPage, setCollectedRewardsPage] = useState(1);
+  const [rwlkMintsPage, setRwlkMintsPage] = useState(1);
+  const [marketingRewardsPage, setMarketingRewardsPage] = useState(1);
+  const itemsPerPage = 10;
   
   const prizesWallet = usePrizesWallet();
 
-  const fetchUserData = useCallback(async () => {
+  // Refresh data without showing loading screen (for background updates)
+  const refreshData = useCallback(async (showLoading = false) => {
     if (!address || !isConnected) {
-      setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
 
       // Fetch all user data in parallel
       const [
@@ -262,12 +338,51 @@ export default function UserStatisticsPage() {
       setClaimHistory(claimHist);
       setStakingCSTActions(cstActions);
       setStakingRWLKActions(rwalkActions);
+      // Transform donated NFTs from API response
+      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
+        const tx = nft.Tx as Record<string, unknown>;
+        return {
+          RecordId: nft.RecordId as number,
+          Tx: {
+            EvtLogId: tx?.EvtLogId as number || 0,
+            BlockNum: tx?.BlockNum as number || 0,
+            TxId: tx?.TxId as number || 0,
+            TxHash: tx?.TxHash as string || '',
+            TimeStamp: tx?.TimeStamp as number || 0,
+            DateTime: tx?.DateTime as string || '',
+          },
+          Index: nft.Index as number,
+          TokenAddr: nft.TokenAddr as string,
+          NFTTokenId: nft.NFTTokenId as number,
+          NFTTokenURI: nft.NFTTokenURI as string || '',
+          RoundNum: nft.RoundNum as number,
+          DonorAid: nft.DonorAid as number,
+          DonorAddr: nft.DonorAddr as string,
+          TokenAddressId: nft.TokenAddressId as number | undefined,
+          WinnerIndex: nft.WinnerIndex as number | undefined,
+          WinnerAid: nft.WinnerAid as number | undefined,
+          WinnerAddr: nft.WinnerAddr as string | undefined,
+          // Add transformed fields for backward compatibility
+          NftAddr: nft.TokenAddr as string,
+          TokenId: nft.NFTTokenId as number,
+          TimeStamp: tx?.TimeStamp as number || 0,
+          Claimed: claimed,
+        };
+      };
+
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, false)
+      );
+      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, true)
+      );
+
       setMarketingRewards(mRewards);
       setCSTList(userCstList);
       setCstStakingRewards(stakingRewards);
       setCollectedCstStakingRewards(collectedRewards);
       setRWLKMints(rwalkMinted);
-      setDonatedNFTs([...unclaimedNFTs, ...claimedNFTs]);
+      setDonatedNFTs([...transformedUnclaimedNFTs, ...transformedClaimedNFTs]);
       setDonatedERC20(erc20Tokens);
       setDashboardData(dashData);
 
@@ -297,9 +412,16 @@ export default function UserStatisticsPage() {
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, [address, isConnected]);
+
+  // Initial data fetch with loading screen
+  const fetchUserData = useCallback(() => {
+    return refreshData(true);
+  }, [refreshData]);
 
   useEffect(() => {
     fetchUserData();
@@ -308,10 +430,16 @@ export default function UserStatisticsPage() {
   // Claim donated NFT
   const handleClaimNFT = async (nftIndex: number) => {
     try {
+      setClaimingNFT(nftIndex);
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
-      setTimeout(fetchUserData, 3000);
+      // Refresh data after transaction without triggering full page loading
+      setTimeout(() => {
+        refreshData(false);
+        setClaimingNFT(null);
+      }, 3000);
     } catch (error) {
       console.error("Error claiming NFT:", error);
+      setClaimingNFT(null);
     }
   };
 
@@ -321,25 +449,36 @@ export default function UserStatisticsPage() {
     if (unclaimed.length === 0) return;
 
     try {
+      setClaimingNFT(-1); // Use -1 to indicate bulk claim
       const indexes = unclaimed.map(nft => BigInt(nft.Index));
       await prizesWallet.write.claimManyDonatedNfts(indexes);
-      setTimeout(fetchUserData, 3000);
+      setTimeout(() => {
+        refreshData(false);
+        setClaimingNFT(null);
+      }, 3000);
     } catch (error) {
       console.error("Error claiming all NFTs:", error);
+      setClaimingNFT(null);
     }
   };
 
   // Claim ERC20 token
   const handleClaimERC20 = async (token: DonatedERC20) => {
     try {
+      setClaimingERC20(token.RoundNum);
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
         token.TokenAddr as `0x${string}`,
         BigInt(token.AmountEth)
       );
-      setTimeout(fetchUserData, 3000);
+      // Refresh data after transaction without triggering full page loading
+      setTimeout(() => {
+        refreshData(false);
+        setClaimingERC20(null);
+      }, 3000);
     } catch (error) {
       console.error("Error claiming ERC20:", error);
+      setClaimingERC20(null);
     }
   };
 
@@ -349,6 +488,7 @@ export default function UserStatisticsPage() {
     if (unclaimed.length === 0) return;
 
     try {
+      setClaimingERC20(-1); // Use -1 to indicate bulk claim
       const tokens = unclaimed.map(token => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
@@ -356,9 +496,13 @@ export default function UserStatisticsPage() {
       }));
       
       await prizesWallet.write.claimManyDonatedTokens(tokens);
-      setTimeout(fetchUserData, 3000);
+      setTimeout(() => {
+        refreshData(false);
+        setClaimingERC20(null);
+      }, 3000);
     } catch (error) {
       console.error("Error claiming all ERC20:", error);
+      setClaimingERC20(null);
     }
   };
 
@@ -391,7 +535,8 @@ export default function UserStatisticsPage() {
     );
   }
 
-  if (loading) {
+  // Only show full page loader on initial load (when there's no data yet)
+  if (loading && !userInfo) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Container>
@@ -652,7 +797,9 @@ export default function UserStatisticsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {stakingCSTActions.slice(0, 20).map((action: StakingAction, index: number) => (
+                          {stakingCSTActions
+                            .slice((cstStakingActionsPage - 1) * itemsPerPage, cstStakingActionsPage * itemsPerPage)
+                            .map((action: StakingAction, index: number) => (
                             <tr
                               key={`${action.RecordId}-${action.ActionId}-${index}`}
                               className={`border-b border-text-muted/5 ${
@@ -682,6 +829,12 @@ export default function UserStatisticsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      currentPage={cstStakingActionsPage}
+                      totalItems={stakingCSTActions.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCstStakingActionsPage}
+                    />
                   </Card>
                 </div>
               )}
@@ -712,7 +865,9 @@ export default function UserStatisticsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {cstStakingRewards.map((reward: StakingReward, index: number) => (
+                          {cstStakingRewards
+                            .slice((cstStakingRewardsPage - 1) * itemsPerPage, cstStakingRewardsPage * itemsPerPage)
+                            .map((reward: StakingReward, index: number) => (
                             <tr
                               key={reward.TokenId}
                               className={`border-b border-text-muted/5 ${
@@ -740,6 +895,12 @@ export default function UserStatisticsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      currentPage={cstStakingRewardsPage}
+                      totalItems={cstStakingRewards.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCstStakingRewardsPage}
+                    />
                   </Card>
                 </div>
               )}
@@ -773,7 +934,9 @@ export default function UserStatisticsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {collectedCstStakingRewards.slice(0, 20).map((reward: CollectedStakingReward, index: number) => (
+                          {collectedCstStakingRewards
+                            .slice((collectedRewardsPage - 1) * itemsPerPage, collectedRewardsPage * itemsPerPage)
+                            .map((reward: CollectedStakingReward, index: number) => (
                             <tr
                               key={`${reward.DepositId}-${index}`}
                               className={`border-b border-text-muted/5 ${
@@ -804,6 +967,12 @@ export default function UserStatisticsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      currentPage={collectedRewardsPage}
+                      totalItems={collectedCstStakingRewards.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCollectedRewardsPage}
+                    />
                   </Card>
                 </div>
               )}
@@ -872,7 +1041,9 @@ export default function UserStatisticsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {stakingRWLKActions.slice(0, 20).map((action: StakingAction, index: number) => (
+                          {stakingRWLKActions
+                            .slice((rwlkStakingActionsPage - 1) * itemsPerPage, rwlkStakingActionsPage * itemsPerPage)
+                            .map((action: StakingAction, index: number) => (
                             <tr
                               key={`${action.RecordId}-${action.ActionId}-${index}`}
                               className={`border-b border-text-muted/5 ${
@@ -898,6 +1069,12 @@ export default function UserStatisticsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      currentPage={rwlkStakingActionsPage}
+                      totalItems={stakingRWLKActions.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setRwlkStakingActionsPage}
+                    />
                   </Card>
                 </div>
               )}
@@ -925,7 +1102,9 @@ export default function UserStatisticsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {rwlkMints.map((mint: RWLKMint, index: number) => (
+                          {rwlkMints
+                            .slice((rwlkMintsPage - 1) * itemsPerPage, rwlkMintsPage * itemsPerPage)
+                            .map((mint: RWLKMint, index: number) => (
                             <tr
                               key={`${mint.TokenId}-${mint.RoundNum}-${index}`}
                               className={`border-b border-text-muted/5 ${
@@ -950,6 +1129,12 @@ export default function UserStatisticsPage() {
                         </tbody>
                       </table>
                     </div>
+                    <Pagination
+                      currentPage={rwlkMintsPage}
+                      totalItems={rwlkMints.length}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setRwlkMintsPage}
+                    />
                   </Card>
                 </div>
               )}
@@ -986,7 +1171,9 @@ export default function UserStatisticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {bidHistory.slice(0, 50).map((bid: Bid, index: number) => (
+                    {bidHistory
+                      .slice((bidHistoryPage - 1) * itemsPerPage, bidHistoryPage * itemsPerPage)
+                      .map((bid: Bid, index: number) => (
                       <tr
                         key={`${bid.EvtLogId}-${bid.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
@@ -1022,6 +1209,12 @@ export default function UserStatisticsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={bidHistoryPage}
+                totalItems={bidHistory.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setBidHistoryPage}
+              />
             </Card>
           </Container>
         </section>
@@ -1086,7 +1279,9 @@ export default function UserStatisticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {claimHistory.slice(0, 50).map((claim: ClaimHistory, index: number) => (
+                    {claimHistory
+                      .slice((claimHistoryPage - 1) * itemsPerPage, claimHistoryPage * itemsPerPage)
+                      .map((claim: ClaimHistory, index: number) => (
                       <tr
                         key={`${claim.EvtLogId}-${claim.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
@@ -1113,6 +1308,12 @@ export default function UserStatisticsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={claimHistoryPage}
+                totalItems={claimHistory.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setClaimHistoryPage}
+              />
             </Card>
           </Container>
         </section>
@@ -1140,7 +1341,9 @@ export default function UserStatisticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {marketingRewards.map((reward: MarketingReward, index: number) => (
+                    {marketingRewards
+                      .slice((marketingRewardsPage - 1) * itemsPerPage, marketingRewardsPage * itemsPerPage)
+                      .map((reward: MarketingReward, index: number) => (
                       <tr
                         key={`${reward.EvtLogId}-${reward.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
@@ -1161,6 +1364,12 @@ export default function UserStatisticsPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                currentPage={marketingRewardsPage}
+                totalItems={marketingRewards.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setMarketingRewardsPage}
+              />
             </Card>
           </Container>
         </section>
@@ -1173,11 +1382,18 @@ export default function UserStatisticsPage() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="heading-md">Donated NFTs You Won</h2>
               {unclaimedNFTs.length > 0 && (
-                <Button 
+                <Button
                   onClick={handleClaimAllNFTs}
-                  disabled={prizesWallet.isTransactionPending}
+                  disabled={prizesWallet.isTransactionPending || claimingNFT === -1}
                 >
-                  Claim All ({unclaimedNFTs.length})
+                  {claimingNFT === -1 ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" size={16} />
+                      Claiming...
+                    </>
+                  ) : (
+                    `Claim All (${unclaimedNFTs.length})`
+                  )}
                 </Button>
               )}
             </div>
@@ -1217,9 +1433,16 @@ export default function UserStatisticsPage() {
                       variant="outline"
                       className="w-full"
                       onClick={() => handleClaimNFT(nft.Index)}
-                      disabled={prizesWallet.isTransactionPending}
+                      disabled={prizesWallet.isTransactionPending || claimingNFT === nft.Index}
                     >
-                      Claim NFT
+                      {claimingNFT === nft.Index ? (
+                        <>
+                          <Loader2 className="mr-2 animate-spin" size={14} />
+                          Claiming...
+                        </>
+                      ) : (
+                        'Claim NFT'
+                      )}
                     </Button>
                   )}
                 </Card>
@@ -1238,9 +1461,16 @@ export default function UserStatisticsPage() {
               {unclaimedERC20.length > 0 && (
                 <Button 
                   onClick={handleClaimAllERC20}
-                  disabled={prizesWallet.isTransactionPending}
+                  disabled={prizesWallet.isTransactionPending || claimingERC20 === -1}
                 >
-                  Claim All ({unclaimedERC20.length})
+                  {claimingERC20 === -1 ? (
+                    <>
+                      <Loader2 className="mr-2 animate-spin" size={16} />
+                      Claiming...
+                    </>
+                  ) : (
+                    `Claim All (${unclaimedERC20.length})`
+                  )}
                 </Button>
               )}
             </div>
@@ -1268,9 +1498,16 @@ export default function UserStatisticsPage() {
                       <Button
                         size="sm"
                         onClick={() => handleClaimERC20(token)}
-                        disabled={prizesWallet.isTransactionPending}
+                        disabled={prizesWallet.isTransactionPending || claimingERC20 === token.RoundNum}
                       >
-                        Claim
+                        {claimingERC20 === token.RoundNum ? (
+                          <>
+                            <Loader2 className="mr-2 animate-spin" size={14} />
+                            Claiming...
+                          </>
+                        ) : (
+                          'Claim'
+                        )}
                       </Button>
                     )}
                   </div>

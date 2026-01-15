@@ -93,10 +93,29 @@ interface RWLKMint {
 }
 
 interface DonatedNFT {
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
   Index: number;
+  TokenAddr: string;
+  NFTTokenId: number;
+  NFTTokenURI: string;
+  RoundNum: number;
+  DonorAid: number;
+  DonorAddr: string;
+  TokenAddressId?: number; // Only in unclaimed
+  WinnerIndex?: number; // Only in claimed
+  WinnerAid?: number; // Only in claimed
+  WinnerAddr?: string; // Only in claimed
+  // Transformed fields for UI (always set by transformation)
   NftAddr: string;
   TokenId: number;
-  RoundNum: number;
   TimeStamp: number;
   Claimed: boolean;
 }
@@ -326,6 +345,45 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
         });
       }
 
+      // Transform donated NFTs from API response
+      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
+        const tx = nft.Tx as Record<string, unknown>;
+        return {
+          RecordId: nft.RecordId as number,
+          Tx: {
+            EvtLogId: tx?.EvtLogId as number || 0,
+            BlockNum: tx?.BlockNum as number || 0,
+            TxId: tx?.TxId as number || 0,
+            TxHash: tx?.TxHash as string || '',
+            TimeStamp: tx?.TimeStamp as number || 0,
+            DateTime: tx?.DateTime as string || '',
+          },
+          Index: nft.Index as number,
+          TokenAddr: nft.TokenAddr as string,
+          NFTTokenId: nft.NFTTokenId as number,
+          NFTTokenURI: nft.NFTTokenURI as string || '',
+          RoundNum: nft.RoundNum as number,
+          DonorAid: nft.DonorAid as number,
+          DonorAddr: nft.DonorAddr as string,
+          TokenAddressId: nft.TokenAddressId as number | undefined,
+          WinnerIndex: nft.WinnerIndex as number | undefined,
+          WinnerAid: nft.WinnerAid as number | undefined,
+          WinnerAddr: nft.WinnerAddr as string | undefined,
+          // Add transformed fields for backward compatibility
+          NftAddr: nft.TokenAddr as string,
+          TokenId: nft.NFTTokenId as number,
+          TimeStamp: tx?.TimeStamp as number || 0,
+          Claimed: claimed,
+        };
+      };
+
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, false)
+      );
+      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
+        transformNFT(nft, true)
+      );
+
       // Set all other data
       setClaimHistory(claimHist);
       setStakingCSTActions(cstActions);
@@ -335,7 +393,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
       setCstStakingRewards(stakingRewards);
       setCollectedCstStakingRewards(collectedRewards);
       setRWLKMints(rwalkMinted);
-      setDonatedNFTs([...unclaimedNFTs, ...claimedNFTs]);
+      setDonatedNFTs([...transformedUnclaimedNFTs, ...transformedClaimedNFTs]);
       setDonatedERC20(erc20Tokens);
       setDashboardData(dashData);
 
@@ -1277,10 +1335,10 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {donatedNFTs.map((nft: DonatedNFT) => (
-                <Card 
-                  key={nft.Index} 
-                  glass 
+              {donatedNFTs.map((nft: DonatedNFT, index: number) => (
+                <Card
+                  key={`${nft.Index}-${nft.TokenId}-${nft.RoundNum}-${index}`}
+                  glass
                   className={`p-6 ${nft.Claimed ? "opacity-50" : ""}`}
                 >
                   <div className="flex items-center justify-between mb-4">

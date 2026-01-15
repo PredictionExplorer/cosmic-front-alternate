@@ -53,8 +53,8 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className="scroll-smooth">
-			<body className={`${cormorant.variable} ${inter.variable} ${spaceGrotesk.variable} font-sans`}>
+		<html lang="en" className="scroll-smooth" suppressHydrationWarning>
+			<body className={`${cormorant.variable} ${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
 				<Web3Provider>
 					<NotificationProvider>
 						<TimeOffsetProvider>

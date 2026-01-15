@@ -503,7 +503,7 @@ export default function Home() {
                   <div className="text-sm text-text-secondary">Bids Placed</div>
                 </div>
                 <div>
-                  <div className="font-sans text-2xl font-medium text-text-primary mb-2">
+                  <div className="text-2xl font-medium text-text-primary mb-2">
                     {currentRound.lastBidder}
                   </div>
                   <div className="text-sm text-text-secondary">Last Bidder</div>

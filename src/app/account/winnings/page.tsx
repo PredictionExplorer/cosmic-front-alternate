@@ -38,10 +38,29 @@ interface RaffleWinning {
 }
 
 interface DonatedNFT {
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
   Index: number;
+  TokenAddr: string;
+  NFTTokenId: number;
+  NFTTokenURI: string;
+  RoundNum: number;
+  DonorAid: number;
+  DonorAddr: string;
+  TokenAddressId?: number; // Only in unclaimed
+  WinnerIndex?: number; // Only in claimed
+  WinnerAid?: number; // Only in claimed
+  WinnerAddr?: string; // Only in claimed
+  // Transformed fields for UI (always set by transformation)
   NftAddr: string;
   TokenId: number;
-  RoundNum: number;
   TimeStamp: number;
   Claimed: boolean;
 }
@@ -204,15 +223,34 @@ export default function MyWinningsPage() {
         )
       );
 
-      // Transform and combine donated NFTs (API returns NFTTokenId, we need TokenId)
+      // Transform donated NFTs from API response
       const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
-        const tx = nft.Tx as Record<string, unknown> | undefined;
+        const tx = nft.Tx as Record<string, unknown>;
         return {
+          RecordId: nft.RecordId as number,
+          Tx: {
+            EvtLogId: tx?.EvtLogId as number || 0,
+            BlockNum: tx?.BlockNum as number || 0,
+            TxId: tx?.TxId as number || 0,
+            TxHash: tx?.TxHash as string || '',
+            TimeStamp: tx?.TimeStamp as number || 0,
+            DateTime: tx?.DateTime as string || '',
+          },
           Index: nft.Index as number,
-          NftAddr: (nft.TokenAddr ?? nft.NftAddr) as string,
-          TokenId: (nft.NFTTokenId ?? nft.TokenId) as number,
+          TokenAddr: nft.TokenAddr as string,
+          NFTTokenId: nft.NFTTokenId as number,
+          NFTTokenURI: nft.NFTTokenURI as string || '',
           RoundNum: nft.RoundNum as number,
-          TimeStamp: (tx?.TimeStamp as number) ?? 0,
+          DonorAid: nft.DonorAid as number,
+          DonorAddr: nft.DonorAddr as string,
+          TokenAddressId: nft.TokenAddressId as number | undefined,
+          WinnerIndex: nft.WinnerIndex as number | undefined,
+          WinnerAid: nft.WinnerAid as number | undefined,
+          WinnerAddr: nft.WinnerAddr as string | undefined,
+          // Add transformed fields for backward compatibility
+          NftAddr: nft.TokenAddr as string,
+          TokenId: nft.NFTTokenId as number,
+          TimeStamp: tx?.TimeStamp as number || 0,
           Claimed: claimed,
         };
       };
@@ -1248,7 +1286,7 @@ export default function MyWinningsPage() {
                           </Link>
                         </td>
                         <td className="px-6 py-4 text-center text-sm text-text-secondary">
-                          {formatTimestamp(nft.TimeStamp)}
+                          {formatTimestamp(nft.Tx.TimeStamp)}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {nft.Claimed ? (

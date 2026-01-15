@@ -20,7 +20,7 @@ export function Header() {
         <nav className="flex items-center justify-between py-4 lg:py-6">
           {/* Logo */}
           <Link href="/" className="group flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-gradient-gold">
+            <div className="flex h-10 w-10 items-center justify-center rounded-sm">
               <span className="font-serif text-xl font-bold text-background">
                 CS
               </span>
