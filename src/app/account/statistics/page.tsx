@@ -81,11 +81,18 @@ interface StakingReward {
 }
 
 interface CollectedStakingReward {
-  ActionId: number;
-  TokenId: number;
+  RecordId: number;
+  DepositId: number;
   RoundNum: number;
-  RewardAmountEth: number;
-  TimeStamp: number;
+  YourTokensStaked: number;
+  YourCollectedAmountEth: number;
+  DepositTimeStamp: number;
+  DepositDate: string;
+  NumStakedNFTs: number;
+  TotalDepositAmountEth: number;
+  DepositAmountPerTokenEth: number;
+  NumTokensCollected: number;
+  FullyClaimed: boolean;
 }
 
 interface RWLKMint {
@@ -647,7 +654,7 @@ export default function UserStatisticsPage() {
                         <tbody>
                           {stakingCSTActions.slice(0, 20).map((action: StakingAction, index: number) => (
                             <tr
-                              key={action.ActionId}
+                              key={`${action.RecordId}-${action.ActionId}-${index}`}
                               className={`border-b border-text-muted/5 ${
                                 index % 2 === 0 ? "bg-background-surface/30" : ""
                               }`}
@@ -752,10 +759,13 @@ export default function UserStatisticsPage() {
                               Date
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Token ID
+                              Round
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Tokens Staked
+                            </th>
+                            <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                              Collected
                             </th>
                             <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                               Reward (ETH)
@@ -765,26 +775,29 @@ export default function UserStatisticsPage() {
                         <tbody>
                           {collectedCstStakingRewards.slice(0, 20).map((reward: CollectedStakingReward, index: number) => (
                             <tr
-                              key={`${reward.ActionId}-${index}`}
+                              key={`${reward.DepositId}-${index}`}
                               className={`border-b border-text-muted/5 ${
                                 index % 2 === 0 ? "bg-background-surface/30" : ""
                               }`}
                             >
                               <td className="px-6 py-4 text-sm text-text-secondary">
-                                {formatTimestamp(reward.TimeStamp)}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <Link href={`/gallery/${reward.TokenId}`}>
-                                  <span className="font-mono text-primary hover:text-primary/80">
-                                    #{reward.TokenId}
-                                  </span>
-                                </Link>
+                                {formatTimestamp(reward.DepositTimeStamp)}
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant="default">Round {reward.RoundNum}</Badge>
                               </td>
+                              <td className="px-6 py-4 text-center font-mono text-text-primary">
+                                {reward.YourTokensStaked} / {reward.NumStakedNFTs}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {reward.FullyClaimed ? (
+                                  <Badge variant="success">Fully Claimed</Badge>
+                                ) : (
+                                  <Badge variant="info">{reward.NumTokensCollected} tokens</Badge>
+                                )}
+                              </td>
                               <td className="px-6 py-4 text-right font-mono text-status-success">
-                                {reward.RewardAmountEth.toFixed(7)}
+                                {reward.YourCollectedAmountEth.toFixed(7)}
                               </td>
                             </tr>
                           ))}
@@ -861,7 +874,7 @@ export default function UserStatisticsPage() {
                         <tbody>
                           {stakingRWLKActions.slice(0, 20).map((action: StakingAction, index: number) => (
                             <tr
-                              key={action.ActionId}
+                              key={`${action.RecordId}-${action.ActionId}-${index}`}
                               className={`border-b border-text-muted/5 ${
                                 index % 2 === 0 ? "bg-background-surface/30" : ""
                               }`}
@@ -914,7 +927,7 @@ export default function UserStatisticsPage() {
                         <tbody>
                           {rwlkMints.map((mint: RWLKMint, index: number) => (
                             <tr
-                              key={mint.TokenId}
+                              key={`${mint.TokenId}-${mint.RoundNum}-${index}`}
                               className={`border-b border-text-muted/5 ${
                                 index % 2 === 0 ? "bg-background-surface/30" : ""
                               }`}
@@ -975,7 +988,7 @@ export default function UserStatisticsPage() {
                   <tbody>
                     {bidHistory.slice(0, 50).map((bid: Bid, index: number) => (
                       <tr
-                        key={bid.EvtLogId}
+                        key={`${bid.EvtLogId}-${bid.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
@@ -1075,7 +1088,7 @@ export default function UserStatisticsPage() {
                   <tbody>
                     {claimHistory.slice(0, 50).map((claim: ClaimHistory, index: number) => (
                       <tr
-                        key={claim.EvtLogId}
+                        key={`${claim.EvtLogId}-${claim.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
@@ -1129,7 +1142,7 @@ export default function UserStatisticsPage() {
                   <tbody>
                     {marketingRewards.map((reward: MarketingReward, index: number) => (
                       <tr
-                        key={reward.EvtLogId}
+                        key={`${reward.EvtLogId}-${reward.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
@@ -1170,9 +1183,9 @@ export default function UserStatisticsPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {donatedNFTs.map((nft: DonatedNFT) => (
+              {donatedNFTs.map((nft: DonatedNFT, index: number) => (
                 <Card 
-                  key={nft.Index} 
+                  key={`${nft.Index}-${nft.TokenId}-${nft.RoundNum}-${index}`} 
                   glass 
                   className={`p-6 ${nft.Claimed ? "opacity-50" : ""}`}
                 >
@@ -1234,7 +1247,7 @@ export default function UserStatisticsPage() {
 
             <div className="space-y-3">
               {donatedERC20.map((token: DonatedERC20, index: number) => (
-                <Card key={index} glass className={`p-6 ${token.Claimed ? "opacity-50" : ""}`}>
+                <Card key={`${token.RoundNum}-${token.TokenAddr}-${index}`} glass className={`p-6 ${token.Claimed ? "opacity-50" : ""}`}>
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
