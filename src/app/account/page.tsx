@@ -52,6 +52,8 @@ interface UserWinningsAPI {
   }>;
   ETHRaffleToClaim: number;
   ETHRaffleToClaimWei: string;
+  ETHChronoWarriorToClaim?: number;
+  ETHChronoWarriorToClaimWei?: string;
   NumDonatedNFTToClaim: number;
   UnclaimedStakingReward: number;
 }
@@ -84,6 +86,8 @@ const DEFAULT_WINNINGS: UserWinningsAPI = {
   DonatedERC20Tokens: [],
   ETHRaffleToClaim: 0,
   ETHRaffleToClaimWei: "0",
+  ETHChronoWarriorToClaim: 0,
+  ETHChronoWarriorToClaimWei: "0",
   NumDonatedNFTToClaim: 0,
   UnclaimedStakingReward: 0,
 };
@@ -170,6 +174,7 @@ function AccountPageContent() {
 
   const hasUnclaimedPrizes =
     winnings.ETHRaffleToClaim > 0 ||
+    (winnings.ETHChronoWarriorToClaim || 0) > 0 ||
     winnings.UnclaimedStakingReward > 0 ||
     winnings.DonatedERC20Tokens.length > 0 ||
     winnings.NumDonatedNFTToClaim > 0;
@@ -292,7 +297,7 @@ function AccountPageContent() {
               severity="warning"
               title="You have prizes to claim"
               description={`${formatEth(
-                (Number(winnings.ETHRaffleToClaim) + Number(winnings.UnclaimedStakingReward)).toString()
+                (Number(winnings.ETHRaffleToClaim) + Number(winnings.ETHChronoWarriorToClaim || 0) + Number(winnings.UnclaimedStakingReward)).toString()
               )} ETH${
                 winnings.DonatedERC20Tokens.length > 0
                   ? ` + ${winnings.DonatedERC20Tokens.length} ERC-20 token${

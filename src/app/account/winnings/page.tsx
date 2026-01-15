@@ -159,6 +159,7 @@ export default function MyWinningsPage() {
 
   // Summary data
   const [totalEthToClaim, setTotalEthToClaim] = useState(0);
+  const [totalChronoWarriorEth, setTotalChronoWarriorEth] = useState(0);
   const [totalStakingRewards, setTotalStakingRewards] = useState(0);
 
   // Pagination states
@@ -207,6 +208,7 @@ export default function MyWinningsPage() {
         erc20Tokens,
         stakingRewardsData,
         stakedTokens,
+        winningsSummary,
       ] = await Promise.all([
         api.getUnclaimedRaffleDeposits(address),
         api.getUnclaimedDonatedNFTsByUser(address),
@@ -214,6 +216,7 @@ export default function MyWinningsPage() {
         api.getERC20DonationsByUser(address),
         api.getStakingCSTRewardsToClaim(address),
         api.getStakedCSTTokensByUser(address),
+        api.getUserWinnings(address),
       ]);
 
       // Sort raffle winnings by timestamp (most recent first)
@@ -300,6 +303,7 @@ export default function MyWinningsPage() {
       );
 
       setTotalEthToClaim(ethTotal);
+      setTotalChronoWarriorEth(winningsSummary?.ETHChronoWarriorToClaim || 0);
       setTotalStakingRewards(stakingTotal);
 
       // Fetch round timeouts for raffle winnings
@@ -656,11 +660,12 @@ export default function MyWinningsPage() {
 
   const hasUnclaimedPrizes =
     totalEthToClaim > 0 ||
+    totalChronoWarriorEth > 0 ||
     totalStakingRewards > 0 ||
     unclaimedNFTs.length > 0 ||
     unclaimedERC20.length > 0;
 
-  const totalClaimableEth = totalEthToClaim + totalStakingRewards;
+  const totalClaimableEth = totalEthToClaim + totalChronoWarriorEth + totalStakingRewards;
 
   // Paginate raffle winnings
   const paginatedRaffleWinnings = raffleETHWinnings.slice(
@@ -739,12 +744,42 @@ export default function MyWinningsPage() {
           >
             <h1 className="heading-xl mb-4">Pending Winnings</h1>
             {totalClaimableEth > 0 && (
-              <div className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-primary/10 border border-primary/20">
-                <Trophy size={24} className="text-primary" />
-                <span className="font-mono text-3xl font-semibold text-primary">
-                  {totalClaimableEth.toFixed(6)} ETH
-                </span>
-              </div>
+              <>
+                <div className="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-primary/10 border border-primary/20 mb-6">
+                  <Trophy size={24} className="text-primary" />
+                  <span className="font-mono text-3xl font-semibold text-primary">
+                    {totalClaimableEth.toFixed(6)} ETH
+                  </span>
+                </div>
+                
+                {/* Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {totalEthToClaim > 0 && (
+                    <Card glass className="p-4">
+                      <p className="text-sm text-text-secondary mb-1">Raffle ETH</p>
+                      <p className="font-mono text-xl font-semibold text-primary">
+                        {totalEthToClaim.toFixed(6)} ETH
+                      </p>
+                    </Card>
+                  )}
+                  {totalChronoWarriorEth > 0 && (
+                    <Card glass className="p-4">
+                      <p className="text-sm text-text-secondary mb-1">Chrono-Warrior ETH</p>
+                      <p className="font-mono text-xl font-semibold text-status-warning">
+                        {totalChronoWarriorEth.toFixed(6)} ETH
+                      </p>
+                    </Card>
+                  )}
+                  {totalStakingRewards > 0 && (
+                    <Card glass className="p-4">
+                      <p className="text-sm text-text-secondary mb-1">Staking Rewards</p>
+                      <p className="font-mono text-xl font-semibold text-status-success">
+                        {totalStakingRewards.toFixed(6)} ETH
+                      </p>
+                    </Card>
+                  )}
+                </div>
+              </>
             )}
           </motion.div>
         </Container>
