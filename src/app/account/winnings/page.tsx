@@ -17,6 +17,8 @@ import { wagmiConfig } from "@/lib/web3/config";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { defaultChain } from "@/lib/web3/chains";
 import PrizesWalletABI from "@/contracts/PrizesWallet.json";
+import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
+import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -280,16 +282,28 @@ export default function MyWinningsPage() {
       setStakingRewards(stakingRewardsData);
       
       // Extract action IDs from staked tokens
-      const actionIds = stakedTokens.map((token: {
-        TokenInfo?: { TokenId: number };
-        TokenId: number;
-        StakeActionId: number;
-        StakeTimeStamp: number;
+      // Note: StakeActionId is inside TokenInfo object
+      const actionIds = stakedTokens.map((stakedToken: {
+        TokenInfo: {
+          TokenId: number;
+          StakeActionId: number;
+          StakeTimeStamp: number;
+        };
       }) => ({
-        TokenId: token.TokenInfo?.TokenId || token.TokenId,
-        StakeActionId: token.StakeActionId,
-        StakeTimeStamp: token.StakeTimeStamp,
+        TokenId: stakedToken.TokenInfo.TokenId,
+        StakeActionId: stakedToken.TokenInfo.StakeActionId,
+        StakeTimeStamp: stakedToken.TokenInfo.StakeTimeStamp,
       }));
+      
+      console.log('Raw staked tokens data:', stakedTokens);
+      console.log('Extracted staked token actions:', actionIds);
+      
+      // Validate we got real action IDs
+      const validActionIds = actionIds.filter((a: StakedTokenAction) => a.StakeActionId > 0);
+      if (validActionIds.length === 0 && stakedTokens.length > 0) {
+        console.warn('Warning: No valid StakeActionIds found. Data structure may have changed.');
+      }
+      
       setStakedTokenActions(actionIds);
 
       // Calculate totals
@@ -462,10 +476,25 @@ export default function MyWinningsPage() {
     
     setClaiming((prev) => ({ ...prev, eth: true }));
     try {
-      showInfo("Please confirm the transaction in your wallet...");
-      
       // Get all unique round numbers from raffle winnings
       const roundNumbers = [...new Set(raffleETHWinnings.map(w => BigInt(w.RoundNum)))];
+      
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.PRIZES_WALLET,
+        abi: PrizesWalletABI,
+        functionName: 'withdrawEverything',
+        args: [roundNumbers, [], []],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim ETH rewards at this time');
+        setClaiming((prev) => ({ ...prev, eth: false }));
+        return;
+      }
+
+      showInfo("Please confirm the transaction in your wallet...");
       
       // Use withdrawEverything to claim all ETH in one transaction
       await prizesWallet.write.withdrawEverything(
@@ -489,6 +518,21 @@ export default function MyWinningsPage() {
   const handleClaimNFT = async (nftIndex: number) => {
     setClaiming((prev) => ({ ...prev, nft: nftIndex }));
     try {
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.PRIZES_WALLET,
+        abi: PrizesWalletABI,
+        functionName: 'claimDonatedNft',
+        args: [BigInt(nftIndex)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim this NFT at this time');
+        setClaiming((prev) => ({ ...prev, nft: null }));
+        return;
+      }
+
       showInfo("Please confirm the transaction in your wallet...");
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
       
@@ -508,9 +552,23 @@ export default function MyWinningsPage() {
     if (unclaimedNFTs.length === 0) return;
 
     try {
-      showInfo("Please confirm the transaction in your wallet...");
-      
       const indexes = unclaimedNFTs.map((nft) => BigInt(nft.Index));
+      
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.PRIZES_WALLET,
+        abi: PrizesWalletABI,
+        functionName: 'claimManyDonatedNfts',
+        args: [indexes],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim these NFTs at this time');
+        return;
+      }
+
+      showInfo("Please confirm the transaction in your wallet...");
       await prizesWallet.write.claimManyDonatedNfts(indexes);
       
       showInfo("Transaction submitted! Waiting for confirmation...");
@@ -526,6 +584,21 @@ export default function MyWinningsPage() {
   const handleClaimERC20 = async (token: DonatedERC20) => {
     setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
     try {
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.PRIZES_WALLET,
+        abi: PrizesWalletABI,
+        functionName: 'claimDonatedToken',
+        args: [BigInt(token.RoundNum), token.TokenAddr as `0x${string}`, BigInt(token.AmountEth)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim this token at this time');
+        setClaiming((prev) => ({ ...prev, erc20: null }));
+        return;
+      }
+
       showInfo("Please confirm the transaction in your wallet...");
       
       await prizesWallet.write.claimDonatedToken(
@@ -550,14 +623,27 @@ export default function MyWinningsPage() {
     if (unclaimedTokens.length === 0) return;
 
     try {
-      showInfo("Please confirm the transaction in your wallet...");
-      
       const tokens = unclaimedTokens.map((token) => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
         amount: BigInt(token.AmountEth),
       }));
 
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.PRIZES_WALLET,
+        abi: PrizesWalletABI,
+        functionName: 'claimManyDonatedTokens',
+        args: [tokens],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim these tokens at this time');
+        return;
+      }
+
+      showInfo("Please confirm the transaction in your wallet...");
       await prizesWallet.write.claimManyDonatedTokens(tokens);
       
       showInfo("Transaction submitted! Waiting for confirmation...");
@@ -574,16 +660,39 @@ export default function MyWinningsPage() {
     if (stakingRewards.length === 0 || stakedTokenActions.length === 0) return;
 
     try {
-      showInfo("Please confirm the transaction in your wallet...");
-      
       // Get all action IDs from currently staked tokens
-      const allActionIds = stakedTokenActions.map((token) => BigInt(token.StakeActionId));
+      // We need to unstake all currently staked tokens to claim all available rewards
+      const tokensWithRewards = stakedTokenActions;
+
+      const allActionIds = tokensWithRewards
+        .map((token) => BigInt(token.StakeActionId))
+        .filter((id) => id > 0n); // Filter out invalid IDs (0 or negative)
       
       if (allActionIds.length === 0) {
-        showError("No staked tokens found.");
+        showError("No valid staked tokens with claimable rewards found.");
         return;
       }
       
+      console.log('Staked token actions:', stakedTokenActions);
+      console.log('Staking rewards:', stakingRewards);
+      console.log('Tokens with rewards:', tokensWithRewards);
+      console.log('Unstaking action IDs:', allActionIds.map(id => id.toString()));
+      
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: 'unstakeMany',
+        args: [allActionIds],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim staking rewards at this time');
+        return;
+      }
+
+      showInfo("Please confirm the transaction in your wallet...");
       await stakingWallet.write.unstakeMany(allActionIds);
       
       showInfo("Transaction submitted! Waiting for confirmation...");

@@ -27,6 +27,10 @@ import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { useNotification } from "@/contexts/NotificationContext";
 import { useApiData } from "@/contexts/ApiDataContext";
+import { estimateContractGas } from "@/lib/web3/gasEstimation";
+import { wagmiConfig } from "@/lib/web3/config";
+import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
+import StakingWalletRWLKABI from "@/contracts/StakingWalletRandomWalkNft.json";
 
 /**
  * Type for staking rewards from API
@@ -549,6 +553,21 @@ export default function StakePage() {
         BigInt(id)
       );
 
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: 'unstakeMany',
+        args: [stakeActionIds],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot unstake these NFTs at this time');
+        setIsStakingMultiple(false);
+        return;
+      }
+
       await stakingContract.write.unstakeMany(stakeActionIds);
       showSuccess(
         `Transaction submitted! Unstaking ${selectedStakedIds.size} NFTs and claiming rewards...`
@@ -630,6 +649,21 @@ export default function StakePage() {
         return;
       }
 
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: 'stake',
+        args: [BigInt(tokenId)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot stake this NFT at this time');
+        setStakingTokenId(null);
+        return;
+      }
+
       // Stake the NFT
       showInfo("Please confirm the transaction in your wallet...");
       await stakingContract.write.stake(BigInt(tokenId));
@@ -676,9 +710,24 @@ export default function StakePage() {
         return;
       }
 
+      // Estimate gas to validate transaction
+      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: 'stakeMany',
+        args: [tokenIdsBigInt],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot stake these NFTs at this time');
+        setIsStakingMultiple(false);
+        return;
+      }
+
       // Stake multiple NFTs
       showInfo("Please confirm the transaction in your wallet...");
-      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await stakingContract.write.stakeMany(tokenIdsBigInt);
       showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
 
@@ -702,6 +751,21 @@ export default function StakePage() {
       }
 
       setUnstakingActionId(stakeActionId);
+
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: 'unstake',
+        args: [BigInt(stakeActionId)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot unstake this NFT at this time');
+        setUnstakingActionId(null);
+        return;
+      }
 
       // Unstake the NFT
       showInfo("Please confirm the transaction in your wallet...");
@@ -767,6 +831,21 @@ export default function StakePage() {
         return;
       }
 
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_RWLK,
+        abi: StakingWalletRWLKABI,
+        functionName: 'stake',
+        args: [BigInt(tokenId)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot stake this NFT at this time');
+        setStakingRWLKTokenId(null);
+        return;
+      }
+
       // Stake the NFT
       showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.stake(BigInt(tokenId));
@@ -809,9 +888,24 @@ export default function StakePage() {
         return;
       }
 
+      // Estimate gas to validate transaction
+      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_RWLK,
+        abi: StakingWalletRWLKABI,
+        functionName: 'stakeMany',
+        args: [tokenIdsBigInt],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot stake these NFTs at this time');
+        setIsStakingRWLKMultiple(false);
+        return;
+      }
+
       // Stake multiple NFTs
       showInfo("Please confirm the transaction in your wallet...");
-      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
       showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
       // Success will be handled by useEffect when transaction confirms
@@ -833,6 +927,21 @@ export default function StakePage() {
       }
 
       setUnstakingRWLKActionId(stakeActionId);
+
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_RWLK,
+        abi: StakingWalletRWLKABI,
+        functionName: 'unstake',
+        args: [BigInt(stakeActionId)],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot unstake this NFT at this time');
+        setUnstakingRWLKActionId(null);
+        return;
+      }
 
       showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.unstake(BigInt(stakeActionId));
@@ -865,6 +974,21 @@ export default function StakePage() {
       const stakeActionIds = Array.from(selectedStakedRWLKIds).map((id) =>
         BigInt(id)
       );
+
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_RWLK,
+        abi: StakingWalletRWLKABI,
+        functionName: 'unstakeMany',
+        args: [stakeActionIds],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot unstake these NFTs at this time');
+        setIsStakingRWLKMultiple(false);
+        return;
+      }
 
       showInfo("Please confirm the transaction in your wallet...");
       await rwlkStakingContract.write.unstakeMany(stakeActionIds);
@@ -900,12 +1024,46 @@ export default function StakePage() {
           if (pendingRWLKStake.type === 'single' && pendingRWLKStake.tokenIds.length === 1) {
             // Proceed with single NFT staking
             const tokenId = pendingRWLKStake.tokenIds[0];
+            
+            // Estimate gas
+            const estimation = await estimateContractGas(wagmiConfig, {
+              address: CONTRACTS.STAKING_WALLET_RWLK,
+              abi: StakingWalletRWLKABI,
+              functionName: 'stake',
+              args: [BigInt(tokenId)],
+              account: address,
+            });
+
+            if (!estimation.success) {
+              showError(estimation.error || 'Cannot stake this NFT at this time');
+              setStakingRWLKTokenId(null);
+              setPendingRWLKStake({ type: null, tokenIds: [] });
+              return;
+            }
+
             showInfo("Please confirm the staking transaction in your wallet...");
             await rwlkStakingContract.write.stake(BigInt(tokenId));
             showInfo("Staking transaction submitted! Waiting for confirmation...");
           } else if (pendingRWLKStake.type === 'multiple' && pendingRWLKStake.tokenIds.length > 0) {
             // Proceed with multiple NFTs staking
             const tokenIdsBigInt = pendingRWLKStake.tokenIds.map((id) => BigInt(id));
+            
+            // Estimate gas
+            const estimation = await estimateContractGas(wagmiConfig, {
+              address: CONTRACTS.STAKING_WALLET_RWLK,
+              abi: StakingWalletRWLKABI,
+              functionName: 'stakeMany',
+              args: [tokenIdsBigInt],
+              account: address,
+            });
+
+            if (!estimation.success) {
+              showError(estimation.error || 'Cannot stake these NFTs at this time');
+              setIsStakingRWLKMultiple(false);
+              setPendingRWLKStake({ type: null, tokenIds: [] });
+              return;
+            }
+
             showInfo("Please confirm the staking transaction in your wallet...");
             await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
             showInfo(`Staking transaction submitted! Staking ${pendingRWLKStake.tokenIds.length} NFTs...`);

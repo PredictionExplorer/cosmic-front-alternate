@@ -5,6 +5,8 @@
  * Maps technical error messages to human-readable explanations.
  */
 
+import { decodeContractError } from './errorDecoder';
+
 /**
  * Known contract error types from CosmicSignatureErrors.sol
  */
@@ -49,6 +51,15 @@ export function parseContractError(error: unknown): string {
 		return 'Transaction was rejected';
 	}
 
+	// Try to decode the error using the ABI first (most accurate)
+	const decodedMessage = decodeContractError(error);
+	if (decodedMessage) {
+		console.log('Successfully decoded contract error:', decodedMessage);
+		return decodedMessage;
+	}
+	
+	console.log('Could not decode error with ABI, trying fallback parsing');
+
 	// Extract error message
 	let errorMessage = '';
 
@@ -72,6 +83,29 @@ export function parseContractError(error: unknown): string {
 		// If it's a readable message, return it
 		if (extractedMessage.length > 0 && !extractedMessage.match(/^0x/)) {
 			return extractedMessage;
+		}
+	}
+
+	// Check for unknown error signature (can't decode)
+	if (errorMessage.includes('Unable to decode signature') && errorMessage.includes('0x')) {
+		const signatureMatch = errorMessage.match(/0x[0-9a-fA-F]{8}/);
+		if (signatureMatch) {
+			const signature = signatureMatch[0];
+			
+			// Check context to provide specific error
+			if (errorMessage.includes('bidWithEthAndDonateNft') || errorMessage.includes('bidWithCstAndDonateNft')) {
+				// Extract token ID from error message if available
+				const tokenIdMatch = errorMessage.match(/args:.*?(\d+)\)/);
+				const tokenId = tokenIdMatch ? tokenIdMatch[1] : 'this NFT';
+				return `Cannot donate NFT #${tokenId}. The NFT may have already been donated, or there may be transfer restrictions.`;
+			}
+			if (errorMessage.includes('bidWithEthAndDonateToken') || errorMessage.includes('bidWithCstAndDonateToken')) {
+				return 'Cannot donate this token. Please verify you have sufficient balance and the token allows transfers.';
+			}
+			if (errorMessage.includes('claimMainPrize')) {
+				return 'Cannot claim main prize. You may not be the last bidder or the claim period may have expired.';
+			}
+			return `Transaction validation failed (Error: ${signature}). Please check all requirements are met.`;
 		}
 	}
 

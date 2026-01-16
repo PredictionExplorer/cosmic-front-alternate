@@ -21,6 +21,7 @@ import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
+import { validateBidMessageLength, getByteLength } from "@/lib/web3/errorDecoder";
 import { formatTime } from "@/lib/utils";
 import { api } from "@/services/api";
 import CosmicGameABI from "@/contracts/CosmicGame.json";
@@ -39,6 +40,7 @@ export default function PlayPage() {
   const [useRandomWalkNft, setUseRandomWalkNft] = useState(false);
   const [selectedNftId, setSelectedNftId] = useState<bigint | null>(null);
   const [bidMessage, setBidMessage] = useState("");
+  const [bidMessageError, setBidMessageError] = useState("");
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2); // % buffer for price collision prevention
   const [usedNfts, setUsedNfts] = useState<number[]>([]); // List of used NFT IDs
@@ -400,6 +402,13 @@ export default function PlayPage() {
       return;
     }
 
+    // Validate bid message byte length
+    const messageValidation = validateBidMessageLength(bidMessage);
+    if (!messageValidation.isValid) {
+      showError(messageValidation.error || 'Bid message is too long');
+      return;
+    }
+
     try {
       // Calculate value with buffer
       const valueInWei =
@@ -430,6 +439,25 @@ export default function PlayPage() {
 
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Verify user owns the NFT
+        try {
+          const nftOwner = await readContract(wagmiConfig, {
+            address: donationNftAddress as `0x${string}`,
+            abi: erc721Abi,
+            functionName: "ownerOf",
+            args: [BigInt(donationNftTokenId)],
+          });
+
+          if (nftOwner.toLowerCase() !== address?.toLowerCase()) {
+            showError(`You don't own NFT #${donationNftTokenId} from this contract.`);
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking NFT ownership:", error);
+          showError(`Unable to verify ownership of NFT #${donationNftTokenId}. It may not exist.`);
+          return;
+        }
+
         // Check and approve NFT if needed
         const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
         if (!approved) {
@@ -565,6 +593,13 @@ export default function PlayPage() {
       return;
     }
 
+    // Validate bid message byte length
+    const messageValidation = validateBidMessageLength(bidMessage);
+    if (!messageValidation.isValid) {
+      showError(messageValidation.error || 'Bid message is too long');
+      return;
+    }
+
     try {
       // Determine max limit based on current price
       let maxLimit: bigint;
@@ -591,6 +626,25 @@ export default function PlayPage() {
 
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Verify user owns the NFT
+        try {
+          const nftOwner = await readContract(wagmiConfig, {
+            address: donationNftAddress as `0x${string}`,
+            abi: erc721Abi,
+            functionName: "ownerOf",
+            args: [BigInt(donationNftTokenId)],
+          });
+
+          if (nftOwner.toLowerCase() !== address?.toLowerCase()) {
+            showError(`You don't own NFT #${donationNftTokenId} from this contract.`);
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking NFT ownership:", error);
+          showError(`Unable to verify ownership of NFT #${donationNftTokenId}. It may not exist.`);
+          return;
+        }
+
         // Check and approve NFT if needed
         const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
         if (!approved) {
@@ -1199,17 +1253,37 @@ export default function PlayPage() {
                     </label>
                     <textarea
                       value={bidMessage}
-                      onChange={(e) => setBidMessage(e.target.value)}
-                      maxLength={280}
+                      onChange={(e) => {
+                        const newMessage = e.target.value;
+                        setBidMessage(newMessage);
+                        
+                        // Validate byte length
+                        const validation = validateBidMessageLength(newMessage);
+                        if (!validation.isValid) {
+                          setBidMessageError(validation.error || '');
+                        } else {
+                          setBidMessageError('');
+                        }
+                      }}
                       rows={3}
                       disabled={isTransactionPending}
                       placeholder="Add a message with your bid..."
-                      className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                      className={`w-full px-4 py-3 rounded-lg bg-background-elevated border ${
+                        bidMessageError 
+                          ? 'border-status-error' 
+                          : 'border-text-muted/10'
+                      } text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all resize-none`}
                     />
-                    <div className="flex justify-between text-xs text-text-muted">
-                      <span>Maximum 280 characters</span>
-                      <span>{bidMessage.length}/280</span>
-                    </div>
+                    {bidMessageError ? (
+                      <p className="text-xs text-status-error">{bidMessageError}</p>
+                    ) : (
+                      <div className="flex justify-between text-xs text-text-muted">
+                        <span>Maximum 280 bytes (some Unicode chars use multiple bytes)</span>
+                        <span className={getByteLength(bidMessage) > 280 ? 'text-status-error font-semibold' : ''}>
+                          {getByteLength(bidMessage)}/280 bytes
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Advanced Options */}

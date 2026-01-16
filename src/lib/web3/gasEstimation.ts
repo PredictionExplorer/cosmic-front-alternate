@@ -43,7 +43,17 @@ export async function estimateContractGas(
     console.error('Gas estimation failed:', error);
     const friendlyError = parseContractError(error);
     console.log('Parsed error message:', friendlyError);
-    return { success: false, error: friendlyError };
+    
+    // If we got a meaningful error message, return it
+    if (friendlyError && friendlyError !== 'Transaction failed. Please try again.') {
+      return { success: false, error: friendlyError };
+    }
+    
+    // Fall back to generic message with error details
+    return { 
+      success: false, 
+      error: friendlyError || 'Transaction validation failed. Please check requirements.'
+    };
   }
 }
 
