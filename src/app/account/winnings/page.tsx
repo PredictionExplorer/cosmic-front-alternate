@@ -1148,14 +1148,6 @@ export default function MyWinningsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-text-secondary mb-1">
-                        Unclaimed Tokens
-                      </p>
-                      <p className="font-mono text-lg font-bold text-text-primary">
-                        {stakingRewards.reduce((sum, r) => sum + r.NumUnclaimedTokens, 0)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-text-secondary mb-1">
                         Total Rewards
                       </p>
                       <p className="font-mono text-2xl font-bold text-status-success">

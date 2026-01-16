@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X } from "lucide-react";
 import { useAccount } from "wagmi";
-import { parseEther, erc20Abi } from "viem";
+import { parseEther, erc20Abi, erc721Abi } from "viem";
 import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "@/lib/web3/config";
 import { CONTRACTS } from "@/lib/web3/contracts";
@@ -20,8 +20,10 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
+import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { formatTime } from "@/lib/utils";
 import { api } from "@/services/api";
+import CosmicGameABI from "@/contracts/CosmicGame.json";
 
 export default function PlayPage() {
   const { address, isConnected } = useAccount();
@@ -321,6 +323,66 @@ export default function PlayPage() {
     }
   };
 
+  // Helper function to check and approve ERC721 NFT
+  const checkAndApproveNFT = async (
+    nftAddress: string,
+    tokenId: string
+  ): Promise<boolean> => {
+    if (!address) return false;
+
+    try {
+      // Check if already approved for this specific token
+      const approvedAddress = await readContract(wagmiConfig, {
+        address: nftAddress as `0x${string}`,
+        abi: erc721Abi,
+        functionName: "getApproved",
+        args: [BigInt(tokenId)],
+      });
+
+      // If already approved to Cosmic Game, no need to approve again
+      if (approvedAddress?.toLowerCase() === CONTRACTS.COSMIC_GAME.toLowerCase()) {
+        return true;
+      }
+
+      // Check if operator is approved for all
+      const isApprovedForAll = await readContract(wagmiConfig, {
+        address: nftAddress as `0x${string}`,
+        abi: erc721Abi,
+        functionName: "isApprovedForAll",
+        args: [address, CONTRACTS.COSMIC_GAME],
+      });
+
+      if (isApprovedForAll) {
+        return true;
+      }
+
+      // Request approval for this specific token
+      showInfo("Requesting NFT approval... Please confirm the transaction.");
+      
+      const hash = await writeContract(wagmiConfig, {
+        address: nftAddress as `0x${string}`,
+        abi: erc721Abi,
+        functionName: "approve",
+        args: [CONTRACTS.COSMIC_GAME, BigInt(tokenId)],
+      });
+
+      showInfo("Approval transaction submitted. Waiting for confirmation...");
+
+      // Wait for approval transaction to be mined
+      await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+
+      showSuccess("NFT approval confirmed! Proceeding with bid...");
+      return true;
+    } catch (error) {
+      console.error("NFT approval error:", error);
+      const friendlyError = parseContractError(error);
+      showError(`NFT approval failed: ${friendlyError}`);
+      return false;
+    }
+  };
+
   // Handle ETH bid
   const handleEthBid = async () => {
     if (!isConnected) {
@@ -368,6 +430,27 @@ export default function PlayPage() {
 
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Check and approve NFT if needed
+        const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
+        if (!approved) {
+          return; // Approval failed, stop here
+        }
+
+        // Estimate gas to validate transaction
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithEthAndDonateNft',
+          args: [nftIdToSend, bidMessage, donationNftAddress as `0x${string}`, BigInt(donationNftTokenId)],
+          value: finalValue,
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         // Bid with NFT donation
         await write.bidWithEthAndDonateNft(
           nftIdToSend,
@@ -390,6 +473,21 @@ export default function PlayPage() {
           return; // Approval failed, stop here
         }
 
+        // Estimate gas to validate transaction
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithEthAndDonateToken',
+          args: [nftIdToSend, bidMessage, donationTokenAddress as `0x${string}`, tokenAmount],
+          value: finalValue,
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         await write.bidWithEthAndDonateToken(
           nftIdToSend,
           bidMessage,
@@ -398,6 +496,21 @@ export default function PlayPage() {
           finalValue
         );
       } else {
+        // Estimate gas for regular bid
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithEth',
+          args: [nftIdToSend, bidMessage],
+          value: finalValue,
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         // Regular bid without donation
         await write.bidWithEth(nftIdToSend, bidMessage, finalValue);
       }
@@ -452,6 +565,26 @@ export default function PlayPage() {
 
       // Submit bid with or without donation
       if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
+        // Check and approve NFT if needed
+        const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
+        if (!approved) {
+          return; // Approval failed, stop here
+        }
+
+        // Estimate gas to validate transaction
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithCstAndDonateNft',
+          args: [maxLimit, bidMessage, donationNftAddress as `0x${string}`, BigInt(donationNftTokenId)],
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         // Bid with NFT donation
         await write.bidWithCstAndDonateNft(
           maxLimit,
@@ -473,6 +606,20 @@ export default function PlayPage() {
           return; // Approval failed, stop here
         }
 
+        // Estimate gas to validate transaction
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithCstAndDonateToken',
+          args: [maxLimit, bidMessage, donationTokenAddress as `0x${string}`, tokenAmount],
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         await write.bidWithCstAndDonateToken(
           maxLimit,
           bidMessage,
@@ -480,6 +627,20 @@ export default function PlayPage() {
           tokenAmount
         );
       } else {
+        // Estimate gas for regular CST bid
+        const estimation = await estimateContractGas(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: CosmicGameABI,
+          functionName: 'bidWithCst',
+          args: [maxLimit, bidMessage],
+          account: address,
+        });
+
+        if (!estimation.success) {
+          showError(estimation.error || 'Transaction validation failed');
+          return;
+        }
+
         // Regular bid without donation
         await write.bidWithCst(maxLimit, bidMessage);
       }
@@ -499,6 +660,20 @@ export default function PlayPage() {
     }
 
     try {
+      // Estimate gas to validate transaction
+      const estimation = await estimateContractGas(wagmiConfig, {
+        address: CONTRACTS.COSMIC_GAME,
+        abi: CosmicGameABI,
+        functionName: 'claimMainPrize',
+        args: [],
+        account: address,
+      });
+
+      if (!estimation.success) {
+        showError(estimation.error || 'Cannot claim prize at this time');
+        return;
+      }
+
       // Track that this is a claim prize action
       setLastActionType("claimPrize");
 
@@ -868,14 +1043,16 @@ export default function PlayPage() {
                                         disabled={isTransactionPending}
                                         className={`p-3 rounded-lg border-2 transition-all text-left ${
                                           selectedNftId === nftId
-                                            ? "border-primary bg-primary/10 shadow-lg"
+                                            ? "border-status-info bg-status-info/10 shadow-lg"
                                             : "border-text-muted/20 bg-background-surface hover:border-primary/40"
                                         }`}
                                       >
                                         <div className="text-xs text-text-secondary">
                                           Token ID
                                         </div>
-                                        <div className="font-mono text-lg font-semibold text-primary">
+                                        <div className={`font-mono text-lg font-semibold ${
+                                          selectedNftId === nftId ? "text-status-info" : "text-primary"
+                                        }`}>
                                           #{nftId.toString()}
                                         </div>
                                       </button>
@@ -883,16 +1060,24 @@ export default function PlayPage() {
                                   </div>
                                 </div>
 
-                                <div className="p-3 rounded-lg bg-status-warning/10 border border-status-warning/20">
-                                  <p className="text-xs text-text-secondary flex items-start">
-                                    <AlertCircle
-                                      size={14}
-                                      className="mr-2 mt-0.5 flex-shrink-0 text-status-warning"
-                                    />
-                                    Warning: Each Random Walk NFT can only be
-                                    used once, ever. This action is permanent.
-                                  </p>
-                                </div>
+                                {selectedNftId !== null ? (
+                                  <div className="p-3 rounded-lg bg-status-info/10 border border-status-info/20">
+                                    <p className="text-xs text-text-primary font-medium">
+                                      You have selected token #{Number(selectedNftId)} to get 50% discount in bid price
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 rounded-lg bg-status-warning/10 border border-status-warning/20">
+                                    <p className="text-xs text-text-secondary flex items-start">
+                                      <AlertCircle
+                                        size={14}
+                                        className="mr-2 mt-0.5 flex-shrink-0 text-status-warning"
+                                      />
+                                      Warning: Each Random Walk NFT can only be
+                                      used once, ever. This action is permanent.
+                                    </p>
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
