@@ -452,6 +452,17 @@ export default function PlayPage() {
         }
 
         // Bid with NFT donation
+        // Bid with NFT donation
+        console.log("Submitting bidWithEthAndDonateNft:", {
+          nftIdToSend,
+          bidMessage,
+          donationNftAddress,
+          donationNftTokenId,
+          finalValue: finalValue.toString(),
+        });
+        
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithEthAndDonateNft(
           nftIdToSend,
           bidMessage,
@@ -459,6 +470,8 @@ export default function PlayPage() {
           BigInt(donationNftTokenId),
           finalValue
         );
+        
+        console.log("bidWithEthAndDonateNft submitted successfully");
       } else if (
         donationType === "token" &&
         donationTokenAddress &&
@@ -488,6 +501,8 @@ export default function PlayPage() {
           return;
         }
 
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithEthAndDonateToken(
           nftIdToSend,
           bidMessage,
@@ -512,11 +527,22 @@ export default function PlayPage() {
         }
 
         // Regular bid without donation
+        // Regular bid without donation
+        console.log("Submitting bidWithEth:", {
+          nftIdToSend,
+          bidMessage,
+          finalValue: finalValue.toString(),
+        });
+        
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithEth(nftIdToSend, bidMessage, finalValue);
+        console.log("bidWithEth submitted successfully");
       }
 
       showInfo("Transaction submitted! Waiting for confirmation...");
     } catch (error) {
+      console.error("ETH Bid error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
     }
@@ -586,6 +612,8 @@ export default function PlayPage() {
         }
 
         // Bid with NFT donation
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithCstAndDonateNft(
           maxLimit,
           bidMessage,
@@ -620,6 +648,8 @@ export default function PlayPage() {
           return;
         }
 
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithCstAndDonateToken(
           maxLimit,
           bidMessage,
@@ -642,11 +672,14 @@ export default function PlayPage() {
         }
 
         // Regular bid without donation
+        showInfo("Please confirm the transaction in your wallet...");
+        
         await write.bidWithCst(maxLimit, bidMessage);
       }
 
       showInfo("Transaction submitted! Waiting for confirmation...");
     } catch (error) {
+      console.error("CST Bid error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
     }
@@ -677,9 +710,15 @@ export default function PlayPage() {
       // Track that this is a claim prize action
       setLastActionType("claimPrize");
 
+      console.log("Submitting claimMainPrize transaction");
+      showInfo("Please confirm the transaction in your wallet...");
+      
       await write.claimMainPrize();
-      showInfo("Transaction submitted! Claiming main prize...");
+      console.log("claimMainPrize submitted successfully");
+      
+      showInfo("Transaction submitted! Waiting for blockchain confirmation...");
     } catch (error) {
+      console.error("Claim Main Prize error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
     }

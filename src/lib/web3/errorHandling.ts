@@ -60,6 +60,21 @@ export function parseContractError(error: unknown): string {
 		errorMessage = error;
 	}
 
+	// Try to extract custom error message from contract revert
+	// Format: "Error: ErrorName(types)\n(message, param1, param2)"
+	// Handle multi-line errors with \s* for any whitespace including newlines
+	const customErrorMatch = errorMessage.match(/Error:\s*\w+\([^)]*\)\s*\(([^,)]+)/s);
+	if (customErrorMatch && customErrorMatch[1]) {
+		// Extract just the message part
+		let extractedMessage = customErrorMatch[1].trim();
+		// Remove quotes if present
+		extractedMessage = extractedMessage.replace(/^["']|["']$/g, '');
+		// If it's a readable message, return it
+		if (extractedMessage.length > 0 && !extractedMessage.match(/^0x/)) {
+			return extractedMessage;
+		}
+	}
+
 	// Check for known contract errors
 	for (const [errorName, friendlyMessage] of Object.entries(CONTRACT_ERRORS)) {
 		if (errorMessage.includes(errorName)) {

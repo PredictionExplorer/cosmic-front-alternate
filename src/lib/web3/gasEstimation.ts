@@ -40,8 +40,9 @@ export async function estimateContractGas(
     return { success: true };
   } catch (error) {
     // Transaction would revert - extract and parse the error
-    const friendlyError = parseContractError(error);
     console.error('Gas estimation failed:', error);
+    const friendlyError = parseContractError(error);
+    console.log('Parsed error message:', friendlyError);
     return { success: false, error: friendlyError };
   }
 }
