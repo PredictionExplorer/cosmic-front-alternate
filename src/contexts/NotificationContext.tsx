@@ -155,7 +155,7 @@ function NotificationContainer({
 	onClose: (id: string) => void;
 }) {
 	return (
-		<div className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none">
+		<div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-3 max-w-2xl w-full px-4 pointer-events-none">
 			<AnimatePresence>
 				{notifications.map(notification => (
 					<NotificationItem key={notification.id} notification={notification} onClose={onClose} />
@@ -206,30 +206,32 @@ function NotificationItem({ notification, onClose }: { notification: Notificatio
 
 	return (
 		<motion.div
-			initial={{ opacity: 0, y: -20, x: 50 }}
-			animate={{ opacity: 1, y: 0, x: 0 }}
-			exit={{ opacity: 0, x: 50, transition: { duration: 0.2 } }}
+			initial={{ opacity: 0, y: -40, scale: 0.9 }}
+			animate={{ opacity: 1, y: 0, scale: 1 }}
+			exit={{ opacity: 0, y: -20, scale: 0.95, transition: { duration: 0.2 } }}
 			className="pointer-events-auto"
 		>
 			<div
 				className={`
-					p-4 rounded-lg border backdrop-blur-xl shadow-luxury-lg
+					p-6 rounded-xl border-2 backdrop-blur-xl shadow-2xl
 					${config.bgColor} ${config.borderColor}
-					flex items-start gap-3
+					flex items-center gap-4
 				`}
 			>
-				<Icon className={`flex-shrink-0 mt-0.5 ${config.iconColor}`} size={20} />
+				<Icon className={`flex-shrink-0 ${config.iconColor}`} size={32} />
 
 				<div className="flex-1 min-w-0">
-					<p className="text-sm text-text-primary leading-relaxed">{message}</p>
+					<p className="text-lg font-semibold text-text-primary leading-relaxed text-center">
+						{message}
+					</p>
 				</div>
 
 				<button
 					onClick={() => onClose(id)}
-					className="flex-shrink-0 p-1 rounded-md hover:bg-background-elevated/50 transition-colors"
+					className="flex-shrink-0 p-2 rounded-lg hover:bg-background-elevated/50 transition-colors"
 					aria-label="Close notification"
 				>
-					<X className="text-text-secondary hover:text-text-primary transition-colors" size={16} />
+					<X className="text-text-secondary hover:text-text-primary transition-colors" size={20} />
 				</button>
 			</div>
 		</motion.div>
