@@ -48,8 +48,16 @@ interface UniqueDonor {
 }
 
 interface UniqueStaker {
+  StakerAid: number;
   StakerAddr: string;
-  NumStakingActions: number;
+  TotalTokensStaked: number;
+  NumStakeActions: number;
+  NumUnstakeActions: number;
+  TotalReward: string;
+  TotalRewardEth: number;
+  UnclaimedReward: string;
+  UnclaimedRewardEth: number;
+  TotalTokensMinted: number;
 }
 
 interface CSTDistribution {
@@ -252,8 +260,8 @@ export default function StatisticsPage() {
         setCurrentRoundBids(currentBids);
         setUniqueBidders(bidders.sort((a: UniqueBidder, b: UniqueBidder) => b.NumBids - a.NumBids));
         setUniqueWinners(winners.sort((a: UniqueWinner, b: UniqueWinner) => b.PrizesCount - a.PrizesCount));
-        setUniqueCSTStakers(cstStakers);
-        setUniqueRWLKStakers(rwlkStakers);
+        setUniqueCSTStakers(cstStakers.sort((a: UniqueStaker, b: UniqueStaker) => b.TotalRewardEth - a.TotalRewardEth));
+        setUniqueRWLKStakers(rwlkStakers.sort((a: UniqueStaker, b: UniqueStaker) => b.TotalRewardEth - a.TotalRewardEth));
         setUniqueDonors(donors);
         setCSTDistribution(cstDist);
         setCTBalanceDistribution(ctBalance);
@@ -1096,7 +1104,7 @@ export default function StatisticsPage() {
                             Address
                           </th>
                           <th className="px-6 py-3 text-right text-sm font-semibold text-text-primary">
-                            Actions
+                            Total Reward
                           </th>
                         </tr>
                       </thead>
@@ -1122,7 +1130,7 @@ export default function StatisticsPage() {
                               </Link>
                             </td>
                             <td className="px-6 py-3 text-right font-mono text-text-primary text-sm">
-                              {staker.NumStakingActions}
+                              {staker.TotalRewardEth.toFixed(4)} ETH
                             </td>
                           </tr>
                         ))}
@@ -1166,7 +1174,7 @@ export default function StatisticsPage() {
                             Address
                           </th>
                           <th className="px-6 py-3 text-right text-sm font-semibold text-text-primary">
-                            Actions
+                            Total Reward
                           </th>
                         </tr>
                       </thead>
@@ -1192,7 +1200,7 @@ export default function StatisticsPage() {
                               </Link>
                             </td>
                             <td className="px-6 py-3 text-right font-mono text-text-primary text-sm">
-                              {staker.NumStakingActions}
+                              {staker.TotalRewardEth.toFixed(4)} ETH
                             </td>
                           </tr>
                         ))}
