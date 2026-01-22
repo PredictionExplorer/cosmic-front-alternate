@@ -320,7 +320,7 @@ export default function AboutPage() {
 						className="mt-12 text-center"
 					>
 						<Button size="lg" variant="outline" asChild>
-							<a href="https://github.com" target="_blank" rel="noopener noreferrer">
+							<a href="https://github.com/PredictionExplorer/Cosmic-Signature/tree/main" target="_blank" rel="noopener noreferrer">
 								<Github className="mr-2" size={20} />
 								View Source Code on GitHub
 							</a>
@@ -469,17 +469,17 @@ export default function AboutPage() {
 						</p>
 						<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
 							<Button size="lg" variant="outline" asChild>
-								<a href="https://discord.com" target="_blank" rel="noopener noreferrer">
+								<a href="https://discord.gg/bGnPn96Qwt" target="_blank" rel="noopener noreferrer">
 									Join Discord
 								</a>
 							</Button>
 							<Button size="lg" variant="outline" asChild>
-								<a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+								<a href="https://x.com/CosmicSignatureNFT" target="_blank" rel="noopener noreferrer">
 									Follow on Twitter
 								</a>
 							</Button>
 							<Button size="lg" variant="outline" asChild>
-								<a href="https://github.com" target="_blank" rel="noopener noreferrer">
+								<a href="https://github.com/PredictionExplorer/Cosmic-Signature/tree/main" target="_blank" rel="noopener noreferrer">
 									<Github className="mr-2" size={20} />
 									GitHub
 								</a>

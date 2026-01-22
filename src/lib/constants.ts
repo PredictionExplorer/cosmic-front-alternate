@@ -18,3 +18,13 @@ export const NAV_LINKS = [
   { href: "/contracts", label: "Contracts" },
   { href: "/about", label: "About" },
 ] as const;
+
+// Social Media Links Configuration
+
+export const SOCIAL_LINKS = {
+  twitter: "https://x.com/CosmicSignatureNFT",
+  discord: "https://discord.gg/bGnPn96Qwt",
+  github: "https://github.com/PredictionExplorer/Cosmic-Signature",
+  githubMain: "https://github.com/PredictionExplorer/Cosmic-Signature/tree/main",
+  githubDocs: "https://github.com/PredictionExplorer/Cosmic-Signature/tree/main/docs",
+} as const;
