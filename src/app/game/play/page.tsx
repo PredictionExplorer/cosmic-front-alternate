@@ -900,7 +900,11 @@ export default function PlayPage() {
                 Round {currentRound.roundNumber}
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="success">Active</Badge>
+                {!isRoundActive && timeUntilRoundStarts > 0 ? (
+                  <Badge variant="default">Pending</Badge>
+                ) : (
+                  <Badge variant="success">Active</Badge>
+                )}
                 <span className="text-sm text-text-muted">
                   {currentRound.totalBids} bid{currentRound.totalBids !== 1 ? 's' : ''}
                 </span>
@@ -909,7 +913,14 @@ export default function PlayPage() {
             
             {/* Center: Countdown Timer (Bigger) */}
             <div className="flex justify-center">
-              <CountdownTimer targetSeconds={timeRemaining} size="lg" />
+              {!isRoundActive && timeUntilRoundStarts > 0 ? (
+                <div className="text-center">
+                  <div className="text-sm text-status-info mb-2">Round Starts In</div>
+                  <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
+                </div>
+              ) : (
+                <CountdownTimer targetSeconds={timeRemaining} size="lg" />
+              )}
             </div>
             
             {/* Right: Prize Pool */}
@@ -1466,16 +1477,16 @@ export default function PlayPage() {
 
                   {/* Round Activation Notice */}
                   {!isRoundActive && timeUntilRoundStarts > 0 && (
-                    <div className="p-4 rounded-lg bg-status-info/10 border border-status-info/20 mb-4">
-                      <div className="text-center">
-                        <p className="text-sm font-semibold text-status-info mb-2">
-                          Round Not Yet Active
+                    <div className="p-6 rounded-lg bg-status-info/10 border border-status-info/20 mb-4">
+                      <div className="text-center space-y-4">
+                        <p className="text-sm font-semibold text-status-info">
+                          The current bidding round is not active yet.
                         </p>
-                        <p className="text-sm text-text-secondary">
-                          This round will become active in{" "}
-                          <span className="font-mono text-primary font-semibold">
-                            {formatTime(timeUntilRoundStarts)}
-                          </span>
+                        <div className="flex justify-center">
+                          <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
+                        </div>
+                        <p className="text-xs text-text-muted">
+                          Bidding will open when the countdown reaches zero
                         </p>
                       </div>
                     </div>
