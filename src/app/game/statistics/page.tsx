@@ -33,8 +33,13 @@ interface UniqueBidder {
 }
 
 interface UniqueWinner {
+  WinnerAid: number;
   WinnerAddr: string;
-  NumWins: number;
+  PrizesCount: number;
+  MaxWinAmount: string;
+  MaxWinAmountEth: number;
+  PrizesSum: number;
+  NumWins?: number; // For backward compatibility
 }
 
 interface UniqueDonor {
@@ -53,8 +58,10 @@ interface CSTDistribution {
 }
 
 interface CTBalanceDistribution {
-  HolderAddr: string;
-  BalanceEth: string;
+  OwnerAid: number;
+  OwnerAddr: string;
+  Balance: string;
+  BalanceFloat: number;
 }
 
 interface DonatedTokenDistribution {
@@ -244,7 +251,7 @@ export default function StatisticsPage() {
 
         setCurrentRoundBids(currentBids);
         setUniqueBidders(bidders.sort((a: UniqueBidder, b: UniqueBidder) => b.NumBids - a.NumBids));
-        setUniqueWinners(winners);
+        setUniqueWinners(winners.sort((a: UniqueWinner, b: UniqueWinner) => b.PrizesCount - a.PrizesCount));
         setUniqueCSTStakers(cstStakers);
         setUniqueRWLKStakers(rwlkStakers);
         setUniqueDonors(donors);
@@ -793,7 +800,7 @@ export default function StatisticsPage() {
                             </Link>
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-text-primary">
-                            {winner.NumWins}
+                            {winner.PrizesCount}
                           </td>
                         </tr>
                       ))}
@@ -983,18 +990,18 @@ export default function StatisticsPage() {
                       <tbody>
                         {ctBalanceDistribution.slice(0, 20).map((item: CTBalanceDistribution, index: number) => (
                           <tr
-                            key={item.HolderAddr}
+                            key={item.OwnerAddr}
                             className={`border-b border-text-muted/5 ${
                               index % 2 === 0 ? "bg-background-surface/30" : ""
                             }`}
                           >
                             <td className="px-6 py-4">
                               <Link 
-                                href={`/user/${item.HolderAddr}`}
+                                href={`/user/${item.OwnerAddr}`}
                                 className="hover:underline"
                               >
                                 <AddressDisplay
-                                  address={item.HolderAddr}
+                                  address={item.OwnerAddr}
                                   shorten={true}
                                   chars={8}
                                   showCopy={false}
@@ -1002,7 +1009,7 @@ export default function StatisticsPage() {
                               </Link>
                             </td>
                             <td className="px-6 py-4 text-right font-mono text-text-primary">
-                              {(parseFloat(item.BalanceEth || "0") / 1e18).toFixed(2)}
+                              {item.BalanceFloat.toFixed(2)}
                             </td>
                           </tr>
                         ))}
