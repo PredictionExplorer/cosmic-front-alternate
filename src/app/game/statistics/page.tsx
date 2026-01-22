@@ -39,6 +39,19 @@ interface UniqueWinner {
   MaxWinAmount: string;
   MaxWinAmountEth: number;
   PrizesSum: number;
+  WinnerStats: {
+    MaxWinAmount: string;
+    MaxWinAmountEth: number;
+    PrizesCount: number;
+    PrizesSum: string;
+    PrizesSumEth: number;
+    TokensCount: number;
+    ERC20Count: number;
+    ERC721Count: number;
+    UnclaimedNfts: number;
+    TotalSpent: string;
+    TotalSpentEth: number;
+  };
   NumWins?: number; // For backward compatibility
 }
 
@@ -57,7 +70,6 @@ interface UniqueStaker {
   TotalRewardEth: number;
   UnclaimedReward: string;
   UnclaimedRewardEth: number;
-  TotalTokensMinted: number;
 }
 
 interface CSTDistribution {
@@ -70,6 +82,7 @@ interface CTBalanceDistribution {
   OwnerAddr: string;
   Balance: string;
   BalanceFloat: number;
+  PercentOfSupply: number;
 }
 
 interface DonatedTokenDistribution {
@@ -784,6 +797,12 @@ export default function StatisticsPage() {
                         <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                           Wins
                         </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                          Total Won
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
+                          Max Win
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -809,6 +828,12 @@ export default function StatisticsPage() {
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-text-primary">
                             {winner.PrizesCount}
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-text-primary">
+                            {winner.WinnerStats.PrizesSumEth.toFixed(4)} ETH
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-text-primary">
+                            {winner.WinnerStats.MaxWinAmountEth.toFixed(4)} ETH
                           </td>
                         </tr>
                       ))}
