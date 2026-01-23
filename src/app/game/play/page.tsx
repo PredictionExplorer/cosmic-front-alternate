@@ -282,9 +282,14 @@ export default function PlayPage() {
     tokenAddress: string,
     amount: bigint
   ): Promise<boolean> => {
-    if (!address) return false;
+    if (!address) {
+      console.error("No wallet address found");
+      return false;
+    }
 
     try {
+      console.log(`Checking ERC20 approval for ${tokenAddress}, amount: ${amount}`);
+      
       // Check current allowance
       const allowance = await readContract(wagmiConfig, {
         address: tokenAddress as `0x${string}`,
@@ -293,13 +298,18 @@ export default function PlayPage() {
         args: [address, CONTRACTS.COSMIC_GAME],
       });
 
+      console.log(`Current allowance: ${allowance}, required: ${amount}`);
+
       // If allowance is sufficient, no need to approve
       if (allowance >= amount) {
+        console.log("Token allowance is sufficient");
+        showInfo("Token is already approved!");
         return true;
       }
 
       // Request approval
-      showInfo("Requesting token approval... Please confirm the transaction.");
+      console.log("Requesting token approval...");
+      showInfo("🔓 Requesting token approval... Please confirm the transaction in your wallet.");
       
       const hash = await writeContract(wagmiConfig, {
         address: tokenAddress as `0x${string}`,
@@ -308,19 +318,25 @@ export default function PlayPage() {
         args: [CONTRACTS.COSMIC_GAME, amount],
       });
 
-      showInfo("Approval transaction submitted. Waiting for confirmation...");
+      console.log(`Approval transaction hash: ${hash}`);
+      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
 
       // Wait for approval transaction to be mined
-      await waitForTransactionReceipt(wagmiConfig, {
+      const receipt = await waitForTransactionReceipt(wagmiConfig, {
         hash,
       });
 
-      showSuccess("Token approval confirmed! Proceeding with bid...");
+      console.log(`Approval confirmed in block ${receipt.blockNumber}`);
+      showSuccess("✅ Token approval confirmed! Proceeding with bid...");
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return true;
     } catch (error) {
       console.error("Token approval error:", error);
       const friendlyError = parseContractError(error);
-      showError(`Token approval failed: ${friendlyError}`);
+      showError(`❌ Token approval failed: ${friendlyError}`);
       return false;
     }
   };
@@ -330,9 +346,14 @@ export default function PlayPage() {
     nftAddress: string,
     tokenId: string
   ): Promise<boolean> => {
-    if (!address) return false;
+    if (!address) {
+      console.error("No wallet address found");
+      return false;
+    }
 
     try {
+      console.log(`Checking NFT approval for ${nftAddress} token #${tokenId}`);
+      
       // Check if already approved for this specific token
       const approvedAddress = await readContract(wagmiConfig, {
         address: nftAddress as `0x${string}`,
@@ -341,8 +362,13 @@ export default function PlayPage() {
         args: [BigInt(tokenId)],
       });
 
+      console.log(`Current approved address: ${approvedAddress}`);
+      console.log(`Cosmic Game contract: ${CONTRACTS.COSMIC_GAME}`);
+
       // If already approved to Cosmic Game, no need to approve again
       if (approvedAddress?.toLowerCase() === CONTRACTS.COSMIC_GAME.toLowerCase()) {
+        console.log("NFT is already approved for specific token");
+        showInfo("NFT is already approved!");
         return true;
       }
 
@@ -354,12 +380,17 @@ export default function PlayPage() {
         args: [address, CONTRACTS.COSMIC_GAME],
       });
 
+      console.log(`Is approved for all: ${isApprovedForAll}`);
+
       if (isApprovedForAll) {
+        console.log("NFT contract is approved for all tokens");
+        showInfo("NFT is already approved!");
         return true;
       }
 
       // Request approval for this specific token
-      showInfo("Requesting NFT approval... Please confirm the transaction.");
+      console.log("Requesting NFT approval...");
+      showInfo("🔓 Requesting NFT approval... Please confirm the transaction in your wallet.");
       
       const hash = await writeContract(wagmiConfig, {
         address: nftAddress as `0x${string}`,
@@ -368,19 +399,25 @@ export default function PlayPage() {
         args: [CONTRACTS.COSMIC_GAME, BigInt(tokenId)],
       });
 
-      showInfo("Approval transaction submitted. Waiting for confirmation...");
+      console.log(`Approval transaction hash: ${hash}`);
+      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
 
       // Wait for approval transaction to be mined
-      await waitForTransactionReceipt(wagmiConfig, {
+      const receipt = await waitForTransactionReceipt(wagmiConfig, {
         hash,
       });
 
-      showSuccess("NFT approval confirmed! Proceeding with bid...");
+      console.log(`Approval confirmed in block ${receipt.blockNumber}`);
+      showSuccess("✅ NFT approval confirmed! Proceeding with bid...");
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return true;
     } catch (error) {
       console.error("NFT approval error:", error);
       const friendlyError = parseContractError(error);
-      showError(`NFT approval failed: ${friendlyError}`);
+      showError(`❌ NFT approval failed: ${friendlyError}`);
       return false;
     }
   };
@@ -459,12 +496,16 @@ export default function PlayPage() {
         }
 
         // Check and approve NFT if needed
+        showInfo("Step 1/2: Checking NFT approval...");
         const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
         if (!approved) {
+          console.error("NFT approval was not successful, aborting ETH bid");
           return; // Approval failed, stop here
         }
+        console.log("NFT approval successful, proceeding to ETH bid");
 
         // Estimate gas to validate transaction
+        showInfo("Step 2/2: Validating and submitting bid transaction...");
         const estimation = await estimateContractGas(wagmiConfig, {
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
@@ -509,12 +550,16 @@ export default function PlayPage() {
         const tokenAmount = parseEther(donationTokenAmount);
         
         // Check and approve token if needed
+        showInfo("Step 1/2: Checking ERC20 token approval...");
         const approved = await checkAndApproveERC20(donationTokenAddress, tokenAmount);
         if (!approved) {
+          console.error("Token approval was not successful, aborting ETH bid");
           return; // Approval failed, stop here
         }
+        console.log("Token approval successful, proceeding to ETH bid");
 
         // Estimate gas to validate transaction
+        showInfo("Step 2/2: Validating and submitting bid transaction...");
         const estimation = await estimateContractGas(wagmiConfig, {
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
@@ -646,12 +691,16 @@ export default function PlayPage() {
         }
 
         // Check and approve NFT if needed
+        showInfo("Step 1/2: Checking NFT approval...");
         const approved = await checkAndApproveNFT(donationNftAddress, donationNftTokenId);
         if (!approved) {
+          console.error("NFT approval was not successful, aborting CST bid");
           return; // Approval failed, stop here
         }
+        console.log("NFT approval successful, proceeding to CST bid");
 
         // Estimate gas to validate transaction
+        showInfo("Step 2/2: Validating and submitting bid transaction...");
         const estimation = await estimateContractGas(wagmiConfig, {
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
@@ -683,12 +732,16 @@ export default function PlayPage() {
         const tokenAmount = parseEther(donationTokenAmount);
         
         // Check and approve token if needed
+        showInfo("Step 1/2: Checking ERC20 token approval...");
         const approved = await checkAndApproveERC20(donationTokenAddress, tokenAmount);
         if (!approved) {
+          console.error("Token approval was not successful, aborting CST bid");
           return; // Approval failed, stop here
         }
+        console.log("Token approval successful, proceeding to CST bid");
 
         // Estimate gas to validate transaction
+        showInfo("Step 2/2: Validating and submitting bid transaction...");
         const estimation = await estimateContractGas(wagmiConfig, {
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
