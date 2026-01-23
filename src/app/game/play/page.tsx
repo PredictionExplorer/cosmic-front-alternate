@@ -451,7 +451,8 @@ export default function PlayPage() {
       const valueInWei =
         (ethBidPriceRaw as bigint) +
         ((ethBidPriceRaw as bigint) * BigInt(priceBuffer)) / BigInt(100);
-      const finalValue = useRandomWalkNft ? valueInWei / BigInt(2) : valueInWei;
+      // Use ceiling division for RandomWalk discount to match contract: ceil(x/2) = (x+1)/2
+      const finalValue = useRandomWalkNft ? (valueInWei + BigInt(1)) / BigInt(2) : valueInWei;
 
       // Validate NFT selection if using Random Walk
       if (useRandomWalkNft && selectedNftId === null) {
