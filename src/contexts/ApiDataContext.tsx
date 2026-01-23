@@ -37,6 +37,7 @@ interface DashboardData {
 	NumRaffleEthWinnersBidding: number;
 	NumRaffleNFTWinnersBidding: number;
 	NumRaffleNFTWinnersStakingRWalk: number;
+	RaffleAmountEth: number;
 	// Game configuration
 	InitialSecondsUntilPrize: number;
 	TimeoutClaimPrize: number;

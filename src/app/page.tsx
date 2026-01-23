@@ -20,6 +20,7 @@ import { NFTCard } from "@/components/nft/NFTCard";
 import { CountdownTimer } from "@/components/game/CountdownTimer";
 import { StatCard } from "@/components/game/StatCard";
 import { ElegantTable } from "@/components/data/ElegantTable";
+import { ProbabilityDisplay } from "@/components/game/ProbabilityDisplay";
 import { Badge } from "@/components/ui/Badge";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
@@ -546,6 +547,11 @@ export default function Home() {
               icon={Timer}
               delay={0.4}
             />
+          </div>
+
+          {/* Probability Display - Shows winning chances when user has placed bids */}
+          <div className="mt-8">
+            <ProbabilityDisplay />
           </div>
         </Container>
       </section>
