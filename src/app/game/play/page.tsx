@@ -68,6 +68,7 @@ export default function PlayPage() {
     read.useCstBidPrice();
   const { data: prizeAmount, refetch: refetchPrizeAmount } =
     read.useMainPrizeAmount();
+  const { data: cstRewardPerBid } = read.useCstRewardPerBid();
 
   // Get user's Random Walk NFTs
   const { data: userNfts, refetch: refetchWalletNfts } =
@@ -271,6 +272,11 @@ export default function PlayPage() {
   const discountedEthPrice = useRandomWalkNft
     ? adjustedEthPrice * 0.5
     : adjustedEthPrice;
+
+  // CST reward amount per bid (from contract)
+  const cstRewardAmount = cstRewardPerBid 
+    ? Number(cstRewardPerBid) / 1e18 
+    : 100; // Fallback to 100 if not loaded yet
 
   // Handle NFT selection with logging
   const handleNftSelection = (nftId: bigint) => {
@@ -895,7 +901,7 @@ export default function PlayPage() {
       if (actionType === "claimPrize") {
         showSuccess("🎉 Main Prize claimed successfully! Congratulations!");
       } else if (actionType === "bid") {
-        showSuccess("🎉 Bid placed successfully! You earned 100 CST tokens.");
+        showSuccess(`🎉 Bid placed successfully! You earned ${cstRewardAmount} CST tokens.`);
         setBidMessage("");
       }
 
@@ -1147,23 +1153,19 @@ export default function PlayPage() {
                     </button>
                     <button
                       onClick={() => setBidType("CST")}
-                      disabled={
-                        isTransactionPending ||
-                        !lastBidder ||
-                        lastBidder ===
-                          "0x0000000000000000000000000000000000000000"
-                      }
+                      disabled={isTransactionPending || numBids === 0}
                       className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
                         bidType === "CST"
                           ? "bg-primary/10 text-primary"
+                          : numBids === 0
+                          ? "text-text-muted opacity-50 cursor-not-allowed"
                           : "text-text-secondary hover:text-primary"
                       }`}
+                      title={numBids === 0 ? "First bid must be ETH" : ""}
                     >
                       CST Bid
-                      {(!lastBidder ||
-                        lastBidder ===
-                          "0x0000000000000000000000000000000000000000") && (
-                        <span className="text-xs block">(After first bid)</span>
+                      {numBids === 0 && (
+                        <span className="text-xs block">(First bid must be ETH)</span>
                       )}
                     </button>
                   </div>
@@ -1639,7 +1641,7 @@ export default function PlayPage() {
                     <p className="text-sm text-text-secondary text-center">
                       You&apos;ll earn{" "}
                       <span className="text-status-success font-semibold">
-                        100 CST
+                        {cstRewardAmount} CST
                       </span>{" "}
                       tokens for placing this bid
                     </p>

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
-import { writeContract, waitForTransactionReceipt } from "@wagmi/core";
+import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -330,9 +330,33 @@ export default function StakePage() {
           stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
         );
 
-        // Filter available tokens (owned and not currently staked)
+        // Check which NFTs were used (cannot be restaked)
+        const usedNftsChecks = await Promise.all(
+          ownedTokenIds.map(async (tokenId) => {
+            try {
+              const wasUsed = await readContract(wagmiConfig, {
+                address: CONTRACTS.STAKING_WALLET_RWLK,
+                abi: StakingWalletRWLKABI,
+                functionName: "usedNfts",
+                args: [BigInt(tokenId)],
+              });
+              return { tokenId, wasUsed: wasUsed as boolean };
+            } catch (error) {
+              console.error(`Error checking usedNfts for token ${tokenId}:`, error);
+              return { tokenId, wasUsed: false };
+            }
+          })
+        );
+
+        const usedNftsSet = new Set(
+          usedNftsChecks
+            .filter((check) => check.wasUsed)
+            .map((check) => check.tokenId)
+        );
+
+        // Filter available tokens (owned, not currently staked, and not used)
         const available: RWLKToken[] = ownedTokenIds
-          .filter((tokenId) => !stakedTokenIdsSet.has(tokenId))
+          .filter((tokenId) => !stakedTokenIdsSet.has(tokenId) && !usedNftsSet.has(tokenId))
           .map((tokenId) => ({
             TokenId: tokenId,
             IsUsed: false,

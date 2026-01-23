@@ -112,6 +112,11 @@ export default function Home() {
   const lastBidder = dashboardData?.LastBidderAddr;
   const { data: championsData } = useCurrentChampions();
 
+  // CST reward amount per bid (from contract)
+  const cstRewardAmount = cstRewardPerBid 
+    ? Number(cstRewardPerBid) / 1e18 
+    : 100; // Fallback to 100 if not loaded yet
+
   // Get prize time from API
   const [mainPrizeTime, setMainPrizeTime] = useState<number | null>(null);
 
@@ -840,7 +845,7 @@ export default function Home() {
                   "Stake your NFTs to earn passive rewards. Every bid earns you CST tokens you can reinvest.",
                 features: [
                   "6% to stakers",
-                  "100 CST per bid",
+                  `${cstRewardAmount} CST per bid`,
                   "Compound gains",
                 ],
               },
@@ -978,7 +983,7 @@ export default function Home() {
                   number: "01",
                   title: "Place Your Bid",
                   description:
-                    "Bid with ETH or CST tokens. Each bid extends the countdown timer and earns you 100 CST tokens as a reward.",
+                    `Bid with ETH or CST tokens. Each bid extends the countdown timer and earns you ${cstRewardAmount} CST tokens as a reward.`,
                 },
                 {
                   number: "02",

@@ -774,8 +774,8 @@ export default function HowItWorksPage() {
 							{
 								title: 'CST Token Strategy',
 								tips: [
-									'Every bid earns you 100 CST tokens',
-									'Wait for CST price to drop below 100 for profitable bids',
+									`Every bid earns you ${cstRewardAmount} CST tokens`,
+									`Wait for CST price to drop below ${cstRewardAmount} for profitable bids`,
 									'Use slippage protection to avoid overpaying',
 									'CST bids are burned, so manage your token balance'
 								]
