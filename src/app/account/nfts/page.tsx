@@ -6,6 +6,8 @@ import { Search, Grid3x3, List, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAccount } from "wagmi";
+import { writeContract, waitForTransactionReceipt } from "@wagmi/core";
+import { wagmiConfig } from "@/lib/web3/config";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -18,6 +20,7 @@ import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { useNotification } from "@/contexts/NotificationContext";
 import { CONTRACTS } from "@/lib/web3/contracts";
+import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 
 interface NFTData {
   TokenId: number;
@@ -59,7 +62,7 @@ export default function MyNFTsPage() {
   // Staking hooks
   const nftContract = useCosmicSignatureNFT();
   const stakingContract = useStakingWalletCST();
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess, showError, showInfo } = useNotification();
 
   // Check approval status
   const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
@@ -100,10 +103,29 @@ export default function MyNFTsPage() {
   // Handle approval
   const handleApprove = async () => {
     try {
-      await nftContract.write.setApprovalForAll(CONTRACTS.STAKING_WALLET_CST, true);
-      showSuccess(
-        "Approval granted! You can now stake your NFTs. Please proceed with staking."
-      );
+      showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
+      
+      const hash = await writeContract(wagmiConfig, {
+        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+        abi: CosmicSignatureNFTABI,
+        functionName: "setApprovalForAll",
+        args: [CONTRACTS.STAKING_WALLET_CST, true],
+      });
+      
+      console.log(`Approval transaction hash: ${hash}`);
+      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
+      
+      // Wait for approval transaction to be mined
+      const receipt = await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+      
+      console.log(`Approval confirmed in block ${receipt.blockNumber}`);
+      showSuccess("✅ Approval confirmed! Proceeding with staking...");
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return true;
     } catch (error: unknown) {
       console.error("Approval error:", error);
@@ -136,10 +158,6 @@ export default function MyNFTsPage() {
           setStakingTokenId(null);
           return;
         }
-        // Wait for approval to be confirmed
-        showSuccess(
-          "Approval confirmed! Now proceeding with staking transaction..."
-        );
       }
 
       // Proceed with staking
