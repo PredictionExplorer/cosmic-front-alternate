@@ -295,7 +295,7 @@ export default function PlayPage() {
         address: tokenAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: "allowance",
-        args: [address, CONTRACTS.COSMIC_GAME],
+        args: [address, CONTRACTS.PRIZES_WALLET],
       });
 
       console.log(`Current allowance: ${allowance}, required: ${amount}`);
@@ -315,7 +315,7 @@ export default function PlayPage() {
         address: tokenAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: "approve",
-        args: [CONTRACTS.COSMIC_GAME, amount],
+        args: [CONTRACTS.PRIZES_WALLET, amount],
       });
 
       console.log(`Approval transaction hash: ${hash}`);
@@ -363,10 +363,10 @@ export default function PlayPage() {
       });
 
       console.log(`Current approved address: ${approvedAddress}`);
-      console.log(`Cosmic Game contract: ${CONTRACTS.COSMIC_GAME}`);
+      console.log(`Prizes Wallet contract: ${CONTRACTS.PRIZES_WALLET}`);
 
-      // If already approved to Cosmic Game, no need to approve again
-      if (approvedAddress?.toLowerCase() === CONTRACTS.COSMIC_GAME.toLowerCase()) {
+      // If already approved to Prizes Wallet, no need to approve again
+      if (approvedAddress?.toLowerCase() === CONTRACTS.PRIZES_WALLET.toLowerCase()) {
         console.log("NFT is already approved for specific token");
         showInfo("NFT is already approved!");
         return true;
@@ -377,7 +377,7 @@ export default function PlayPage() {
         address: nftAddress as `0x${string}`,
         abi: erc721Abi,
         functionName: "isApprovedForAll",
-        args: [address, CONTRACTS.COSMIC_GAME],
+        args: [address, CONTRACTS.PRIZES_WALLET],
       });
 
       console.log(`Is approved for all: ${isApprovedForAll}`);
@@ -396,7 +396,7 @@ export default function PlayPage() {
         address: nftAddress as `0x${string}`,
         abi: erc721Abi,
         functionName: "approve",
-        args: [CONTRACTS.COSMIC_GAME, BigInt(tokenId)],
+        args: [CONTRACTS.PRIZES_WALLET, BigInt(tokenId)],
       });
 
       console.log(`Approval transaction hash: ${hash}`);
