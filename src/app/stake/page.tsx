@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
+import { writeContract, waitForTransactionReceipt } from "@wagmi/core";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -31,6 +32,8 @@ import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { wagmiConfig } from "@/lib/web3/config";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import StakingWalletRWLKABI from "@/contracts/StakingWalletRandomWalkNft.json";
+import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
+import RandomWalkNFTABI from "@/contracts/RandomWalkNFT.json";
 
 /**
  * Type for staking rewards from API
@@ -118,10 +121,6 @@ export default function StakePage() {
   const [unstakingRWLKActionId, setUnstakingRWLKActionId] = useState<
     number | null
   >(null);
-  const [pendingRWLKStake, setPendingRWLKStake] = useState<{
-    type: 'single' | 'multiple' | null;
-    tokenIds: number[];
-  }>({ type: null, tokenIds: [] });
 
   // Help sections visibility
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -205,7 +204,7 @@ export default function StakePage() {
   }, [address, isConnected]);
 
   // Check if NFT contracts are approved for staking
-  const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
+  const { data: isApprovedForAll, refetch: refetchCSTApproval } = nftContract.read.useIsApprovedForAll(
     (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
     CONTRACTS.STAKING_WALLET_CST
   );
@@ -608,18 +607,39 @@ export default function StakePage() {
     if (!nftContract) return false;
 
     try {
-      await nftContract.write.setApprovalForAll(
-        CONTRACTS.STAKING_WALLET_CST,
-        true
-      );
-      showSuccess("Approval requested! Please confirm the transaction.");
+      showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
+      
+      const hash = await writeContract(wagmiConfig, {
+        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+        abi: CosmicSignatureNFTABI,
+        functionName: "setApprovalForAll",
+        args: [CONTRACTS.STAKING_WALLET_CST, true],
+      });
+      
+      console.log(`Approval transaction hash: ${hash}`);
+      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
+      
+      // Wait for approval transaction to be mined
+      const receipt = await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+      
+      console.log(`Approval confirmed in block ${receipt.blockNumber}`);
+      showSuccess("✅ Approval confirmed! Proceeding with staking...");
+      
+      // Refetch approval state
+      await refetchCSTApproval();
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return true;
     } catch (error: unknown) {
       console.error("Approval failed:", error);
       showError((error as Error)?.message || "Failed to approve. Please try again.");
       return false;
     }
-  }, [nftContract, showSuccess, showError]);
+  }, [nftContract, showSuccess, showError, showInfo, refetchCSTApproval]);
 
   // Handle staking action
   const handleStake = async (tokenId: number) => {
@@ -641,12 +661,6 @@ export default function StakePage() {
           setStakingTokenId(null);
           return;
         }
-        // Wait for approval to be confirmed
-        showSuccess(
-          "Waiting for approval confirmation... You can then stake your NFT."
-        );
-        setStakingTokenId(null);
-        return;
       }
 
       // Estimate gas to validate transaction
@@ -702,12 +716,6 @@ export default function StakePage() {
           setIsStakingMultiple(false);
           return;
         }
-        // Wait for approval to be confirmed
-        showSuccess(
-          "Waiting for approval confirmation... You can then stake your NFTs."
-        );
-        setIsStakingMultiple(false);
-        return;
       }
 
       // Estimate gas to validate transaction
@@ -789,22 +797,39 @@ export default function StakePage() {
     if (!rwlkNftContract) return false;
 
     try {
-      showInfo("Requesting approval... Please confirm in your wallet.");
-      await rwlkNftContract.write.setApprovalForAll(
-        CONTRACTS.STAKING_WALLET_RWLK,
-        true
-      );
-      showInfo("Approval transaction submitted! Waiting for confirmation...");
+      showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
       
-      // Wait for the transaction to be confirmed by watching the contract status
-      // The useEffect below will handle success/error
+      const hash = await writeContract(wagmiConfig, {
+        address: CONTRACTS.RANDOM_WALK_NFT,
+        abi: RandomWalkNFTABI,
+        functionName: "setApprovalForAll",
+        args: [CONTRACTS.STAKING_WALLET_RWLK, true],
+      });
+      
+      console.log(`RWLK Approval transaction hash: ${hash}`);
+      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
+      
+      // Wait for approval transaction to be mined
+      const receipt = await waitForTransactionReceipt(wagmiConfig, {
+        hash,
+      });
+      
+      console.log(`RWLK Approval confirmed in block ${receipt.blockNumber}`);
+      showSuccess("✅ Approval confirmed! Proceeding with staking...");
+      
+      // Refetch approval state
+      await refetchRWLKApproval();
+      
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       return true;
     } catch (error: unknown) {
       console.error("RWLK Approval failed:", error);
       showError((error as Error)?.message || "Failed to approve. Please try again.");
       return false;
     }
-  }, [rwlkNftContract, showInfo, showError]);
+  }, [rwlkNftContract, showInfo, showError, showSuccess, refetchRWLKApproval]);
 
   // Handle RWLK staking action
   const handleRWLKStake = async (tokenId: number) => {
@@ -820,15 +845,11 @@ export default function StakePage() {
 
       // Check if approval is needed
       if (!isRWLKApprovedForAll) {
-        setPendingRWLKStake({ type: 'single', tokenIds: [tokenId] });
         const approved = await handleRWLKApprove();
         if (!approved) {
           setStakingRWLKTokenId(null);
-          setPendingRWLKStake({ type: null, tokenIds: [] });
           return;
         }
-        // Approval is pending - will automatically proceed when confirmed (see useEffect)
-        return;
       }
 
       // Estimate gas to validate transaction
@@ -877,15 +898,11 @@ export default function StakePage() {
 
       // Check if approval is needed
       if (!isRWLKApprovedForAll) {
-        setPendingRWLKStake({ type: 'multiple', tokenIds });
         const approved = await handleRWLKApprove();
         if (!approved) {
           setIsStakingRWLKMultiple(false);
-          setPendingRWLKStake({ type: null, tokenIds: [] });
           return;
         }
-        // Approval is pending - will automatically proceed when confirmed (see useEffect)
-        return;
       }
 
       // Estimate gas to validate transaction
@@ -1003,92 +1020,6 @@ export default function StakePage() {
     }
   };
 
-  // Watch for RWLK approval completion and auto-proceed with staking
-  useEffect(() => {
-    const proceedWithStaking = async () => {
-      if (
-        pendingRWLKStake.type &&
-        rwlkNftContract.status &&
-        !rwlkNftContract.status.isPending &&
-        !rwlkNftContract.status.isConfirming &&
-        rwlkNftContract.status.isSuccess
-      ) {
-        // Approval transaction confirmed, refetch approval status
-        showSuccess("Approval confirmed! Proceeding with staking...");
-        await refetchRWLKApproval();
-        
-        // Small delay to ensure approval state is updated
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        try {
-          if (pendingRWLKStake.type === 'single' && pendingRWLKStake.tokenIds.length === 1) {
-            // Proceed with single NFT staking
-            const tokenId = pendingRWLKStake.tokenIds[0];
-            
-            // Estimate gas
-            const estimation = await estimateContractGas(wagmiConfig, {
-              address: CONTRACTS.STAKING_WALLET_RWLK,
-              abi: StakingWalletRWLKABI,
-              functionName: 'stake',
-              args: [BigInt(tokenId)],
-              account: address,
-            });
-
-            if (!estimation.success) {
-              showError(estimation.error || 'Cannot stake this NFT at this time');
-              setStakingRWLKTokenId(null);
-              setPendingRWLKStake({ type: null, tokenIds: [] });
-              return;
-            }
-
-            showInfo("Please confirm the staking transaction in your wallet...");
-            await rwlkStakingContract.write.stake(BigInt(tokenId));
-            showInfo("Staking transaction submitted! Waiting for confirmation...");
-          } else if (pendingRWLKStake.type === 'multiple' && pendingRWLKStake.tokenIds.length > 0) {
-            // Proceed with multiple NFTs staking
-            const tokenIdsBigInt = pendingRWLKStake.tokenIds.map((id) => BigInt(id));
-            
-            // Estimate gas
-            const estimation = await estimateContractGas(wagmiConfig, {
-              address: CONTRACTS.STAKING_WALLET_RWLK,
-              abi: StakingWalletRWLKABI,
-              functionName: 'stakeMany',
-              args: [tokenIdsBigInt],
-              account: address,
-            });
-
-            if (!estimation.success) {
-              showError(estimation.error || 'Cannot stake these NFTs at this time');
-              setIsStakingRWLKMultiple(false);
-              setPendingRWLKStake({ type: null, tokenIds: [] });
-              return;
-            }
-
-            showInfo("Please confirm the staking transaction in your wallet...");
-            await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
-            showInfo(`Staking transaction submitted! Staking ${pendingRWLKStake.tokenIds.length} NFTs...`);
-          }
-        } catch (error: unknown) {
-          console.error("RWLK Staking failed after approval:", error);
-          showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
-          setStakingRWLKTokenId(null);
-          setIsStakingRWLKMultiple(false);
-        } finally {
-          setPendingRWLKStake({ type: null, tokenIds: [] });
-        }
-      }
-    };
-
-    proceedWithStaking();
-  }, [
-    pendingRWLKStake,
-    rwlkNftContract.status,
-    rwlkStakingContract,
-    refetchRWLKApproval,
-    showSuccess,
-    showInfo,
-    showError,
-  ]);
 
   // Watch for RWLK transaction success and refresh data
   useEffect(() => {
