@@ -332,9 +332,37 @@ export default function PlayPage() {
         return true;
       }
 
+      // For tokens like USDT that require resetting allowance to 0 first
+      if (allowance > BigInt(0)) {
+        console.log("Non-zero allowance detected. Resetting to 0 first (for USDT-like tokens)...");
+        showInfo("🔓 Step 1/2: Resetting token allowance... Please confirm the transaction in your wallet.");
+        
+        const resetHash = await writeContract(wagmiConfig, {
+          address: tokenAddress as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [CONTRACTS.PRIZES_WALLET, BigInt(0)],
+        });
+
+        console.log(`Reset approval transaction hash: ${resetHash}`);
+        showInfo("⏳ Reset transaction submitted. Waiting for confirmation...");
+
+        // Wait for reset transaction to be mined
+        await waitForTransactionReceipt(wagmiConfig, {
+          hash: resetHash,
+        });
+
+        console.log("Allowance reset to 0");
+        showSuccess("✅ Allowance reset confirmed!");
+        
+        // Small delay between transactions
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       // Request approval
       console.log("Requesting token approval...");
-      showInfo("🔓 Requesting token approval... Please confirm the transaction in your wallet.");
+      const stepText = allowance > BigInt(0) ? "Step 2/2: Setting" : "🔓 Requesting";
+      showInfo(`${stepText} token approval... Please confirm the transaction in your wallet.`);
       
       const hash = await writeContract(wagmiConfig, {
         address: tokenAddress as `0x${string}`,
