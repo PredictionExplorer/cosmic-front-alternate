@@ -19,6 +19,8 @@ interface NFTCardProps {
 export function NFTCard({ nft, delay = 0 }: NFTCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(nft.imageUrl);
 
   return (
     <motion.div
@@ -48,11 +50,19 @@ export function NFTCard({ nft, delay = 0 }: NFTCardProps) {
               />
             ) : (
               <Image
-                src={nft.imageUrl}
+                src={currentImageUrl}
                 alt={nft.name}
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                unoptimized={!imageError}
+                onError={() => {
+                  if (!imageError) {
+                    console.warn(`Failed to load image for NFT #${nft.tokenId}, using placeholder`);
+                    setImageError(true);
+                    setCurrentImageUrl("/nfts/placeholder.svg");
+                  }
+                }}
               />
             )}
 
