@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X } from "lucide-react";
 import { useAccount } from "wagmi";
-import { parseEther, erc20Abi, erc721Abi } from "viem";
+import { parseEther, parseUnits, erc20Abi, erc721Abi } from "viem";
 import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
 import { wagmiConfig } from "@/lib/web3/config";
 import { CONTRACTS } from "@/lib/web3/contracts";
@@ -275,6 +275,31 @@ export default function PlayPage() {
   // Handle NFT selection with logging
   const handleNftSelection = (nftId: bigint) => {
     setSelectedNftId(nftId);
+  };
+
+  // Helper function to parse token amount with correct decimals
+  const parseTokenAmount = async (
+    tokenAddress: string,
+    amount: string
+  ): Promise<bigint> => {
+    try {
+      // Query token decimals
+      const decimals = await readContract(wagmiConfig, {
+        address: tokenAddress as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "decimals",
+      });
+      
+      console.log(`Token ${tokenAddress} has ${decimals} decimals`);
+      
+      // Parse amount with correct decimals
+      return parseUnits(amount, decimals);
+    } catch (error) {
+      console.error("Error reading token decimals:", error);
+      // Fallback to 18 decimals if query fails
+      console.warn("Failed to read token decimals, defaulting to 18");
+      return parseEther(amount);
+    }
   };
 
   // Helper function to check and approve ERC20 token allowance
@@ -548,7 +573,7 @@ export default function PlayPage() {
         donationTokenAmount
       ) {
         // Bid with ERC20 token donation
-        const tokenAmount = parseEther(donationTokenAmount);
+        const tokenAmount = await parseTokenAmount(donationTokenAddress, donationTokenAmount);
         
         // Check and approve token if needed
         showInfo("Step 1/2: Checking ERC20 token approval...");
@@ -730,7 +755,7 @@ export default function PlayPage() {
         donationTokenAmount
       ) {
         // Bid with ERC20 token donation
-        const tokenAmount = parseEther(donationTokenAmount);
+        const tokenAmount = await parseTokenAmount(donationTokenAddress, donationTokenAmount);
         
         // Check and approve token if needed
         showInfo("Step 1/2: Checking ERC20 token approval...");
