@@ -8,7 +8,6 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 
 import { getContractAddresses } from '@/lib/web3/contracts';
 import { useChainId } from 'wagmi';
 import RandomWalkNFTABI from '@/contracts/RandomWalkNFT.json';
-import { defaultChain } from '@/lib/web3/chains';
 
 export function useRandomWalkNFT() {
 	const chainId = useChainId();
@@ -111,7 +110,7 @@ export function useRandomWalkNFT() {
 	const contractConfig = {
 		address: contractAddress,
 		abi: RandomWalkNFTABI,
-		chainId: defaultChain.id
+		chainId: chainId
 	} as const;
 
 	return {
