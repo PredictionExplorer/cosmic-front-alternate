@@ -535,9 +535,6 @@ export default function PlayPage() {
       const nftIdToSend =
         useRandomWalkNft && selectedNftId !== null ? selectedNftId : BigInt(-1);
 
-      // Track that this is a bid action
-      setLastActionType("bid");
-
       // Track if we need to refresh NFTs (RandomWalk used or NFT donated)
       const needsNftRefresh =
         useRandomWalkNft ||
@@ -593,7 +590,6 @@ export default function PlayPage() {
         }
 
         // Bid with NFT donation
-        // Bid with NFT donation
         console.log("Submitting bidWithEthAndDonateNft:", {
           nftIdToSend,
           bidMessage,
@@ -601,6 +597,9 @@ export default function PlayPage() {
           donationNftTokenId,
           finalValue: finalValue.toString(),
         });
+        
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
         
         showInfo("Please confirm the transaction in your wallet...");
         
@@ -646,6 +645,9 @@ export default function PlayPage() {
           return;
         }
 
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
+        
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithEthAndDonateToken(
@@ -672,12 +674,14 @@ export default function PlayPage() {
         }
 
         // Regular bid without donation
-        // Regular bid without donation
         console.log("Submitting bidWithEth:", {
           nftIdToSend,
           bidMessage,
           finalValue: finalValue.toString(),
         });
+        
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
         
         showInfo("Please confirm the transaction in your wallet...");
         
@@ -690,6 +694,8 @@ export default function PlayPage() {
       console.error("ETH Bid error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
+      // Reset action type on error
+      setLastActionType(null);
     }
   };
 
@@ -731,9 +737,6 @@ export default function PlayPage() {
         // Auto calculate: current price * 1.1 for slippage protection
         maxLimit = ((cstBidPriceRaw as bigint) * BigInt(110)) / BigInt(100);
       }
-
-      // Track that this is a bid action
-      setLastActionType("bid");
 
       // Track if we need to refresh NFTs (NFT donated)
       // Note: CST bids don't use RandomWalk NFTs, but can donate NFTs
@@ -787,6 +790,9 @@ export default function PlayPage() {
         }
 
         // Bid with NFT donation
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
+        
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithCstAndDonateNft(
@@ -827,6 +833,9 @@ export default function PlayPage() {
           return;
         }
 
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
+        
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithCstAndDonateToken(
@@ -851,6 +860,9 @@ export default function PlayPage() {
         }
 
         // Regular bid without donation
+        // Track that this is a bid action (right before submission)
+        setLastActionType("bid");
+        
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithCst(maxLimit, bidMessage);
@@ -861,6 +873,8 @@ export default function PlayPage() {
       console.error("CST Bid error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
+      // Reset action type on error
+      setLastActionType(null);
     }
   };
 
@@ -914,12 +928,14 @@ export default function PlayPage() {
       console.error("Claim Main Prize error:", error);
       const friendlyError = parseContractError(error);
       showError(friendlyError);
+      // Reset action type on error
+      setLastActionType(null);
     }
   };
 
   // Watch for transaction success
   useEffect(() => {
-    if (write.status.isSuccess) {
+    if (write.status.isSuccess && lastActionType) {
       // Capture action type before resetting
       const actionType = lastActionType;
 
