@@ -816,6 +816,17 @@ export default function RoundDetailPage({
                         </span>
                       ),
                     },
+                    {
+                      key: "id",
+                      label: "Details",
+                      render: (value) => (
+                        <Link href={`/game/history/bids/${value}`}>
+                          <Button variant="outline" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      ),
+                    },
                   ]}
                   emptyMessage="No bids found for this round."
                 />

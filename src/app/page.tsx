@@ -678,70 +678,30 @@ export default function Home() {
                         item.rwalkNftId !== null;
                       const hasNFTDonation = !!item.nftDonationAddr;
                       const hasERC20Donation = !!item.erc20DonationAddr;
-                      const hasDonations = hasNFTDonation || hasERC20Donation;
-
-                      // If no special info, return dash
-                      if (!hasRWLK && !hasDonations) {
-                        return (
-                          <span className="text-text-secondary text-sm">-</span>
-                        );
-                      }
+                      const hasSpecialFeatures = hasRWLK || hasNFTDonation || hasERC20Donation;
 
                       return (
-                        <div className="text-text-secondary text-sm break-words max-w-xs">
-                          {/* RWLK Token Info */}
-                          {hasRWLK && (
-                            <div className="mb-1">
-                              Bid was made using RandomWalk Token (ID ={" "}
-                              {item.rwalkNftId})
-                            </div>
-                          )}
-
-                          {/* Donations Info */}
-                          {hasDonations && (
-                            <span>
-                              {/* Bid type description */}
-                              {item.bidTypeNum === 2 &&
-                                "Bid was made using Cosmic Signature Tokens"}
-                              {item.bidTypeNum === 0 &&
-                                "Bid was made using ETH"}
-
-                              {/* NFT Donation */}
+                        <div className="flex items-center gap-2">
+                          {hasSpecialFeatures ? (
+                            <div className="flex gap-1">
+                              {hasRWLK && (
+                                <Badge variant="success">
+                                  RW
+                                </Badge>
+                              )}
                               {hasNFTDonation && (
-                                <span>
-                                  {" and a token ("}
-                                  <span className="font-mono">
-                                    {(item.nftDonationAddr as string).slice(
-                                      0,
-                                      6
-                                    )}
-                                    ...
-                                    {(item.nftDonationAddr as string).slice(-4)}
-                                  </span>
-                                  {") with ID "}
-                                  {item.nftDonationId}
-                                  {" was donated"}
-                                </span>
+                                <Badge variant="default">
+                                  NFT
+                                </Badge>
                               )}
-
-                              {/* ERC20 Donation */}
                               {hasERC20Donation && (
-                                <span>
-                                  {" and "}
-                                  <span className="font-mono">
-                                    {(item.erc20DonationAddr as string).slice(
-                                      0,
-                                      6
-                                    )}
-                                    ...
-                                    {(item.erc20DonationAddr as string).slice(
-                                      -4
-                                    )}
-                                  </span>
-                                  {" tokens were donated"}
-                                </span>
+                                <Badge variant="default">
+                                  ERC20
+                                </Badge>
                               )}
-                            </span>
+                            </div>
+                          ) : (
+                            <span className="text-text-secondary text-sm">—</span>
                           )}
                         </div>
                       );
@@ -769,6 +729,17 @@ export default function Home() {
                         </span>
                       );
                     },
+                  },
+                  {
+                    key: "id",
+                    label: "Details",
+                    render: (value) => (
+                      <Link href={`/game/history/bids/${value}`}>
+                        <Button variant="outline" size="sm">
+                          View
+                        </Button>
+                      </Link>
+                    ),
                   },
                 ]}
                 emptyMessage="No bids yet. Be the first to place a bid!"
