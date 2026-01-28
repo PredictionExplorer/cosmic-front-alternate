@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trophy, AlertCircle, Loader2, ChevronDown, X } from "lucide-react";
+import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
 import { useAccount } from "wagmi";
 import { parseEther, parseUnits, erc20Abi, erc721Abi } from "viem";
 import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
@@ -202,7 +202,7 @@ export default function PlayPage() {
       const update = () => {
         // Apply offset to the prize time to sync with blockchain time
         const adjustedPrizeTime = applyOffset(Number(mainPrizeTime));
-        const remaining = Math.ceil(adjustedPrizeTime - Math.floor(Date.now() / 1000));
+        const remaining = adjustedPrizeTime - Math.floor(Date.now() / 1000);
         setTimeRemaining(Math.max(0, remaining));
       };
       update();
@@ -215,7 +215,7 @@ export default function PlayPage() {
   const claimTimeoutExpired =
     mainPrizeTime &&
     dashboardData?.TimeoutClaimPrize &&
-    timeRemaining === 0 &&
+    timeRemaining <= 1 &&
     Date.now() / 1000 > applyOffset(Number(mainPrizeTime)) + dashboardData.TimeoutClaimPrize;
 
   // Check if there are any bids
@@ -232,9 +232,15 @@ export default function PlayPage() {
   
   // Update time until round starts
   useEffect(() => {
-    if (!roundStartTime) {
+    // If roundStartTime is 0, round is immediately active (no delay)
+    if (roundStartTime === 0) {
       setTimeUntilRoundStarts(0);
       return;
+    }
+
+    // If no roundStartTime data, we can't calculate - round might be pending activation
+    if (!roundStartTime) {
+      return; // Keep previous timeUntilRoundStarts value
     }
 
     const updateTimer = () => {
@@ -249,14 +255,20 @@ export default function PlayPage() {
     return () => clearInterval(interval);
   }, [roundStartTime, applyOffset]);
 
-  const isRoundActive = !roundStartTime || timeUntilRoundStarts === 0;
+  // Determine if round is active
+  // Active when: roundStartTime is 0 (immediate) OR countdown has reached 0
+  // Not active when: no data yet OR countdown is still running
+  const hasRoundData = roundStartTime !== undefined && roundStartTime !== null;
+  const isRoundActive = hasRoundData && timeUntilRoundStarts === 0;
 
   // Check if user can claim main prize
+  // Use a small buffer (5 seconds) to account for timing precision and offset differences
+  // This prevents the button from enabling too early while still being user-friendly
   const canClaimMainPrize =
     isConnected &&
     address &&
     hasBids &&
-    timeRemaining === 0 &&
+    timeRemaining <= 5 &&
     (address.toLowerCase() === (lastBidder as string).toLowerCase() || claimTimeoutExpired);
 
   // Format prices
@@ -860,7 +872,15 @@ export default function PlayPage() {
     }
 
     try {
-      // Estimate gas to validate transaction
+      // First check: verify time on frontend (with small buffer for blockchain sync)
+      if (timeRemaining > 5) {
+        showWarning(`⏳ Please wait ${Math.ceil(timeRemaining)} more seconds before claiming the prize.`);
+        return;
+      }
+
+      // Second check: estimate gas to validate transaction on-chain
+      // This will fail with the actual contract error if timing isn't right
+      showInfo("Validating claim eligibility...");
       const estimation = await estimateContractGas(wagmiConfig, {
         address: CONTRACTS.COSMIC_GAME,
         abi: CosmicGameABI,
@@ -870,7 +890,13 @@ export default function PlayPage() {
       });
 
       if (!estimation.success) {
-        showError(estimation.error || 'Cannot claim prize at this time');
+        // Check if error is about time not elapsed
+        const errorMsg = estimation.error || '';
+        if (errorMsg.toLowerCase().includes('time') || errorMsg.toLowerCase().includes('elapsed')) {
+          showError(`⏳ Not quite ready yet. The blockchain timer hasn't fully expired. Please wait a few more seconds and try again.`);
+        } else {
+          showError(errorMsg || 'Cannot claim prize at this time');
+        }
         return;
       }
 
@@ -1013,8 +1039,10 @@ export default function PlayPage() {
                 Round {currentRound.roundNumber}
               </div>
               <div className="flex items-center gap-2">
-                {!isRoundActive && timeUntilRoundStarts > 0 ? (
-                  <Badge variant="default">Pending</Badge>
+                {!hasRoundData ? (
+                  <Badge variant="default">Loading...</Badge>
+                ) : !isRoundActive && timeUntilRoundStarts > 0 ? (
+                  <Badge variant="default">Pending Activation</Badge>
                 ) : (
                   <Badge variant="success">Active</Badge>
                 )}
@@ -1026,7 +1054,12 @@ export default function PlayPage() {
             
             {/* Center: Countdown Timer (Bigger) */}
             <div className="flex justify-center">
-              {!isRoundActive && timeUntilRoundStarts > 0 ? (
+              {!hasRoundData ? (
+                <div className="text-center">
+                  <div className="text-sm text-text-muted mb-2">Loading Round Data...</div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : !isRoundActive && timeUntilRoundStarts > 0 ? (
                 <div className="text-center">
                   <div className="text-sm text-status-info mb-2">Round Starts In</div>
                   <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
@@ -1085,6 +1118,11 @@ export default function PlayPage() {
                     The winner didn&apos;t claim within 24 hours! Claim the prize
                     now to receive{" "}
                   </>
+                ) : timeRemaining > 0 && timeRemaining <= 5 ? (
+                  <>
+                    The countdown is finishing! Wait a few more seconds for blockchain 
+                    synchronization, then claim your prize to receive{" "}
+                  </>
                 ) : (
                   <>
                     The countdown has ended and you are the last bidder. Claim
@@ -1106,14 +1144,21 @@ export default function PlayPage() {
                   Processing Transaction...
                 </Button>
               ) : (
-                <Button
-                  size="xl"
-                  onClick={handleClaimMainPrize}
-                  className="shadow-luxury-lg animate-pulse"
-                >
-                  <Trophy className="mr-2" size={24} />
-                  Claim Main Prize
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    size="xl"
+                    onClick={handleClaimMainPrize}
+                    className="shadow-luxury-lg animate-pulse w-full"
+                  >
+                    <Trophy className="mr-2" size={24} />
+                    Claim Main Prize
+                  </Button>
+                  {timeRemaining > 0 && timeRemaining <= 5 && (
+                    <p className="text-xs text-status-info text-center">
+                      ⏳ Almost ready! Wait {Math.ceil(timeRemaining)} more second{Math.ceil(timeRemaining) !== 1 ? 's' : ''} for blockchain sync...
+                    </p>
+                  )}
+                </div>
               )}
               {!claimTimeoutExpired && (
                 <p className="text-xs text-text-muted mt-4">
@@ -1142,10 +1187,12 @@ export default function PlayPage() {
                   <div className="flex p-1 rounded-lg bg-background-elevated border border-text-muted/10">
                     <button
                       onClick={() => setBidType("ETH")}
-                      disabled={isTransactionPending}
+                      disabled={isTransactionPending || !isRoundActive}
                       className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
                         bidType === "ETH"
                           ? "bg-primary/10 text-primary"
+                          : !isRoundActive
+                          ? "text-text-muted opacity-50"
                           : "text-text-secondary hover:text-primary"
                       }`}
                     >
@@ -1153,15 +1200,15 @@ export default function PlayPage() {
                     </button>
                     <button
                       onClick={() => setBidType("CST")}
-                      disabled={isTransactionPending || numBids === 0}
+                      disabled={isTransactionPending || !isRoundActive || numBids === 0}
                       className={`flex-1 py-3 px-4 rounded-md font-medium transition-all ${
                         bidType === "CST"
                           ? "bg-primary/10 text-primary"
-                          : numBids === 0
+                          : !isRoundActive || numBids === 0
                           ? "text-text-muted opacity-50 cursor-not-allowed"
                           : "text-text-secondary hover:text-primary"
                       }`}
-                      title={numBids === 0 ? "First bid must be ETH" : ""}
+                      title={numBids === 0 ? "First bid must be ETH" : !isRoundActive ? "Round not active yet" : ""}
                     >
                       CST Bid
                       {numBids === 0 && (
@@ -1585,11 +1632,22 @@ export default function PlayPage() {
                   </div>
 
                   {/* Round Activation Notice */}
-                  {!isRoundActive && timeUntilRoundStarts > 0 && (
+                  {!hasRoundData ? (
+                    <div className="p-6 rounded-lg bg-background-elevated/50 border border-text-muted/10 mb-4">
+                      <div className="text-center space-y-4">
+                        <div className="flex justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        </div>
+                        <p className="text-sm text-text-secondary">
+                          Loading round activation data...
+                        </p>
+                      </div>
+                    </div>
+                  ) : !isRoundActive && timeUntilRoundStarts > 0 ? (
                     <div className="p-6 rounded-lg bg-status-info/10 border border-status-info/20 mb-4">
                       <div className="text-center space-y-4">
                         <p className="text-sm font-semibold text-status-info">
-                          The current bidding round is not active yet.
+                          ⏳ The current bidding round is not active yet.
                         </p>
                         <div className="flex justify-center">
                           <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
@@ -1599,7 +1657,7 @@ export default function PlayPage() {
                         </p>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Submit Button */}
                   {!isConnected ? (
@@ -1614,10 +1672,15 @@ export default function PlayPage() {
                       <Loader2 className="mr-2 animate-spin" size={20} />
                       Processing Transaction...
                     </Button>
+                  ) : !hasRoundData ? (
+                    <Button size="lg" className="w-full" disabled>
+                      <Loader2 className="mr-2 animate-spin" size={20} />
+                      Loading Round Data...
+                    </Button>
                   ) : !isRoundActive ? (
                     <Button size="lg" className="w-full" disabled>
-                      <Trophy className="mr-2" size={20} />
-                      Round Not Active Yet
+                      <Timer className="mr-2" size={20} />
+                      Round Not Active - Wait for Countdown
                     </Button>
                   ) : (
                     <Button
