@@ -647,7 +647,7 @@ export default function PlayPage() {
 
         // Track that this is a bid action (right before submission)
         setLastActionType("bid");
-        
+
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithEthAndDonateToken(
@@ -835,7 +835,7 @@ export default function PlayPage() {
 
         // Track that this is a bid action (right before submission)
         setLastActionType("bid");
-        
+
         showInfo("Please confirm the transaction in your wallet...");
         
         await write.bidWithCstAndDonateToken(
@@ -1161,14 +1161,14 @@ export default function PlayPage() {
                 </Button>
               ) : (
                 <div className="space-y-2">
-                  <Button
-                    size="xl"
-                    onClick={handleClaimMainPrize}
+                <Button
+                  size="xl"
+                  onClick={handleClaimMainPrize}
                     className="shadow-luxury-lg animate-pulse w-full"
-                  >
-                    <Trophy className="mr-2" size={24} />
-                    Claim Main Prize
-                  </Button>
+                >
+                  <Trophy className="mr-2" size={24} />
+                  Claim Main Prize
+                </Button>
                   {timeRemaining > 0 && timeRemaining <= 5 && (
                     <p className="text-xs text-status-info text-center">
                       ⏳ Almost ready! Wait {Math.ceil(timeRemaining)} more second{Math.ceil(timeRemaining) !== 1 ? 's' : ''} for blockchain sync...

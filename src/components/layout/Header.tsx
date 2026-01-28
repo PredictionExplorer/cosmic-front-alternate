@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
@@ -20,10 +21,14 @@ export function Header() {
         <nav className="flex items-center justify-between py-4 lg:py-6">
           {/* Logo */}
           <Link href="/" className="group flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-sm">
-              <span className="font-serif text-xl font-bold text-background">
-                CS
-              </span>
+            <div className="relative h-12 w-12 flex-shrink-0">
+              <Image
+                src="/logo.png"
+                alt="Cosmic Signature"
+                fill
+                className="object-contain transition-transform group-hover:scale-110"
+                priority
+              />
             </div>
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
