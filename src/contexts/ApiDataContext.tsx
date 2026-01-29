@@ -12,7 +12,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { useAccount } from 'wagmi';
 import api from '@/services/api';
 
@@ -98,10 +98,23 @@ export function ApiDataProvider({ children, refreshInterval = 15000, autoRefresh
 	const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
 	/**
+	 * Track last fetch time to prevent rapid re-fetches (using ref to avoid dependency issues)
+	 */
+	const lastFetchTimeRef = useRef(0);
+
+	/**
 	 * Fetch dashboard data
 	 */
 	const fetchData = useCallback(async () => {
+		// Prevent fetching more than once per second to avoid overload
+		const now = Date.now();
+		if (now - lastFetchTimeRef.current < 1000) {
+			console.log('[ApiData] Skipping fetch - too soon since last fetch');
+			return;
+		}
+
 		try {
+			lastFetchTimeRef.current = now;
 			setIsLoading(true);
 			setError(null);
 

@@ -73,7 +73,7 @@ export function TimeOffsetProvider({ children, refreshInterval = 60000 }: TimeOf
 	 */
 	const fetchOffset = useCallback(async () => {
 		// Only fetch offset for local testnet
-		if (!shouldUseOffset) {
+		if (chainId !== 31337) {
 			setOffset(0);
 			setIsReady(true);
 			return;
@@ -102,7 +102,7 @@ export function TimeOffsetProvider({ children, refreshInterval = 60000 }: TimeOf
 		} finally {
 			setIsReady(true);
 		}
-	}, [shouldUseOffset]);
+	}, [chainId]);
 
 	/**
 	 * Initial fetch on mount and when chainId changes

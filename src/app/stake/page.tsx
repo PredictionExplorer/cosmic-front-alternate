@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
@@ -226,12 +226,17 @@ export default function StakePage() {
     if (!address || !isConnected) return;
 
     try {
+      // Small delay to give API/blockchain time to sync
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       // Fetch staked and available tokens separately using dedicated API methods
       const [staked, available] = await Promise.all([
         api.getStakedCSTTokensByUser(address),
         getAvailableCSTTokensByUser(address),
       ]);
 
+      console.log(`[CST Stake] Refreshed: ${available.length} available, ${staked.length} staked`);
+      
       setStakedTokens(staked);
       setAvailableTokens(available);
       // Clear selections after refresh
@@ -244,11 +249,19 @@ export default function StakePage() {
 
   // Refresh Random Walk NFT data
   const refreshRWLKTokenData = useCallback(async () => {
-    if (!address || !isConnected || !rwlkTokenIds) return;
+    if (!address || !isConnected) return;
 
     try {
-      // Refetch wallet data first
-      await refetchRWLKWallet();
+      // Refetch wallet data first and get the fresh data
+      const walletResult = await refetchRWLKWallet();
+      const freshRwlkTokenIds = walletResult?.data;
+      
+      if (!freshRwlkTokenIds) {
+        console.log("No RWLK tokens found in wallet");
+        setAvailableRWLKTokens([]);
+        setStakedRWLKTokens([]);
+        return;
+      }
       
       // Fetch staked tokens
       const stakedTokensRaw = await api.getStakedRWLKTokensByUser(address);
@@ -266,7 +279,7 @@ export default function StakePage() {
       }));
 
       // Convert BigInt array to number array and sort
-      const ownedTokenIds = (rwlkTokenIds as bigint[])
+      const ownedTokenIds = (freshRwlkTokenIds as bigint[])
         .map((id) => Number(id))
         .sort((a, b) => a - b);
 
@@ -275,15 +288,41 @@ export default function StakePage() {
         stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
       );
 
-      // Filter available tokens (owned and not currently staked)
+      // Check which NFTs were used (cannot be restaked)
+      const usedNftsChecks = await Promise.all(
+        ownedTokenIds.map(async (tokenId) => {
+          try {
+            const wasUsed = await readContract(wagmiConfig, {
+              address: CONTRACTS.STAKING_WALLET_RWLK,
+              abi: StakingWalletRWLKABI,
+              functionName: "usedNfts",
+              args: [BigInt(tokenId)],
+            });
+            return { tokenId, wasUsed: wasUsed as boolean };
+          } catch (error) {
+            console.error(`Error checking usedNfts for token ${tokenId}:`, error);
+            return { tokenId, wasUsed: false };
+          }
+        })
+      );
+
+      const usedNftsSet = new Set(
+        usedNftsChecks
+          .filter((check) => check.wasUsed)
+          .map((check) => check.tokenId)
+      );
+
+      // Filter available tokens (owned, not currently staked, and not used)
       const available: RWLKToken[] = ownedTokenIds
-        .filter((tokenId) => !stakedTokenIdsSet.has(tokenId))
+        .filter((tokenId) => !stakedTokenIdsSet.has(tokenId) && !usedNftsSet.has(tokenId))
         .map((tokenId) => ({
           TokenId: tokenId,
           IsUsed: false,
           IsStaked: false,
         }));
 
+      console.log(`[RWLK Stake] Refreshed: ${available.length} available, ${stakedTokens.length} staked`);
+      
       setStakedRWLKTokens(stakedTokens);
       setAvailableRWLKTokens(available);
       setSelectedRWLKTokenIds(new Set());
@@ -291,7 +330,7 @@ export default function StakePage() {
     } catch (error) {
       console.error("Failed to refresh Random Walk token data:", error);
     }
-  }, [address, isConnected, rwlkTokenIds, refetchRWLKWallet]);
+  }, [address, isConnected, refetchRWLKWallet]);
 
   // Fetch user's Random Walk NFTs
   useEffect(() => {
@@ -401,15 +440,33 @@ export default function StakePage() {
     }
   }, [stakedTokens.length, fetchStakingRewards]);
 
+  // Track processed transactions to prevent duplicate handling
+  const processedCSTTxRef = useRef<string | null | undefined>(null);
+  const processedRWLKTxRef = useRef<string | null | undefined>(null);
+
+  // Clear processed CST transaction when new transaction starts
+  useEffect(() => {
+    if (stakingContract.status.isPending) {
+      processedCSTTxRef.current = null;
+    }
+  }, [stakingContract.status.isPending]);
+
   // Watch for transaction success and refresh data
   useEffect(() => {
+    const txHash = stakingContract.status.hash;
+    
     if (
       stakingContract.status.isSuccess &&
       !stakingContract.status.isPending &&
       !stakingContract.status.isConfirming &&
       address &&
+      txHash &&
+      processedCSTTxRef.current !== txHash &&
       (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
     ) {
+      // Mark transaction as processed
+      processedCSTTxRef.current = txHash;
+      
       // Transaction is fully confirmed, refresh data and show success
       const handleSuccess = async () => {
         await refreshTokenData();
@@ -451,6 +508,7 @@ export default function StakePage() {
     stakingContract.status.isSuccess,
     stakingContract.status.isPending,
     stakingContract.status.isConfirming,
+    stakingContract.status.hash,
     address,
     stakingTokenId,
     isStakingMultiple,
@@ -472,6 +530,9 @@ export default function StakePage() {
       // Transaction failed, show error and reset states
       const errorMessage = (stakingContract.status.error as Error)?.message || "Transaction failed";
       showError(errorMessage);
+      
+      // Clear processed transaction
+      processedCSTTxRef.current = null;
       
       setStakingTokenId(null);
       setIsStakingMultiple(false);
@@ -1045,18 +1106,32 @@ export default function StakePage() {
   };
 
 
+  // Clear processed RWLK transaction when new transaction starts
+  useEffect(() => {
+    if (rwlkStakingContract.status.isPending) {
+      processedRWLKTxRef.current = null;
+    }
+  }, [rwlkStakingContract.status.isPending]);
+
   // Watch for RWLK transaction success and refresh data
   useEffect(() => {
+    const txHash = rwlkStakingContract.status.hash;
+    
     if (
       rwlkStakingContract.status.isSuccess &&
       !rwlkStakingContract.status.isPending &&
       !rwlkStakingContract.status.isConfirming &&
       address &&
+      txHash &&
+      processedRWLKTxRef.current !== txHash &&
       (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
     ) {
+      // Mark transaction as processed
+      processedRWLKTxRef.current = txHash;
+      
       // Transaction is fully confirmed, refresh data and show success
       const handleSuccess = async () => {
-        // Add delay to give API time to sync with blockchain
+        // Add delay to give blockchain/API time to sync
         await new Promise(resolve => setTimeout(resolve, 2000));
         await refreshRWLKTokenData();
 
@@ -1096,6 +1171,7 @@ export default function StakePage() {
     rwlkStakingContract.status.isSuccess,
     rwlkStakingContract.status.isPending,
     rwlkStakingContract.status.isConfirming,
+    rwlkStakingContract.status.hash,
     address,
     stakingRWLKTokenId,
     isStakingRWLKMultiple,
@@ -1105,6 +1181,13 @@ export default function StakePage() {
     selectedStakedRWLKIds.size,
     showSuccess,
   ]);
+
+  // Clear processed RWLK transaction when new transaction starts
+  useEffect(() => {
+    if (rwlkStakingContract.status.isPending) {
+      processedRWLKTxRef.current = null;
+    }
+  }, [rwlkStakingContract.status.isPending]);
 
   // Watch for RWLK transaction failures
   useEffect(() => {
@@ -1117,6 +1200,9 @@ export default function StakePage() {
       // Transaction failed, show error and reset states
       const errorMessage = (rwlkStakingContract.status.error as Error)?.message || "Transaction failed";
       showError(errorMessage);
+      
+      // Clear processed transaction
+      processedRWLKTxRef.current = null;
       
       setStakingRWLKTokenId(null);
       setIsStakingRWLKMultiple(false);

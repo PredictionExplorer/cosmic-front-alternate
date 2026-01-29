@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
 import { useAccount } from "wagmi";
@@ -86,12 +86,25 @@ export default function PlayPage() {
     return () => clearInterval(interval);
   }, [refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
 
+  // Track previous values to prevent unnecessary refetches
+  const prevRoundRef = useRef<number | undefined>(undefined);
+  const prevBidsRef = useRef<number | undefined>(undefined);
+
   // Refetch contract data when dashboard data changes (round change, new bid, etc.)
   useEffect(() => {
     if (dashboardData) {
-      refetchEthPrice();
-      refetchCstPrice();
-      refetchPrizeAmount();
+      const currentRound = dashboardData.CurRoundNum;
+      const currentBids = dashboardData.CurNumBids;
+      
+      // Only refetch if values actually changed
+      if (prevRoundRef.current !== currentRound || prevBidsRef.current !== currentBids) {
+        prevRoundRef.current = currentRound;
+        prevBidsRef.current = currentBids;
+        
+        refetchEthPrice();
+        refetchCstPrice();
+        refetchPrizeAmount();
+      }
     }
   }, [dashboardData?.CurRoundNum, dashboardData?.CurNumBids, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
 
@@ -933,9 +946,28 @@ export default function PlayPage() {
     }
   };
 
+  // Track if we've already processed this transaction
+  const processedTxRef = useRef<string | null | undefined>(null);
+
+  // Clear processed transaction when a new transaction starts
+  useEffect(() => {
+    if (write.status.isPending) {
+      processedTxRef.current = null;
+    }
+  }, [write.status.isPending]);
+
   // Watch for transaction success
   useEffect(() => {
-    if (write.status.isSuccess && lastActionType) {
+    const txHash = write.status.hash;
+    
+    // Only process if:
+    // 1. Transaction is successful
+    // 2. We have an action type set
+    // 3. We haven't processed this transaction yet
+    if (write.status.isSuccess && lastActionType && txHash && processedTxRef.current !== txHash) {
+      // Mark this transaction as processed
+      processedTxRef.current = txHash;
+      
       // Capture action type before resetting
       const actionType = lastActionType;
 
@@ -1019,6 +1051,7 @@ export default function PlayPage() {
     }
   }, [
     write.status.isSuccess,
+    write.status.hash,
     showSuccess,
     refreshDashboard,
     lastActionType,
@@ -1030,6 +1063,7 @@ export default function PlayPage() {
     roundNum,
     shouldRefreshNfts,
     refetchWalletNfts,
+    cstRewardAmount,
   ]);
 
   // Prepare display data
