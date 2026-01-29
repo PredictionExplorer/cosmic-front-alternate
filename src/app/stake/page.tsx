@@ -236,7 +236,7 @@ export default function StakePage() {
       ]);
 
       console.log(`[CST Stake] Refreshed: ${available.length} available, ${staked.length} staked`);
-      
+
       setStakedTokens(staked);
       setAvailableTokens(available);
       // Clear selections after refresh
@@ -322,7 +322,7 @@ export default function StakePage() {
         }));
 
       console.log(`[RWLK Stake] Refreshed: ${available.length} available, ${stakedTokens.length} staked`);
-      
+
       setStakedRWLKTokens(stakedTokens);
       setAvailableRWLKTokens(available);
       setSelectedRWLKTokenIds(new Set());

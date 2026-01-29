@@ -31,7 +31,7 @@ export default function PlayPage() {
   const { read, write, isTransactionPending, transactionHash } =
     useCosmicGame();
   const { read: readRandomWalk } = useRandomWalkNFT();
-  const { dashboardData, refresh: refreshDashboard } = useApiData();
+  const { dashboardData, refresh: refreshDashboard, isLoading: isDashboardLoading } = useApiData();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
   const { applyOffset } = useTimeOffset();
 
@@ -101,9 +101,9 @@ export default function PlayPage() {
         prevRoundRef.current = currentRound;
         prevBidsRef.current = currentBids;
         
-        refetchEthPrice();
-        refetchCstPrice();
-        refetchPrizeAmount();
+      refetchEthPrice();
+      refetchCstPrice();
+      refetchPrizeAmount();
       }
     }
   }, [dashboardData?.CurRoundNum, dashboardData?.CurNumBids, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
@@ -269,10 +269,29 @@ export default function PlayPage() {
   }, [roundStartTime, applyOffset]);
 
   // Determine if round is active
-  // Active when: roundStartTime is 0 (immediate) OR countdown has reached 0
-  // Not active when: no data yet OR countdown is still running
-  const hasRoundData = roundStartTime !== undefined && roundStartTime !== null;
-  const isRoundActive = hasRoundData && timeUntilRoundStarts === 0;
+  // We have round data if:
+  // - Dashboard data exists AND
+  // - We have essential fields (round number) AND
+  // - Not currently in loading state
+  const hasRoundData = !!dashboardData && roundNum !== undefined && roundNum !== null && !isDashboardLoading;
+  
+  // Round is active when:
+  // - We have dashboard data AND
+  // - No future activation time (roundStartTime is 0, null, or undefined) OR countdown has reached 0
+  const hasActivationDelay = roundStartTime && roundStartTime > 0 && timeUntilRoundStarts > 0;
+  const isRoundActive = hasRoundData && !hasActivationDelay;
+
+  // Debug logging for loading issues
+  useEffect(() => {
+    console.log('[Play Page] Round State:', {
+      hasRoundData,
+      isRoundActive,
+      isDashboardLoading,
+      roundNum,
+      roundStartTime,
+      timeUntilRoundStarts,
+    });
+  }, [hasRoundData, isRoundActive, isDashboardLoading, roundNum, roundStartTime, timeUntilRoundStarts]);
 
   // Check if user can claim main prize
   // Use a small buffer (5 seconds) to account for timing precision and offset differences

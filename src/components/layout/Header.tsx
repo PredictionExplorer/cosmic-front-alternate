@@ -33,7 +33,7 @@ export function Header() {
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
                 <span className="font-serif text-xl font-semibold text-text-primary transition-colors group-hover:text-primary">
-                  Cosmic Signature
+                Cosmic Signature
                 </span>
                 <span className="relative flex items-center">
                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg animate-pulse-slow">
