@@ -268,30 +268,27 @@ export default function PlayPage() {
     return () => clearInterval(interval);
   }, [roundStartTime, applyOffset]);
 
+  // Track if we've ever loaded data (to distinguish initial load from background refreshes)
+  const hasEverLoadedRef = useRef(false);
+  
+  useEffect(() => {
+    if (dashboardData && roundNum !== undefined && roundNum !== null) {
+      hasEverLoadedRef.current = true;
+    }
+  }, [dashboardData, roundNum]);
+
   // Determine if round is active
   // We have round data if:
-  // - Dashboard data exists AND
-  // - We have essential fields (round number) AND
-  // - Not currently in loading state
-  const hasRoundData = !!dashboardData && roundNum !== undefined && roundNum !== null && !isDashboardLoading;
+  // - We've ever successfully loaded data (initial load complete)
+  // OR
+  // - Dashboard data exists AND we have essential fields
+  const hasRoundData = hasEverLoadedRef.current || (!!dashboardData && roundNum !== undefined && roundNum !== null);
   
   // Round is active when:
   // - We have dashboard data AND
   // - No future activation time (roundStartTime is 0, null, or undefined) OR countdown has reached 0
   const hasActivationDelay = roundStartTime && roundStartTime > 0 && timeUntilRoundStarts > 0;
   const isRoundActive = hasRoundData && !hasActivationDelay;
-
-  // Debug logging for loading issues
-  useEffect(() => {
-    console.log('[Play Page] Round State:', {
-      hasRoundData,
-      isRoundActive,
-      isDashboardLoading,
-      roundNum,
-      roundStartTime,
-      timeUntilRoundStarts,
-    });
-  }, [hasRoundData, isRoundActive, isDashboardLoading, roundNum, roundStartTime, timeUntilRoundStarts]);
 
   // Check if user can claim main prize
   // Use a small buffer (5 seconds) to account for timing precision and offset differences
