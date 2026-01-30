@@ -132,11 +132,26 @@ interface DonatedNFT {
 }
 
 interface DonatedERC20 {
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
   RoundNum: number;
+  TokenAid: number;
   TokenAddr: string;
-  TokenSymbol: string;
-  AmountEth: string;
-  TimeStamp: number;
+  AmountDonated: string;
+  AmountDonatedEth: number;
+  AmountClaimed: string;
+  AmountClaimedEth: number;
+  DonateClaimDiff: string;
+  DonateClaimDiffEth: number;
+  WinnerAid: number;
+  WinnerAddr: string;
   Claimed: boolean;
 }
 
@@ -469,7 +484,7 @@ export default function UserStatisticsPage() {
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
         token.TokenAddr as `0x${string}`,
-        BigInt(token.AmountEth)
+        BigInt(token.DonateClaimDiff)
       );
       // Refresh data after transaction without triggering full page loading
       setTimeout(() => {
@@ -492,7 +507,7 @@ export default function UserStatisticsPage() {
       const tokens = unclaimed.map(token => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
-        amount: BigInt(token.AmountEth),
+        amount: BigInt(token.DonateClaimDiff),
       }));
       
       await prizesWallet.write.claimManyDonatedTokens(tokens);
@@ -1482,7 +1497,7 @@ export default function UserStatisticsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-mono text-xl font-semibold text-text-primary">
-                          {(parseFloat(token.AmountEth) / 1e18).toLocaleString()} {token.TokenSymbol}
+                          {token.DonateClaimDiffEth.toLocaleString(undefined, { maximumFractionDigits: 6 })} Tokens
                         </h3>
                         {token.Claimed ? (
                           <Badge variant="success">Claimed</Badge>
@@ -1491,7 +1506,10 @@ export default function UserStatisticsPage() {
                         )}
                       </div>
                       <p className="text-sm text-text-secondary">
-                        Round {token.RoundNum} • {formatTimestamp(token.TimeStamp)}
+                        Round {token.RoundNum} • {formatTimestamp(token.Tx.TimeStamp)}
+                      </p>
+                      <p className="text-xs text-text-muted font-mono mt-1">
+                        {token.TokenAddr.substring(0, 10)}...{token.TokenAddr.slice(-8)}
                       </p>
                     </div>
                     {!token.Claimed && (

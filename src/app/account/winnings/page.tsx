@@ -68,13 +68,26 @@ interface DonatedNFT {
 }
 
 interface DonatedERC20 {
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
   RoundNum: number;
+  TokenAid: number;
   TokenAddr: string;
-  TokenSymbol: string;
-  TokenName: string;
-  AmountEth: string;
-  Amount: number;
-  TimeStamp: number;
+  AmountDonated: string;
+  AmountDonatedEth: number;
+  AmountClaimed: string;
+  AmountClaimedEth: number;
+  DonateClaimDiff: string;
+  DonateClaimDiffEth: number;
+  WinnerAid: number;
+  WinnerAddr: string;
   Claimed: boolean;
 }
 
@@ -273,10 +286,10 @@ export default function MyWinningsPage() {
         )
       );
 
-      // Sort ERC20 tokens
+      // Sort ERC20 tokens by timestamp (most recent first)
       setDonatedERC20(
         erc20Tokens.sort(
-          (a: DonatedERC20, b: DonatedERC20) => b.TimeStamp - a.TimeStamp
+          (a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp
         )
       );
       setStakingRewards(stakingRewardsData);
@@ -584,12 +597,15 @@ export default function MyWinningsPage() {
   const handleClaimERC20 = async (token: DonatedERC20) => {
     setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
     try {
+      // Use the DonateClaimDiff (unclaimed amount) instead of total donated
+      const amountToClaim = BigInt(token.DonateClaimDiff);
+      
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
         address: CONTRACTS.PRIZES_WALLET,
         abi: PrizesWalletABI,
         functionName: 'claimDonatedToken',
-        args: [BigInt(token.RoundNum), token.TokenAddr as `0x${string}`, BigInt(token.AmountEth)],
+        args: [BigInt(token.RoundNum), token.TokenAddr as `0x${string}`, amountToClaim],
         account: address,
       });
 
@@ -604,11 +620,11 @@ export default function MyWinningsPage() {
       await prizesWallet.write.claimDonatedToken(
         BigInt(token.RoundNum),
         token.TokenAddr as `0x${string}`,
-        BigInt(token.AmountEth)
+        amountToClaim
       );
       
       showInfo("Transaction submitted! Waiting for confirmation...");
-      setPendingClaim({ type: 'erc20', data: { symbol: token.TokenSymbol } });
+      setPendingClaim({ type: 'erc20', data: { symbol: token.TokenAddr } });
     } catch (error) {
       console.error("Error claiming ERC20:", error);
       const errorMessage = getErrorMessage(error);
@@ -626,7 +642,7 @@ export default function MyWinningsPage() {
       const tokens = unclaimedTokens.map((token) => ({
         roundNum: BigInt(token.RoundNum),
         tokenAddress: token.TokenAddr as `0x${string}`,
-        amount: BigInt(token.AmountEth),
+        amount: BigInt(token.DonateClaimDiff), // Use unclaimed difference
       }));
 
       // Estimate gas to validate transaction
@@ -1544,16 +1560,13 @@ export default function MyWinningsPage() {
                   <thead className="bg-background-elevated border-b border-text-muted/10">
                     <tr>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
-                        Token
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Contract Address
+                        Token Contract
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Round
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                        Amount
+                        Amount To Claim
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Status
@@ -1573,21 +1586,13 @@ export default function MyWinningsPage() {
                       >
                         <td className="px-6 py-4">
                           <div>
-                            <span className="font-mono text-text-primary font-semibold">
-                              {token.TokenSymbol}
+                            <span className="font-mono text-text-primary font-semibold text-xs">
+                              {token.TokenAddr.substring(0, 10)}...{token.TokenAddr.slice(-8)}
                             </span>
-                            {token.TokenName && (
-                              <div className="text-xs text-text-muted mt-1">
-                                {token.TokenName}
-                              </div>
-                            )}
+                            <div className="text-xs text-text-muted mt-1">
+                              Token Contract
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="font-mono text-xs text-text-muted">
-                            {token.TokenAddr.substring(0, 6)}...
-                            {token.TokenAddr.slice(-4)}
-                          </span>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <Badge variant="default">
@@ -1595,12 +1600,9 @@ export default function MyWinningsPage() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-text-primary">
-                          {(parseFloat(token.AmountEth) / 1e18).toLocaleString(
-                            undefined,
-                            {
-                              maximumFractionDigits: 6,
-                            }
-                          )}
+                          {token.DonateClaimDiffEth.toLocaleString(undefined, {
+                            maximumFractionDigits: 6,
+                          })}
                         </td>
                         <td className="px-6 py-4 text-center">
                           {token.Claimed ? (
