@@ -12,7 +12,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
 import { useAccount } from 'wagmi';
 import api from '@/services/api';
 
@@ -162,13 +162,13 @@ export function ApiDataProvider({ children, refreshInterval = 15000, autoRefresh
 		}
 	}, [address, fetchData]);
 
-	const value: ApiDataContextValue = {
+	const value: ApiDataContextValue = useMemo(() => ({
 		dashboardData,
 		isLoading,
 		error,
 		refresh: fetchData,
 		lastUpdated
-	};
+	}), [dashboardData, isLoading, error, fetchData, lastUpdated]);
 
 	return <ApiDataContext.Provider value={value}>{children}</ApiDataContext.Provider>;
 }

@@ -13,7 +13,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { useChainId } from 'wagmi';
 import api from '@/services/api';
 
@@ -66,7 +66,7 @@ export function TimeOffsetProvider({ children, refreshInterval = 60000 }: TimeOf
 	/**
 	 * Check if we should use offset (only for local testnet)
 	 */
-	const shouldUseOffset = chainId === 31337;
+	const shouldUseOffset = useMemo(() => chainId === 31337, [chainId]);
 
 	/**
 	 * Fetch server time and calculate offset
@@ -139,12 +139,12 @@ export function TimeOffsetProvider({ children, refreshInterval = 60000 }: TimeOf
 		return timestamp - (offset / 1000);
 	}, [offset, shouldUseOffset]);
 
-	const value: TimeOffsetContextValue = {
+	const value: TimeOffsetContextValue = useMemo(() => ({
 		offset,
 		isReady,
 		refresh: fetchOffset,
 		applyOffset
-	};
+	}), [offset, isReady, fetchOffset, applyOffset]);
 
 	return <TimeOffsetContext.Provider value={value}>{children}</TimeOffsetContext.Provider>;
 }

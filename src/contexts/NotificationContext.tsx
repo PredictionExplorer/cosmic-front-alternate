@@ -13,7 +13,7 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
@@ -73,6 +73,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 	}, []);
 
 	/**
+	 * Store timeout IDs to clean them up
+	 */
+	const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+	/**
 	 * Show a notification
 	 */
 	const showNotification = useCallback(
@@ -84,13 +89,41 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
 			// Auto-dismiss after duration
 			if (duration > 0) {
-				setTimeout(() => {
+				const timeoutId = setTimeout(() => {
 					hideNotification(id);
+					timeoutsRef.current.delete(id);
 				}, duration);
+				
+				// Store timeout ID for cleanup
+				timeoutsRef.current.set(id, timeoutId);
 			}
 		},
 		[hideNotification]
 	);
+
+	/**
+	 * Enhanced hideNotification with timeout cleanup
+	 */
+	const hideNotificationWithCleanup = useCallback((id: string) => {
+		// Clear any pending timeout
+		const timeoutId = timeoutsRef.current.get(id);
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutsRef.current.delete(id);
+		}
+		// Hide the notification
+		hideNotification(id);
+	}, [hideNotification]);
+
+	/**
+	 * Cleanup all timeouts on unmount
+	 */
+	useEffect(() => {
+		return () => {
+			timeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+			timeoutsRef.current.clear();
+		};
+	}, []);
 
 	/**
 	 * Convenience methods
@@ -115,19 +148,19 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 		[showNotification]
 	);
 
-	const value: NotificationContextValue = {
+	const value: NotificationContextValue = useMemo(() => ({
 		showNotification,
 		showSuccess,
 		showError,
 		showWarning,
 		showInfo,
-		hideNotification
-	};
+		hideNotification: hideNotificationWithCleanup
+	}), [showNotification, showSuccess, showError, showWarning, showInfo, hideNotificationWithCleanup]);
 
 	return (
 		<NotificationContext.Provider value={value}>
 			{children}
-			<NotificationContainer notifications={notifications} onClose={hideNotification} />
+			<NotificationContainer notifications={notifications} onClose={hideNotificationWithCleanup} />
 		</NotificationContext.Provider>
 	);
 }

@@ -398,7 +398,11 @@ export default function UserStatisticsPage() {
       setCollectedCstStakingRewards(collectedRewards);
       setRWLKMints(rwalkMinted);
       setDonatedNFTs([...transformedUnclaimedNFTs, ...transformedClaimedNFTs]);
-      setDonatedERC20(erc20Tokens);
+      
+      // Extract and sort ERC20 tokens from API response
+      const erc20List = erc20Tokens?.DonatedPrizesERC20ByWinner || [];
+      setDonatedERC20(erc20List.sort((a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp));
+      
       setDashboardData(dashData);
 
       // Calculate raffle probabilities
