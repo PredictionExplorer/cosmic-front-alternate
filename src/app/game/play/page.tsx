@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
 import { useAccount } from "wagmi";
@@ -239,55 +239,59 @@ export default function PlayPage() {
     lastBidder !== "0x0000000000000000000000000000000000000000" &&
     (lastBidder as string).toLowerCase() !== "0x0000000000000000000000000000000000000000";
 
-  // Check if round is active
-  const roundStartTime = dashboardData?.RoundStartTime ?? dashboardData?.RoundStartTimeStamp ?? dashboardData?.ActivationTime;
+  // Parse round activation time from CurRoundStats (API returns datetime strings, not timestamps)
+  // Returns Unix timestamp in seconds, or null if round is already active (empty string)
+  const roundActivationTimestamp: number | null = useMemo(() => {
+    const activationStr = dashboardData?.CurRoundStats?.ActivationTime;
+    if (!activationStr || activationStr === "") return null; // Empty = already active
+
+    // Try parsing as datetime string (e.g. "2025-01-30T12:00:00Z")
+    const parsed = new Date(activationStr).getTime();
+    if (!isNaN(parsed)) return Math.floor(parsed / 1000);
+
+    // Fallback: try parsing as a numeric timestamp
+    const num = Number(activationStr);
+    if (!isNaN(num) && num > 0) return num;
+
+    return null;
+  }, [dashboardData?.CurRoundStats?.ActivationTime]);
+
   const [timeUntilRoundStarts, setTimeUntilRoundStarts] = useState(0);
-  
-  // Update time until round starts
+
+  // Countdown to round activation
   useEffect(() => {
-    // If roundStartTime is 0, round is immediately active (no delay)
-    if (roundStartTime === 0) {
+    if (roundActivationTimestamp === null) {
+      // No future activation time — round is active now
       setTimeUntilRoundStarts(0);
       return;
     }
 
-    // If no roundStartTime data, we can't calculate - round might be pending activation
-    if (!roundStartTime) {
-      return; // Keep previous timeUntilRoundStarts value
-    }
-
     const updateTimer = () => {
       const currentTime = Math.floor(Date.now() / 1000);
-      const adjustedStartTime = applyOffset(roundStartTime);
-      const remaining = Math.max(0, adjustedStartTime - currentTime);
+      const adjustedStart = applyOffset(roundActivationTimestamp);
+      const remaining = Math.max(0, adjustedStart - currentTime);
       setTimeUntilRoundStarts(remaining);
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [roundStartTime, applyOffset]);
+  }, [roundActivationTimestamp, applyOffset]);
 
   // Track if we've ever loaded data (to distinguish initial load from background refreshes)
   const hasEverLoadedRef = useRef(false);
-  
+
   useEffect(() => {
     if (dashboardData && roundNum !== undefined && roundNum !== null) {
       hasEverLoadedRef.current = true;
     }
   }, [dashboardData, roundNum]);
 
-  // Determine if round is active
-  // We have round data if:
-  // - We've ever successfully loaded data (initial load complete)
-  // OR
-  // - Dashboard data exists AND we have essential fields
+  // Determine if round is active:
+  // - We have loaded data AND
+  // - No pending activation delay (null means immediately active)
   const hasRoundData = hasEverLoadedRef.current || (!!dashboardData && roundNum !== undefined && roundNum !== null);
-  
-  // Round is active when:
-  // - We have dashboard data AND
-  // - No future activation time (roundStartTime is 0, null, or undefined) OR countdown has reached 0
-  const hasActivationDelay = roundStartTime && roundStartTime > 0 && timeUntilRoundStarts > 0;
+  const hasActivationDelay = roundActivationTimestamp !== null && timeUntilRoundStarts > 0;
   const isRoundActive = hasRoundData && !hasActivationDelay;
 
   // Check if user can claim main prize

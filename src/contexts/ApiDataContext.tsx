@@ -19,14 +19,36 @@ import api from '@/services/api';
 /**
  * Dashboard data type (simplified - expand as needed)
  */
+interface CurRoundStats {
+	RoundNum: number;
+	TotalBids: number;
+	TotalDonatedNFTs: number;
+	NumERC20Donations: number;
+	TotalRaffleEthDeposits: string;
+	TotalRaffleEthDepositsEth: number;
+	TotalRaffleNFTs: number;
+	TotalDonatedCount: number;
+	TotalDonatedAmount: string;
+	TotalDonatedAmountEth: number;
+	// Round timing (datetime strings, empty when round is active)
+	ActivationTime: string;
+	ParamWindowStartTime: string;
+	ParamWindowDurationSeconds: number;
+	RoundStartTime: string;
+	RoundEndTime: string;
+	RoundDurationSeconds: number;
+}
+
 interface DashboardData {
 	CurRoundNum: number;
 	LastBidderAddr: string;
 	BidPriceEth: number;
+	BidPrice: string;
 	PrizeAmountEth: number;
 	CosmicGameBalanceEth: number;
 	CurNumBids: number;
 	MainStats: Record<string, unknown>;
+	CurRoundStats: CurRoundStats;
 	// Prize percentages
 	PrizePercentage: number;
 	ChronoWarriorPercentage: number;
@@ -41,10 +63,6 @@ interface DashboardData {
 	// Game configuration
 	InitialSecondsUntilPrize: number;
 	TimeoutClaimPrize: number;
-	// Round activation
-	RoundStartTime?: number;
-	RoundStartTimeStamp?: number;
-	ActivationTime?: number;
 	// Add more fields as needed based on API response
 	[key: string]: unknown;
 }
