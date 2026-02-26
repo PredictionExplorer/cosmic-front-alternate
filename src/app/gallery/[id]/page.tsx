@@ -166,6 +166,18 @@ export default function NFTDetailPage({
     }
   }, [nftContract.status.isSuccess, id, isEditingName]);
 
+  // Reset transfer state and show notification when transfer errors out (e.g. user rejection)
+  useEffect(() => {
+    if (nftContract.status.error && isTransferring) {
+      showError(
+        nftContract.status.error instanceof Error
+          ? nftContract.status.error.message
+          : "Transfer failed. Please try again."
+      );
+      setIsTransferring(false);
+    }
+  }, [nftContract.status.error, isTransferring, showError]);
+
   // Refetch NFT data when transfer transaction is successful
   useEffect(() => {
     if (nftContract.status.isSuccess && isTransferring) {
@@ -265,12 +277,24 @@ export default function NFTDetailPage({
   };
   
   // Handle transfer
-  const handleTransfer = async () => {
+  const handleTransfer = () => {
     if (!nft || !transferAddress) return;
     
-    // Validate address
+    // Validate address format
     if (!isAddress(transferAddress)) {
       setTransferError("Invalid Ethereum address");
+      return;
+    }
+
+    // Reject zero address
+    if (transferAddress === "0x0000000000000000000000000000000000000000") {
+      setTransferError("Cannot transfer to the zero address");
+      return;
+    }
+
+    // Reject self-transfer
+    if (connectedAddress && transferAddress.toLowerCase() === connectedAddress.toLowerCase()) {
+      setTransferError("Cannot transfer to yourself");
       return;
     }
     
@@ -278,12 +302,12 @@ export default function NFTDetailPage({
     setIsTransferring(true);
     
     try {
-      await nftContract.write.transfer(
+      nftContract.write.transfer(
         connectedAddress as `0x${string}`,
         transferAddress as `0x${string}`,
         BigInt(nft.TokenId)
       );
-      // Success message will be shown after data is refetched in useEffect
+      // Success and errors are handled via useEffect watching nftContract.status
     } catch (error: unknown) {
       showError(error instanceof Error ? error.message : "Failed to transfer NFT");
       setIsTransferring(false);
@@ -623,11 +647,6 @@ export default function NFTDetailPage({
                     )}
                     {isTransferring && !nftContract.status.isPending && !nftContract.status.isConfirming && (
                       <p className="text-xs text-status-info">Transfer successful! Refreshing owner information...</p>
-                    )}
-                    {nftContract.status.error && (
-                      <p className="text-xs text-status-error">
-                        Error: {nftContract.status.error.message}
-                      </p>
                     )}
                   </div>
                 </CardContent>
