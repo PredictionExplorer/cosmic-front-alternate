@@ -482,7 +482,7 @@ export default function Home() {
               className="p-8 md:p-12 text-center"
               style={{ minHeight: "400px" }}
             >
-              <div className="mb-8">
+              <div className="mb-8 flex flex-col items-center">
                 <p className="text-sm text-text-secondary mb-4 uppercase tracking-wider">
                   Time Remaining
                 </p>
