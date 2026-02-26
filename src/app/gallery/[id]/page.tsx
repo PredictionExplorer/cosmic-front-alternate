@@ -396,14 +396,14 @@ export default function NFTDetailPage({
                     controls
                     autoPlay
                     loop
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain"
                   />
                 ) : (
                   <Image
                     src={imageUrl}
                     alt={nft.TokenName || `Cosmic Signature #${id}`}
                     fill
-                    className="object-cover"
+                    className="object-contain"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 )}
