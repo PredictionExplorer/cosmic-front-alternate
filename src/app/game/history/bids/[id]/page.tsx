@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trophy, ArrowLeft, Clock, User, MessageSquare, Gift, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Trophy, ArrowLeft, Clock, User, MessageSquare, Gift, ExternalLink, Image as ImageIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "@/components/ui/Container";
@@ -13,6 +13,15 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { formatDate, formatEth } from "@/lib/utils";
 import api from "@/services/api";
+
+/** Convert ipfs:// and ipfs.io gateway URIs to a reliable HTTP gateway URL */
+function resolveIpfsUrl(uri: string): string {
+  if (!uri) return "";
+  if (uri.startsWith("ipfs://")) {
+    return `https://ipfs.io/ipfs/${uri.slice(7)}`;
+  }
+  return uri;
+}
 
 interface BidInfo {
   Tx: {
@@ -59,6 +68,8 @@ export default function BidDetailPage({
   const [bidInfo, setBidInfo] = useState<BidInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nftImageUrl, setNftImageUrl] = useState<string>("");
+  const [nftImageLoading, setNftImageLoading] = useState(false);
   const [nftImageError, setNftImageError] = useState(false);
 
   useEffect(() => {
@@ -71,7 +82,6 @@ export default function BidDetailPage({
         if (response && typeof response === 'object' && 'BidInfo' in response) {
           setBidInfo(response.BidInfo);
         } else {
-          // If response structure is different, try using it directly
           setBidInfo(response);
         }
       } catch (err) {
@@ -84,6 +94,43 @@ export default function BidDetailPage({
 
     fetchBidInfo();
   }, [bidId]);
+
+  // Resolve NFT image: prefer ImageURL from API, then fetch token URI metadata
+  useEffect(() => {
+    if (!bidInfo?.NFTDonationTokenAddr || bidInfo.NFTDonationTokenId < 0) return;
+
+    async function resolveNftImage() {
+      setNftImageError(false);
+
+      // 1. Use ImageURL from the API if available
+      if (bidInfo!.ImageURL) {
+        setNftImageUrl(resolveIpfsUrl(bidInfo!.ImageURL));
+        return;
+      }
+
+      // 2. Fetch token URI metadata to extract the image field
+      const tokenUri = bidInfo!.NFTTokenURI;
+      if (!tokenUri) return;
+
+      try {
+        setNftImageLoading(true);
+        const metadataUrl = resolveIpfsUrl(tokenUri);
+        const res = await fetch(metadataUrl);
+        if (!res.ok) throw new Error(`Failed to fetch token URI: ${res.status}`);
+        const metadata = await res.json();
+        const imageUri = metadata?.image || metadata?.image_url || "";
+        if (imageUri) {
+          setNftImageUrl(resolveIpfsUrl(imageUri));
+        }
+      } catch (err) {
+        console.error("Failed to resolve NFT image from token URI:", err);
+      } finally {
+        setNftImageLoading(false);
+      }
+    }
+
+    resolveNftImage();
+  }, [bidInfo]);
 
   const getBidTypeLabel = (bidType: number): string => {
     switch (bidType) {
@@ -326,18 +373,22 @@ export default function BidDetailPage({
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* NFT Image */}
-                      <div className="relative aspect-square rounded-lg overflow-hidden bg-background-elevated border border-text-muted/10">
-                        <Image
-                          src={nftImageError ? "/nfts/placeholder.svg" : `https://token.arbivote.io/v1/${bidInfo.NFTDonationTokenAddr}/${bidInfo.NFTDonationTokenId}`}
-                          alt={`NFT #${bidInfo.NFTDonationTokenId}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          onError={() => setNftImageError(true)}
-                        />
-                        {nftImageError && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <ImageIcon className="text-text-muted" size={48} />
+                      <div className="relative aspect-square rounded-lg overflow-hidden bg-background-elevated border border-text-muted/10 flex items-center justify-center">
+                        {nftImageLoading ? (
+                          <Loader2 className="animate-spin text-text-muted" size={40} />
+                        ) : nftImageUrl && !nftImageError ? (
+                          <Image
+                            src={nftImageUrl}
+                            alt={`NFT #${bidInfo.NFTDonationTokenId}`}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            onError={() => setNftImageError(true)}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center gap-2 text-text-muted">
+                            <ImageIcon size={48} />
+                            <p className="text-xs">No image available</p>
                           </div>
                         )}
                       </div>
