@@ -79,6 +79,7 @@ export default function NFTDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [nft, setNft] = useState<NFTData | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageError, setImageError] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [maxTokenId, setMaxTokenId] = useState<number | null>(null);
@@ -116,6 +117,7 @@ export default function NFTDetailPage({
       try {
         setLoading(true);
         setError(null);
+        setImageError(false);
 
         // Fetch NFT info and max token ID in parallel
         const [tokenInfo, tokenList] = await Promise.all([
@@ -400,11 +402,13 @@ export default function NFTDetailPage({
                   />
                 ) : (
                   <Image
-                    src={imageUrl}
+                    src={imageError ? "/nfts/placeholder.svg" : imageUrl}
                     alt={nft.TokenName || `Cosmic Signature #${id}`}
                     fill
+                    unoptimized
                     className="object-contain"
                     sizes="(max-width: 1024px) 100vw, 50vw"
+                    onError={() => setImageError(true)}
                   />
                 )}
               </div>
