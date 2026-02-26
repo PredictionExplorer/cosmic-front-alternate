@@ -517,7 +517,7 @@ class CosmicSignatureAPI {
    */
   async getETHDonationsSimple() {
     const { data } = await apiClient.get("donations/eth/simple/list/0/1000000");
-    return data.DirectCGDonations || [];
+    return data.DirectCGDonations || data.EthDonations || [];
   }
 
   /**
@@ -527,7 +527,7 @@ class CosmicSignatureAPI {
     const { data } = await apiClient.get(
       "donations/eth/with_info/list/0/1000000"
     );
-    return data.DirectCGDonations || [];
+    return data.DirectCGDonations || data.EthDonationsWithInfo || [];
   }
 
   /**
@@ -554,6 +554,14 @@ class CosmicSignatureAPI {
   async getNFTDonationsList() {
     const { data } = await apiClient.get("donations/nft/list/0/1000000");
     return data.NFTDonations || [];
+  }
+
+  /**
+   * Get NFT donation statistics (total donated, claimed, unclaimed counts)
+   */
+  async getNFTDonationStatistics() {
+    const { data } = await apiClient.get("donations/nft/statistics");
+    return data;
   }
 
   /**
@@ -592,6 +600,20 @@ class CosmicSignatureAPI {
       `donations/erc20/by_round/detailed/${roundNum}`
     );
     return data.DonationsERC20ByRoundDetailed || [];
+  }
+
+  /**
+   * Get all ERC-20 donations (global list)
+   */
+  async getERC20DonationsList() {
+    const { data } = await apiClient.get("donations/erc20/global/0/1000000");
+    return (
+      data.ERC20Donations ||
+      data.DonationsERC20 ||
+      data.DonatedPrizesERC20 ||
+      data.GlobalERC20Donations ||
+      []
+    );
   }
 
   /**

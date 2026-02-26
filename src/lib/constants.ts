@@ -14,6 +14,7 @@ export const NAV_LINKS = [
       { href: "/game/history/rounds", label: "Round History" },
     ],
   },
+  { href: "/donations", label: "Donations" },
   { href: "/stake", label: "Stake" },
   { href: "/contracts", label: "Contracts" },
   { href: "/about", label: "About" },
