@@ -79,11 +79,27 @@ interface StakingReward {
 }
 
 interface CollectedStakingReward {
-  ActionId: number;
-  TokenId: number;
+  RecordId: number;
+  Tx: {
+    EvtLogId: number;
+    BlockNum: number;
+    TxId: number;
+    TxHash: string;
+    TimeStamp: number;
+    DateTime: string;
+  };
+  DepositId: number;
   RoundNum: number;
-  RewardAmountEth: number;
-  TimeStamp: number;
+  NumStakedNFTs: number;
+  TotalDepositAmountEth: number;
+  YourTokensStaked: number;
+  YourAmountToClaimEth: number;
+  DepositAmountPerTokenEth: number;
+  NumTokensCollected: number;
+  YourCollectedAmountEth: number;
+  DepositTimeStamp: number;
+  DepositDate: string;
+  FullyClaimed: boolean;
 }
 
 interface RWLKMint {
@@ -879,10 +895,13 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               Date
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Token ID
+                              Round
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Tokens Staked
+                            </th>
+                            <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
+                              Collected
                             </th>
                             <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                               Reward (ETH)
@@ -894,26 +913,29 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                             .slice((collectedRewardsPage - 1) * itemsPerPage, collectedRewardsPage * itemsPerPage)
                             .map((reward: CollectedStakingReward, index: number) => (
                             <tr
-                              key={`${reward.ActionId}-${index}`}
+                              key={`${reward.DepositId}-${index}`}
                               className={`border-b border-text-muted/5 ${
                                 index % 2 === 0 ? "bg-background-surface/30" : ""
                               }`}
                             >
                               <td className="px-6 py-4 text-sm text-text-secondary">
-                                {formatTimestamp(reward.TimeStamp)}
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <Link href={`/gallery/${reward.TokenId}`}>
-                                  <span className="font-mono text-primary hover:text-primary/80">
-                                    #{reward.TokenId}
-                                  </span>
-                                </Link>
+                                {formatTimestamp(reward.DepositTimeStamp)}
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant="default">Round {reward.RoundNum}</Badge>
                               </td>
+                              <td className="px-6 py-4 text-center font-mono text-text-primary">
+                                {reward.YourTokensStaked} / {reward.NumStakedNFTs}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {reward.FullyClaimed ? (
+                                  <Badge variant="success">Fully Claimed</Badge>
+                                ) : (
+                                  <Badge variant="info">{reward.NumTokensCollected} tokens</Badge>
+                                )}
+                              </td>
                               <td className="px-6 py-4 text-right font-mono text-status-success">
-                                {reward.RewardAmountEth.toFixed(7)}
+                                {(reward.YourCollectedAmountEth || 0).toFixed(7)}
                               </td>
                             </tr>
                           ))}
@@ -1327,7 +1349,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                           <Badge variant="default">Round {reward.RoundNum}</Badge>
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-status-warning">
-                          {(reward.AmountEth / 1e18).toFixed(2)}
+                          {(reward.AmountEth || 0).toFixed(6)}
                         </td>
                       </tr>
                     ))}

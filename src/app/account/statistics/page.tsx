@@ -979,7 +979,7 @@ export default function UserStatisticsPage() {
                                 )}
                               </td>
                               <td className="px-6 py-4 text-right font-mono text-status-success">
-                                {reward.YourCollectedAmountEth.toFixed(7)}
+                                {(reward.YourCollectedAmountEth || 0).toFixed(7)}
                               </td>
                             </tr>
                           ))}
@@ -1376,7 +1376,7 @@ export default function UserStatisticsPage() {
                           <Badge variant="default">Round {reward.RoundNum}</Badge>
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-status-warning">
-                          {(reward.AmountEth / 1e18).toFixed(2)}
+                          {(reward.AmountEth || 0).toFixed(6)}
                         </td>
                       </tr>
                     ))}
