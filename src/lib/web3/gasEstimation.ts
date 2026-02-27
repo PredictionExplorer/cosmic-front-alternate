@@ -27,7 +27,7 @@ export async function estimateContractGas(
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Use simulateContract to estimate gas and validate the transaction
+    // Use simulateContract to validate the transaction (catches contract-level reverts)
     await simulateContract(config, {
       address: params.address,
       abi: params.abi as Abi,
@@ -39,17 +39,32 @@ export async function estimateContractGas(
 
     return { success: true };
   } catch (error) {
-    // Transaction would revert - extract and parse the error
+    const message = (error as { message?: string })?.message ?? String(error);
+
+    // Gas/fee errors are NOT contract logic errors — the simulation uses a stale
+    // fee estimate, but MetaMask will set correct fees when the user confirms.
+    // Let these through so MetaMask can handle gas pricing.
+    const isFeeError =
+      message.includes('max fee per gas less than block base fee') ||
+      message.includes('maxFeePerGas') ||
+      message.includes('baseFee') ||
+      message.includes('intrinsic gas too low') ||
+      message.includes('gas price too low');
+
+    if (isFeeError) {
+      console.warn('simulateContract: fee estimation mismatch — passing through to MetaMask:', message);
+      return { success: true };
+    }
+
+    // Transaction would revert at contract level — extract and show a friendly error
     console.error('Gas estimation failed:', error);
     const friendlyError = parseContractError(error);
     console.log('Parsed error message:', friendlyError);
     
-    // If we got a meaningful error message, return it
     if (friendlyError && friendlyError !== 'Transaction failed. Please try again.') {
       return { success: false, error: friendlyError };
     }
     
-    // Fall back to generic message with error details
     return { 
       success: false, 
       error: friendlyError || 'Transaction validation failed. Please check requirements.'
