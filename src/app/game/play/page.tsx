@@ -1131,12 +1131,12 @@ export default function PlayPage() {
                 </div>
               ) : !isRoundActive && timeUntilRoundStarts > 0 ? (
                 <div className="text-center">
-                  <div className="text-sm text-status-info mb-2">Round Starts In</div>
+                  <div className="text-base font-semibold text-status-info mb-2 uppercase tracking-wider">Round Starts In</div>
                   <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
                 </div>
-              ) : (
+              ) : timeRemaining > 0 ? (
                 <CountdownTimer targetSeconds={timeRemaining} size="lg" />
-              )}
+              ) : null}
             </div>
             
             {/* Right: Prize Pool */}
