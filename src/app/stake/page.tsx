@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
-import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
+import { readContract, writeContract, waitForTransactionReceipt, estimateFeesPerGas } from "@wagmi/core";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -68,6 +68,25 @@ function getNFTImageUrl(tokenId: number): string {
  * Placeholder image for failed loads
  */
 const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
+
+/**
+ * Fetch current EIP-1559 fee data and add a 50% buffer so writeContract calls
+ * don't fail when baseFee ticks up between estimation and submission.
+ */
+async function getFeesWithBuffer() {
+  try {
+    const fees = await estimateFeesPerGas(wagmiConfig);
+    if (fees.maxFeePerGas != null && fees.maxPriorityFeePerGas != null) {
+      return {
+        maxFeePerGas: (fees.maxFeePerGas * 3n) / 2n,
+        maxPriorityFeePerGas: (fees.maxPriorityFeePerGas * 3n) / 2n,
+      };
+    }
+  } catch {
+    // If fee estimation fails, let wagmi use its default — better than blocking
+  }
+  return {};
+}
 
 export default function StakePage() {
   const { address, isConnected } = useAccount();
@@ -710,12 +729,14 @@ export default function StakePage() {
 
     try {
       showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
-      
+
+      const fees = await getFeesWithBuffer();
       const hash = await writeContract(wagmiConfig, {
         address: CONTRACTS.COSMIC_SIGNATURE_NFT,
         abi: CosmicSignatureNFTABI,
         functionName: "setApprovalForAll",
         args: [CONTRACTS.STAKING_WALLET_CST, true],
+        ...fees,
       });
       
       console.log(`Approval transaction hash: ${hash}`);
@@ -900,12 +921,14 @@ export default function StakePage() {
 
     try {
       showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
-      
+
+      const fees = await getFeesWithBuffer();
       const hash = await writeContract(wagmiConfig, {
         address: CONTRACTS.RANDOM_WALK_NFT,
         abi: RandomWalkNFTABI,
         functionName: "setApprovalForAll",
         args: [CONTRACTS.STAKING_WALLET_RWLK, true],
+        ...fees,
       });
       
       console.log(`RWLK Approval transaction hash: ${hash}`);
