@@ -141,6 +141,21 @@ export default function StakePage() {
 
   // Hooks
   const { showSuccess, showError, showInfo } = useNotification();
+
+  // Helper: show a friendly error, suppressing wallet-rejection noise
+  const handleTxError = useCallback((error: unknown, fallback: string) => {
+    const msg = (error as Error)?.message || "";
+    if (
+      msg.includes("User denied") ||
+      msg.includes("User rejected") ||
+      msg.includes("user rejected") ||
+      msg.includes("rejected the request")
+    ) {
+      // User cancelled — no error toast needed
+      return;
+    }
+    showError(msg || fallback);
+  }, [showError]);
   const nftContract = useCosmicSignatureNFT();
   const rwlkNftContract = useRandomWalkNFT();
   const stakingContract = useStakingWalletCST();
@@ -658,7 +673,7 @@ export default function StakePage() {
       );
     } catch (error: unknown) {
       console.error("Unstake selected failed:", error);
-      showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
+      handleTxError(error, "Failed to unstake NFTs. Please try again.");
       setIsStakingMultiple(false);
     }
   };
@@ -721,7 +736,7 @@ export default function StakePage() {
       return true;
     } catch (error: unknown) {
       console.error("Approval failed:", error);
-      showError((error as Error)?.message || "Failed to approve. Please try again.");
+      handleTxError(error, "Failed to approve. Please try again.");
       return false;
     }
   }, [nftContract, showSuccess, showError, showInfo, refetchCSTApproval]);
@@ -771,7 +786,7 @@ export default function StakePage() {
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: unknown) {
       console.error("Staking failed:", error);
-      showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
+      handleTxError(error, "Failed to stake NFT. Please try again.");
       setStakingTokenId(null);
     }
   };
@@ -827,7 +842,7 @@ export default function StakePage() {
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: unknown) {
       console.error("Multi-staking failed:", error);
-      showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
+      handleTxError(error, "Failed to stake NFTs. Please try again.");
       setIsStakingMultiple(false);
     }
   };
@@ -870,7 +885,7 @@ export default function StakePage() {
       // Note: List will auto-refresh when transaction completes (see useEffect)
     } catch (error: unknown) {
       console.error("Unstaking failed:", error);
-      showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
+      handleTxError(error, "Failed to unstake NFT. Please try again.");
       setUnstakingActionId(null);
     }
   };
@@ -911,7 +926,7 @@ export default function StakePage() {
       return true;
     } catch (error: unknown) {
       console.error("RWLK Approval failed:", error);
-      showError((error as Error)?.message || "Failed to approve. Please try again.");
+      handleTxError(error, "Failed to approve. Please try again.");
       return false;
     }
   }, [rwlkNftContract, showInfo, showError, showSuccess, refetchRWLKApproval]);
@@ -959,7 +974,7 @@ export default function StakePage() {
       // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Staking failed:", error);
-      showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
+      handleTxError(error, "Failed to stake NFT. Please try again.");
       setStakingRWLKTokenId(null);
     }
   };
@@ -1013,7 +1028,7 @@ export default function StakePage() {
       // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Multi-staking failed:", error);
-      showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
+      handleTxError(error, "Failed to stake NFTs. Please try again.");
       setIsStakingRWLKMultiple(false);
     }
   };
@@ -1051,7 +1066,7 @@ export default function StakePage() {
       // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Unstaking failed:", error);
-      showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
+      handleTxError(error, "Failed to unstake NFT. Please try again.");
       setUnstakingRWLKActionId(null);
     }
   };
@@ -1100,7 +1115,7 @@ export default function StakePage() {
       // Success will be handled by useEffect when transaction confirms
     } catch (error: unknown) {
       console.error("RWLK Unstake selected failed:", error);
-      showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
+      handleTxError(error, "Failed to unstake NFTs. Please try again.");
       setIsStakingRWLKMultiple(false);
     }
   };
