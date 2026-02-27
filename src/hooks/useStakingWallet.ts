@@ -65,7 +65,7 @@ export function useStakingWalletCST() {
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
 					...contractConfig,
-					functionName: 'usedNfts',
+					functionName: 'wasNftUsed',
 					args: [nftId]
 				})
 		},
@@ -175,7 +175,7 @@ export function useStakingWalletRWLK() {
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
 					...contractConfig,
-					functionName: 'usedNfts',
+					functionName: 'wasNftUsed',
 					args: [nftId]
 				})
 		},

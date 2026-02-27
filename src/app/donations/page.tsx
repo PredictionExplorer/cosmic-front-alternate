@@ -263,8 +263,38 @@ export default function DonationsPage() {
       try {
         setNftsLoading(true);
         setNftsError(null);
-        const data = await api.getNFTDonationsList();
-        setNfts(Array.isArray(data) ? data : []);
+        const listData = await api.getNFTDonationsList();
+        const rawNfts: DonatedNFT[] = Array.isArray(listData) ? listData : [];
+
+        if (rawNfts.length === 0) {
+          setNfts([]);
+          return;
+        }
+
+        // The list endpoint doesn't JOIN the claims table, so Claimed is always
+        // undefined. Enrich it by fetching unclaimed NFTs per unique round.
+        const uniqueRounds = [...new Set(rawNfts.map((n) => n.RoundNum))];
+        const unclaimedResults = await Promise.all(
+          uniqueRounds.map((roundNum) =>
+            api.getUnclaimedDonatedNFTsByRound(roundNum).catch(() => [])
+          )
+        );
+
+        // Build a set of "round-index" keys that are still unclaimed
+        const unclaimedKeys = new Set<string>();
+        unclaimedResults.forEach((items, i) => {
+          const roundNum = uniqueRounds[i];
+          (items as DonatedNFT[]).forEach((item) => {
+            unclaimedKeys.add(`${roundNum}-${item.Index}`);
+          });
+        });
+
+        const enriched = rawNfts.map((nft) => ({
+          ...nft,
+          Claimed: !unclaimedKeys.has(`${nft.RoundNum}-${nft.Index}`),
+        }));
+
+        setNfts(enriched);
       } catch {
         setNftsError("Failed to load donated NFTs");
       } finally {

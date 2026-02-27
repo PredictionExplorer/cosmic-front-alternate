@@ -303,19 +303,20 @@ export default function StakePage() {
         stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
       );
 
-      // Check which NFTs were used (cannot be restaked)
+      // Check which NFTs were used (cannot be restaked).
+      // wasNftUsed returns uint256: 0 = never staked, non-zero = staked before.
       const usedNftsChecks = await Promise.all(
         ownedTokenIds.map(async (tokenId) => {
           try {
-            const wasUsed = await readContract(wagmiConfig, {
+            const result = await readContract(wagmiConfig, {
               address: CONTRACTS.STAKING_WALLET_RWLK,
               abi: StakingWalletRWLKABI,
-              functionName: "usedNfts",
+              functionName: "wasNftUsed",
               args: [BigInt(tokenId)],
             });
-            return { tokenId, wasUsed: wasUsed as boolean };
+            return { tokenId, wasUsed: (result as bigint) !== 0n };
           } catch (error) {
-            console.error(`Error checking usedNfts for token ${tokenId}:`, error);
+            console.error(`Error checking wasNftUsed for token ${tokenId}:`, error);
             return { tokenId, wasUsed: false };
           }
         })
@@ -384,19 +385,20 @@ export default function StakePage() {
           stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
         );
 
-        // Check which NFTs were used (cannot be restaked)
+        // Check which NFTs were used (cannot be restaked).
+        // wasNftUsed returns uint256: 0 = never staked, non-zero = staked before.
         const usedNftsChecks = await Promise.all(
           ownedTokenIds.map(async (tokenId) => {
             try {
-              const wasUsed = await readContract(wagmiConfig, {
+              const result = await readContract(wagmiConfig, {
                 address: CONTRACTS.STAKING_WALLET_RWLK,
                 abi: StakingWalletRWLKABI,
-                functionName: "usedNfts",
+                functionName: "wasNftUsed",
                 args: [BigInt(tokenId)],
               });
-              return { tokenId, wasUsed: wasUsed as boolean };
+              return { tokenId, wasUsed: (result as bigint) !== 0n };
             } catch (error) {
-              console.error(`Error checking usedNfts for token ${tokenId}:`, error);
+              console.error(`Error checking wasNftUsed for token ${tokenId}:`, error);
               return { tokenId, wasUsed: false };
             }
           })

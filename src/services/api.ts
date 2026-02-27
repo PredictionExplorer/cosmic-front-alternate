@@ -573,6 +573,17 @@ class CosmicSignatureAPI {
   }
 
   /**
+   * Get unclaimed donated NFTs by round
+   */
+  async getUnclaimedDonatedNFTsByRound(roundNum: number) {
+    const { data } = await apiClient.get(
+      `donations/nft/unclaimed/by_round/${roundNum}`
+    );
+    // API returns either NFTDonations or nfDonations depending on version
+    return data.NFTDonations || data.nfDonations || [];
+  }
+
+  /**
    * Get unclaimed donated NFTs by user
    */
   async getUnclaimedDonatedNFTsByUser(address: string) {
