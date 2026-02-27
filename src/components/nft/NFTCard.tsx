@@ -46,16 +46,16 @@ export function NFTCard({ nft, delay = 0 }: NFTCardProps) {
                 loop
                 muted
                 playsInline
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             ) : (
               <Image
                 src={currentImageUrl}
                 alt={nft.name}
                 fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                unoptimized={!imageError}
+                unoptimized
+                className="object-contain transition-transform duration-700 group-hover:scale-105"
                 onError={() => {
                   if (!imageError) {
                     console.warn(`Failed to load image for NFT #${nft.tokenId}, using placeholder`);
