@@ -35,15 +35,28 @@ export const metadata: Metadata = {
 		'Experience the intersection of art and strategy. Compete in sophisticated blockchain auctions to win premium NFTs and substantial prizes.',
 	keywords: ['NFT', 'blockchain game', 'auction', 'Ethereum', 'crypto art', 'Web3 gaming'],
 	authors: [{ name: 'Cosmic Signature Team' }],
+	icons: {
+		icon: [
+			{ url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+			{ url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+		],
+		apple: { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+		other: [
+			{ rel: 'icon', url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+			{ rel: 'icon', url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+		],
+	},
 	openGraph: {
 		title: 'Cosmic Signature | Premium NFT Auction Game',
 		description: 'Experience the intersection of art and strategy in a sophisticated blockchain auction game.',
-		type: 'website'
+		type: 'website',
+		images: [{ url: '/logo.png' }],
 	},
 	twitter: {
 		card: 'summary_large_image',
 		title: 'Cosmic Signature',
-		description: 'Premium NFT Auction Game'
+		description: 'Premium NFT Auction Game',
+		images: ['/logo.png'],
 	}
 };
 
