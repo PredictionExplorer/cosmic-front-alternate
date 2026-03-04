@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -325,6 +325,32 @@ export default function Home() {
     ? shortenAddress(championsArray[2], 6)
     : "None yet";
 
+  // ── Pending-activation countdown ──────────────────────────────────────────
+  const roundActivationTimestamp = useMemo(() => {
+    const val = dashboardData?.CurRoundStats?.ActivationTime;
+    if (val == null || val === "" || val === "0" || val === 0) return null;
+    if (typeof val === "number") return val;
+    const num = Number(val);
+    if (!isNaN(num) && num > 1_000_000_000) return num;
+    const parsed = new Date(val as string).getTime();
+    if (!isNaN(parsed)) return Math.floor(parsed / 1000);
+    return null;
+  }, [dashboardData?.CurRoundStats?.ActivationTime]);
+
+  const [timeUntilActivation, setTimeUntilActivation] = useState(0);
+  useEffect(() => {
+    if (roundActivationTimestamp === null) { setTimeUntilActivation(0); return; }
+    const update = () => {
+      const remaining = Math.max(0, roundActivationTimestamp - Math.floor(applyOffset(Date.now() / 1000)));
+      setTimeUntilActivation(remaining);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [roundActivationTimestamp, applyOffset]);
+
+  const isPendingActivation = timeUntilActivation > 0;
+
   // ETH bid price from API
   const [ethBidPrice, setEthBidPrice] = useState<number>(0);
   useEffect(() => {
@@ -345,6 +371,28 @@ export default function Home() {
 
   return (
     <div className="overflow-hidden">
+      {/* Pending-activation banner */}
+      {isPendingActivation && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border-b border-primary/30 backdrop-blur-sm"
+        >
+          <Container>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-3 text-center">
+              <div className="flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-wider">
+                <Timer size={16} className="animate-pulse" />
+                Round Starts In
+              </div>
+              <CountdownTimer targetSeconds={timeUntilActivation} size="sm" showIcon={false} />
+              <Link href="/game/play" className="text-xs text-primary/80 hover:text-primary underline underline-offset-2 transition-colors">
+                Go to game →
+              </Link>
+            </div>
+          </Container>
+        </motion.div>
+      )}
+
       {/* Hero Section */}
       <section className="relative min-h-[90vh] flex items-center justify-center">
         {/* Animated Background */}

@@ -242,16 +242,22 @@ export default function PlayPage() {
   // Parse round activation time from CurRoundStats (API returns datetime strings, not timestamps)
   // Returns Unix timestamp in seconds, or null if round is already active (empty string)
   const roundActivationTimestamp: number | null = useMemo(() => {
-    const activationStr = dashboardData?.CurRoundStats?.ActivationTime;
-    if (!activationStr || activationStr === "") return null; // Empty = already active
+    const activationVal = dashboardData?.CurRoundStats?.ActivationTime;
+    if (activationVal == null || activationVal === "" || activationVal === "0" || activationVal === 0) return null;
 
-    // Try parsing as datetime string (e.g. "2025-01-30T12:00:00Z")
-    const parsed = new Date(activationStr).getTime();
+    // If already a number, it's a Unix timestamp in seconds — use directly.
+    // Do NOT pass through new Date() because JS treats numeric Date args as
+    // milliseconds, which would misinterpret e.g. 1772643600 s as ~Jan 1970.
+    if (typeof activationVal === "number") return activationVal;
+
+    // Numeric string — if it looks like a Unix timestamp in seconds (post-2001),
+    // use it directly rather than letting new Date() treat it as ms.
+    const num = Number(activationVal);
+    if (!isNaN(num) && num > 1_000_000_000) return num;
+
+    // ISO datetime string (e.g. "2025-01-30T12:00:00Z")
+    const parsed = new Date(activationVal as string).getTime();
     if (!isNaN(parsed)) return Math.floor(parsed / 1000);
-
-    // Fallback: try parsing as a numeric timestamp
-    const num = Number(activationStr);
-    if (!isNaN(num) && num > 0) return num;
 
     return null;
   }, [dashboardData?.CurRoundStats?.ActivationTime]);

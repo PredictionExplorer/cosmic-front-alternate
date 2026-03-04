@@ -30,8 +30,8 @@ interface CurRoundStats {
 	TotalDonatedCount: number;
 	TotalDonatedAmount: string;
 	TotalDonatedAmountEth: number;
-	// Round timing (datetime strings, empty when round is active)
-	ActivationTime: string;
+	// Round timing — API may return a Unix timestamp (number) or ISO string; 0/empty = already active
+	ActivationTime: number | string;
 	ParamWindowStartTime: string;
 	ParamWindowDurationSeconds: number;
 	RoundStartTime: string;
