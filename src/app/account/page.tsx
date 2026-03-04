@@ -154,10 +154,14 @@ function AccountPageContent() {
           });
         }
 
-        // Set winnings
+        // Set winnings — clamp numeric prize fields to ≥ 0 so stale/partial
+        // API responses after claiming can't produce negative displayed amounts.
         if (winningsResponse) {
           setWinnings({
             ...winningsResponse,
+            ETHRaffleToClaim: Math.max(0, Number(winningsResponse.ETHRaffleToClaim) || 0),
+            ETHChronoWarriorToClaim: Math.max(0, Number(winningsResponse.ETHChronoWarriorToClaim) || 0),
+            UnclaimedStakingReward: Math.max(0, Number(winningsResponse.UnclaimedStakingReward) || 0),
             DonatedERC20Tokens: winningsResponse.DonatedERC20Tokens || [],
           });
         }
@@ -297,7 +301,7 @@ function AccountPageContent() {
               severity="warning"
               title="You have prizes to claim"
               description={`${formatEth(
-                (Number(winnings.ETHRaffleToClaim) + Number(winnings.ETHChronoWarriorToClaim || 0) + Number(winnings.UnclaimedStakingReward)).toString()
+                Math.max(0, Number(winnings.ETHRaffleToClaim) + Number(winnings.ETHChronoWarriorToClaim || 0) + Number(winnings.UnclaimedStakingReward)).toString()
               )} ETH${
                 winnings.DonatedERC20Tokens.length > 0
                   ? ` + ${winnings.DonatedERC20Tokens.length} ERC-20 token${

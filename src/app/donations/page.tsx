@@ -11,6 +11,7 @@ import {
   CheckCircle,
   XCircle,
   Coins,
+  CircleDollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -219,6 +220,26 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
   );
 }
 
+interface ETHDonation {
+  RecordId?: number;
+  Tx?: {
+    EvtLogId?: number;
+    BlockNum?: number;
+    TxHash?: string;
+    TimeStamp?: number;
+    DateTime?: string;
+  };
+  RoundNum: number;
+  DonorAid?: number;
+  DonorAddr: string;
+  /** Raw wei string or numeric ETH amount depending on endpoint */
+  Amount?: string;
+  AmountEth?: number;
+  /** Present only on "with_info" records */
+  InfoJSON?: string;
+  HasInfo?: boolean;
+}
+
 // ─── Stats Interface ──────────────────────────────────────────────────────────
 
 interface NFTDonationStats {
@@ -234,7 +255,7 @@ interface NFTDonationStats {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-type Tab = "nfts" | "erc20";
+type Tab = "nfts" | "erc20" | "eth";
 type ClaimFilter = "all" | "unclaimed" | "claimed";
 
 export default function DonationsPage() {
@@ -252,6 +273,11 @@ export default function DonationsPage() {
   const [erc20s, setErc20s] = useState<DonatedERC20[]>([]);
   const [erc20Loading, setErc20Loading] = useState(true);
   const [erc20Error, setErc20Error] = useState<string | null>(null);
+
+  // ETH donations state
+  const [ethDonations, setEthDonations] = useState<ETHDonation[]>([]);
+  const [ethLoading, setEthLoading] = useState(true);
+  const [ethError, setEthError] = useState<string | null>(null);
 
   // Filters
   const [roundFilter, setRoundFilter] = useState("");
@@ -324,9 +350,23 @@ export default function DonationsPage() {
       }
     }
 
+    async function fetchETHDonations() {
+      try {
+        setEthLoading(true);
+        setEthError(null);
+        const data = await api.getAllETHDonations();
+        setEthDonations(Array.isArray(data) ? data : []);
+      } catch {
+        setEthError("Failed to load ETH donations");
+      } finally {
+        setEthLoading(false);
+      }
+    }
+
     fetchNFTs();
     fetchNFTStats();
     fetchERC20();
+    fetchETHDonations();
   }, []);
 
   // Filter helpers
@@ -351,6 +391,16 @@ export default function DonationsPage() {
         : !t.Claimed;
     return roundOk && claimOk;
   });
+
+  const filteredETH = ethDonations.filter((d) =>
+    roundFilter ? String(d.RoundNum) === roundFilter : true
+  );
+
+  // Total ETH donated (sum across all records)
+  const totalEthDonated = ethDonations.reduce((sum, d) => {
+    const amt = d.AmountEth ?? 0;
+    return sum + amt;
+  }, 0);
 
   const clearFilters = useCallback(() => {
     setRoundFilter("");
@@ -433,6 +483,19 @@ export default function DonationsPage() {
                   ERC-20 Donations
                 </span>
               </div>
+
+              {/* ETH donations total */}
+              {ethDonations.length > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background-elevated border border-text-muted/10">
+                  <CircleDollarSign size={16} className="text-primary" />
+                  <span className="text-sm text-text-secondary">
+                    <span className="font-semibold text-text-primary">
+                      {totalEthDonated.toFixed(4)}
+                    </span>{" "}
+                    ETH Donated ({ethDonations.length})
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         </Container>
@@ -464,6 +527,17 @@ export default function DonationsPage() {
             >
               <Coins size={14} className="inline mr-2" />
               ERC-20 Tokens ({erc20s.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("eth")}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeTab === "eth"
+                  ? "bg-primary text-white"
+                  : "bg-background-elevated text-text-secondary hover:text-primary"
+              }`}
+            >
+              <CircleDollarSign size={14} className="inline mr-2" />
+              ETH Donations ({ethDonations.length})
             </button>
           </div>
 
@@ -670,6 +744,110 @@ export default function DonationsPage() {
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+          {/* ── ETH Donations Tab ─────────────────────────────────── */}
+          {activeTab === "eth" && (
+            <>
+              {ethLoading ? (
+                <div className="flex items-center justify-center py-24">
+                  <Loader2 className="animate-spin text-primary mr-3" size={28} />
+                  <span className="text-text-secondary">Loading ETH donations…</span>
+                </div>
+              ) : ethError ? (
+                <Card glass className="p-12 text-center">
+                  <p className="text-status-error">{ethError}</p>
+                </Card>
+              ) : filteredETH.length === 0 ? (
+                <Card glass className="p-12 text-center">
+                  <CircleDollarSign className="mx-auto mb-4 text-text-muted" size={48} />
+                  <p className="text-text-secondary">
+                    {roundFilter ? "No ETH donations match the current round filter." : "No ETH donations found."}
+                  </p>
+                </Card>
+              ) : (
+                <Card glass>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CircleDollarSign className="text-primary" size={20} />
+                      ETH Donations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-text-muted/10">
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Round</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Donor</th>
+                          <th className="text-right py-3 px-3 text-text-secondary font-medium">Amount (ETH)</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Info</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Date</th>
+                          <th className="py-3 px-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredETH.map((d, i) => {
+                          const parsedInfo = (() => {
+                            if (!d.InfoJSON) return null;
+                            try { return JSON.parse(d.InfoJSON); } catch { return d.InfoJSON; }
+                          })();
+                          return (
+                            <tr
+                              key={d.RecordId ?? i}
+                              className="border-b border-text-muted/5 hover:bg-background-elevated/50 transition-colors"
+                            >
+                              <td className="py-3 px-3">
+                                <Link
+                                  href={`/game/history/rounds/${d.RoundNum}`}
+                                  className="font-mono text-primary hover:underline"
+                                >
+                                  #{d.RoundNum}
+                                </Link>
+                              </td>
+                              <td className="py-3 px-3">
+                                <AddressDisplay address={d.DonorAddr} shorten showCopy={false} />
+                              </td>
+                              <td className="py-3 px-3 text-right font-mono text-primary">
+                                {d.AmountEth != null
+                                  ? d.AmountEth.toLocaleString(undefined, { maximumFractionDigits: 6 })
+                                  : "—"}
+                              </td>
+                              <td className="py-3 px-3 max-w-[220px]">
+                                {parsedInfo ? (
+                                  <span
+                                    className="text-xs text-text-secondary truncate block"
+                                    title={typeof parsedInfo === "string" ? parsedInfo : JSON.stringify(parsedInfo)}
+                                  >
+                                    {typeof parsedInfo === "string"
+                                      ? parsedInfo
+                                      : (parsedInfo.message ?? parsedInfo.note ?? parsedInfo.name ?? JSON.stringify(parsedInfo))}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-text-muted">—</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 text-xs text-text-muted whitespace-nowrap">
+                                {d.Tx?.TimeStamp
+                                  ? formatDate(new Date(d.Tx.TimeStamp * 1000))
+                                  : "—"}
+                              </td>
+                              <td className="py-3 px-3">
+                                {d.Tx?.EvtLogId && (
+                                  <Link href={`/game/history/bids/${d.Tx.EvtLogId}`}>
+                                    <span className="text-xs text-primary hover:underline whitespace-nowrap flex items-center gap-1">
+                                      View bid <ExternalLink size={10} />
+                                    </span>
+                                  </Link>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </CardContent>

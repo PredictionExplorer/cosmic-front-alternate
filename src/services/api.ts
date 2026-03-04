@@ -27,7 +27,7 @@ const API_ENDPOINTS = {
   // Arbitrum Sepolia (Chain ID: 421614)
   421614:
     process.env.NEXT_PUBLIC_API_BASE_URL_SEPOLIA ||
-    "http://161.129.67.42:8353/api/cosmicgame/",
+    "http://161.129.67.42:8383/api/cosmicgame/",
   // Arbitrum One (Chain ID: 42161)
   42161:
     process.env.NEXT_PUBLIC_API_BASE_URL_MAINNET ||

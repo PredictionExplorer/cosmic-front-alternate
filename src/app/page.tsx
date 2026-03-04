@@ -413,7 +413,7 @@ export default function Home() {
               </div>
               <div className="text-center">
                 <div className="font-mono text-3xl font-semibold text-primary mb-1">
-                  {currentRound.totalNFTs}+
+                  {currentRound.totalNFTs}
                 </div>
                 <div className="text-sm text-text-secondary">NFTs Minted</div>
               </div>
