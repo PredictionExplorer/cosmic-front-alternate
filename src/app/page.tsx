@@ -380,11 +380,11 @@ export default function Home() {
         >
           <Container>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-3 text-center">
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm uppercase tracking-wider">
-                <Timer size={16} className="animate-pulse" />
+              <div className="flex items-center gap-2 text-primary font-bold text-base uppercase tracking-widest">
+                <Timer size={20} className="animate-pulse" />
                 Round Starts In
               </div>
-              <CountdownTimer targetSeconds={timeUntilActivation} size="sm" showIcon={false} />
+              <CountdownTimer targetSeconds={timeUntilActivation} size="md" showIcon={false} />
               <Link href="/game/play" className="text-xs text-primary/80 hover:text-primary underline underline-offset-2 transition-colors">
                 Go to game →
               </Link>
