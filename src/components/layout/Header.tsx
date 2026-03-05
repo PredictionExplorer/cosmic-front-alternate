@@ -23,7 +23,7 @@ export function Header() {
           <Link href="/" className="group flex items-center space-x-3">
             <div className="relative h-12 w-12 flex-shrink-0">
               <Image
-                src="/logo.png"
+                src="/logo.svg"
                 alt="Cosmic Signature"
                 fill
                 className="object-contain transition-transform group-hover:scale-110"

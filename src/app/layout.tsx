@@ -50,13 +50,13 @@ export const metadata: Metadata = {
 		title: 'Cosmic Signature | Premium NFT Auction Game',
 		description: 'Experience the intersection of art and strategy in a sophisticated blockchain auction game.',
 		type: 'website',
-		images: [{ url: '/logo.png' }],
+		images: [{ url: '/logo.svg' }],
 	},
 	twitter: {
 		card: 'summary_large_image',
 		title: 'Cosmic Signature',
 		description: 'Premium NFT Auction Game',
-		images: ['/logo.png'],
+		images: ['/logo.svg'],
 	}
 };
 
