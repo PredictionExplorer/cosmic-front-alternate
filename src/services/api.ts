@@ -31,7 +31,7 @@ const API_ENDPOINTS = {
   // Arbitrum One (Chain ID: 42161)
   42161:
     process.env.NEXT_PUBLIC_API_BASE_URL_MAINNET ||
-    "http://161.129.67.42:8383/api/cosmicgame/",
+    "http://69.10.55.2:2121/api/cosmicgame/",
 } as const;
 
 /**
