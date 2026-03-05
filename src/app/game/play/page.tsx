@@ -22,7 +22,7 @@ import { formatWeiToEth } from "@/lib/web3/utils";
 import { parseContractError } from "@/lib/web3/errorHandling";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { validateBidMessageLength, getByteLength } from "@/lib/web3/errorDecoder";
-import { formatTime } from "@/lib/utils";
+import { formatEth, formatTime } from "@/lib/utils";
 import { api } from "@/services/api";
 import CosmicGameABI from "@/contracts/CosmicGame.json";
 
@@ -1149,7 +1149,7 @@ export default function PlayPage() {
             <div className="text-right">
               <div className="text-sm text-text-secondary mb-1">Prize Pool</div>
               <div className="text-2xl font-serif font-bold text-gradient">
-                {currentRound.prizePool.toFixed(2)} ETH
+                {formatEth(dashboardData?.PrizeAmountEth || 0)} ETH
               </div>
             </div>
           </div>
