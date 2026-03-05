@@ -5,18 +5,48 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, AlertTriangle } from "lucide-react";
 import { Container } from "../ui/Container";
 import { ConnectWalletButton } from "../web3/ConnectWalletButton";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useSystemMode } from "@/contexts/SystemModeContext";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { currentMode } = useSystemMode();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-text-muted/10 bg-background/80 backdrop-blur-xl">
+
+      {/* Maintenance Mode Banner */}
+      <AnimatePresence>
+        {currentMode > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-amber-400 text-amber-950 px-4 py-2"
+          >
+            <Container>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <p className="text-sm font-medium">
+                    {currentMode === 1
+                      ? "The system will enter maintenance mode as soon as the prize claim transaction is executed. The administrator will adjust system parameters before gameplay resumes."
+                      : "The system is currently in maintenance mode. The administrator is adjusting system parameters. Gameplay will resume shortly."}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs font-bold uppercase tracking-widest bg-amber-950/10 px-3 py-1 rounded-full">
+                  {currentMode === 1 ? "Maintenance Pending" : "Maintenance Mode"}
+                </span>
+              </div>
+            </Container>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <Container>
         <nav className="flex items-center justify-between py-4 lg:py-6">
           {/* Logo */}

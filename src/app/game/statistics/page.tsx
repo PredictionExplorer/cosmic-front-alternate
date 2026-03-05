@@ -12,7 +12,9 @@ import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
+import { SystemModesTable } from "@/components/game/SystemModesTable";
 import { api } from "@/services/api";
+import type { SystemModeChange } from "@/contexts/SystemModeContext";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -229,6 +231,7 @@ export default function StatisticsPage() {
   const [uniqueDonors, setUniqueDonors] = useState<UniqueDonor[]>([]);
   const [cstDistribution, setCSTDistribution] = useState<CSTDistribution[]>([]);
   const [ctBalanceDistribution, setCTBalanceDistribution] = useState<CTBalanceDistribution[]>([]);
+  const [systemModeChanges, setSystemModeChanges] = useState<SystemModeChange[] | null>(null);
   
   // Pagination for bid history
   const [bidHistoryPage, setBidHistoryPage] = useState(1);
@@ -259,6 +262,7 @@ export default function StatisticsPage() {
           donors,
           cstDist,
           ctBalance,
+          sysModeList,
         ] = await Promise.all([
           api.getBidListByRound(dashboardData.CurRoundNum, "desc"),
           api.getUniqueBidders(),
@@ -268,6 +272,7 @@ export default function StatisticsPage() {
           api.getUniqueDonors(),
           api.getCSTDistribution(),
           api.getCTBalanceDistribution(),
+          api.getSystemModeList(),
         ]);
 
         setCurrentRoundBids(currentBids);
@@ -278,6 +283,7 @@ export default function StatisticsPage() {
         setUniqueDonors(donors);
         setCSTDistribution(cstDist);
         setCTBalanceDistribution(ctBalance);
+        setSystemModeChanges(Array.isArray(sysModeList) ? sysModeList : []);
       } catch (error) {
         console.error("Error fetching statistics:", error);
       } finally {
@@ -1236,6 +1242,37 @@ export default function StatisticsPage() {
               )}
             </Card>
           )}
+        </Container>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Round Activations (System Mode Changes)                            */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="py-12">
+        <Container>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="mb-6">
+              <h2 className="font-serif text-2xl md:text-3xl font-semibold text-text-primary mb-2">
+                Round Activations
+              </h2>
+              <p className="text-text-secondary text-sm">
+                History of system mode changes and round activation events.
+              </p>
+            </div>
+
+            {systemModeChanges === null ? (
+              <Card glass className="p-8 text-center">
+                <Loader2 className="animate-spin mx-auto mb-3 text-primary" size={28} />
+                <p className="text-text-secondary text-sm">Loading round activations...</p>
+              </Card>
+            ) : (
+              <SystemModesTable list={systemModeChanges} />
+            )}
+          </motion.div>
         </Container>
       </section>
     </div>

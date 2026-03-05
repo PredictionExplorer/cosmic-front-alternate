@@ -5,12 +5,38 @@ export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
 }
 
+/**
+ * Smart ETH formatter:
+ * - 0 or NaN          → "0"
+ * - >= 1 ETH          → 2 decimal places  (e.g. 20.46, 9.61)
+ * - < 1 ETH           → 3 significant digits from the first non-zero digit
+ *                        (e.g. 0.000456 → "0.000456", 0.00100 → "0.001")
+ * Never produces "0.00" for a non-zero value.
+ */
 export function formatEth(value: number | string): string {
 	const num = typeof value === 'string' ? parseFloat(value) : value;
-	return num.toLocaleString('en-US', {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 4
-	});
+	if (!isFinite(num) || num === 0) return '0';
+
+	const abs = Math.abs(num);
+
+	if (abs >= 1) {
+		// 2 decimal places, with thousands separator for large values
+		return num.toLocaleString('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		});
+	}
+
+	// For values < 1: find position of first significant digit then show 3 sig digits.
+	// e.g. 0.000456 → exponent = -4 → decimalPlaces = 4 + 2 = 6 → "0.000456"
+	const exponent = Math.floor(Math.log10(abs)); // e.g. -4 for 0.000456
+	const decimalPlaces = Math.max(1, -exponent + 2);  // first digit pos + 2 more
+	const fixedStr = num.toFixed(decimalPlaces);
+	const fixed = parseFloat(fixedStr);
+	// If rounding pushed it to >= 1, fall back to 2dp
+	if (Math.abs(fixed) >= 1) return fixed.toFixed(2);
+	// Use toFixed string directly to avoid scientific notation, then strip trailing zeros
+	return fixedStr.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 }
 
 /**

@@ -7,6 +7,7 @@ import { Web3Provider } from '@/providers/Web3Provider';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ApiDataProvider } from '@/contexts/ApiDataContext';
 import { TimeOffsetProvider } from '@/contexts/TimeOffsetContext';
+import { SystemModeProvider } from '@/contexts/SystemModeContext';
 
 const cormorant = Cormorant_Garamond({
 	subsets: ['latin'],
@@ -72,11 +73,13 @@ export default function RootLayout({
 					<NotificationProvider>
 						<TimeOffsetProvider>
 							<ApiDataProvider refreshInterval={5000}>
-								<div className="flex min-h-screen flex-col">
-									<Header />
-									<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
-									<Footer />
-								</div>
+								<SystemModeProvider>
+									<div className="flex min-h-screen flex-col">
+										<Header />
+										<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
+										<Footer />
+									</div>
+								</SystemModeProvider>
 							</ApiDataProvider>
 						</TimeOffsetProvider>
 					</NotificationProvider>
