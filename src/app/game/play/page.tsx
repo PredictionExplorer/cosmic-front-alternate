@@ -1320,7 +1320,7 @@ export default function PlayPage() {
                     >
                       CST Bid
                       {numBids === 0 && (
-                        <span className="text-xs block">(First bid must be ETH)</span>
+                        <span className="text-xs block font-semibold text-status-warning">(First bid must be ETH)</span>
                       )}
                     </button>
                   </div>
