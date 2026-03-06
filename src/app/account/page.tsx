@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink } from "lucide-react";
+import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useSearchParams } from "next/navigation";
@@ -167,7 +167,10 @@ function AccountPageContent() {
         }
       } catch (err) {
         console.error("Error fetching user data:", err);
-        setError("Failed to load user data");
+        const msg = (err as { response?: { status?: number } })?.response?.status === 404
+          ? "This address has no activity in Cosmic Signature yet."
+          : "Could not load account data. The API may be temporarily unavailable — please try again shortly.";
+        setError(msg);
       } finally {
         setLoading(false);
       }
@@ -197,15 +200,30 @@ function AccountPageContent() {
   }
 
   if (error) {
+    const isEmptyAccount = error.includes("no activity");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Container>
-          <Card glass className="p-12 text-center">
-            <h1 className="heading-sm mb-4 text-status-error">Error</h1>
+          <Card glass className="p-12 text-center max-w-lg mx-auto">
+            {isEmptyAccount ? (
+              <Trophy className="mx-auto mb-4 text-text-muted" size={56} />
+            ) : (
+              <AlertCircle className="mx-auto mb-4 text-status-warning" size={56} />
+            )}
+            <h1 className="heading-sm mb-3">
+              {isEmptyAccount ? "No Activity Found" : "Unable to Load Account"}
+            </h1>
             <p className="text-text-secondary mb-6">{error}</p>
-            <Button asChild>
-              <Link href="/">Go Home</Link>
-            </Button>
+            <div className="flex items-center justify-center gap-3">
+              {isEmptyAccount && (
+                <Button variant="primary" asChild>
+                  <Link href="/game/play">Enter the Game</Link>
+                </Button>
+              )}
+              <Button variant="outline" asChild>
+                <Link href="/">Go Home</Link>
+              </Button>
+            </div>
           </Card>
         </Container>
       </div>
