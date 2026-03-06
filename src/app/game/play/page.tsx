@@ -62,10 +62,42 @@ export default function PlayPage() {
   // Get data from dashboard API and blockchain
   const roundNum = dashboardData?.CurRoundNum;
   const lastBidder = dashboardData?.LastBidderAddr;
-  const { data: ethBidPriceRaw, refetch: refetchEthPrice } =
+  const { data: ethBidPriceRaw, refetch: refetchEthPrice, error: ethPriceError } =
     read.useEthBidPrice();
   const { data: cstBidPriceRaw, refetch: refetchCstPrice } =
     read.useCstBidPrice();
+
+  // API fallback for ETH bid price — used when the contract read is blocked/failing
+  const [apiFallbackPriceWei, setApiFallbackPriceWei] = useState<bigint | null>(null);
+  useEffect(() => {
+    if (ethBidPriceRaw) {
+      setApiFallbackPriceWei(null); // Contract is working — clear fallback
+      return;
+    }
+    if (ethPriceError) {
+      console.warn('[ETH bid price] Contract read failed — falling back to API:', ethPriceError.message);
+    }
+    let cancelled = false;
+    async function fetchFallback() {
+      try {
+        const priceData = await api.getETHBidPrice();
+        const weiStr = priceData?.ETHPrice ?? priceData?.eth_price ?? priceData?.price;
+        if (weiStr && !cancelled) {
+          const wei = BigInt(weiStr);
+          console.log('[ETH bid price] API fallback price (wei):', wei.toString());
+          setApiFallbackPriceWei(wei);
+        }
+      } catch (err) {
+        console.error('[ETH bid price] API fallback also failed:', err);
+      }
+    }
+    fetchFallback();
+    const id = setInterval(fetchFallback, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [ethBidPriceRaw, ethPriceError]);
+
+  // Effective price: prefer on-chain, fall back to API
+  const effectiveEthBidPriceRaw = (ethBidPriceRaw as bigint | undefined) ?? apiFallbackPriceWei ?? undefined;
   const { data: prizeAmount, refetch: refetchPrizeAmount } =
     read.useMainPrizeAmount();
   const { data: cstRewardPerBid } = read.useCstRewardPerBid();
@@ -311,8 +343,8 @@ export default function PlayPage() {
     (address.toLowerCase() === (lastBidder as string).toLowerCase() || claimTimeoutExpired);
 
   // Format prices
-  const ethBidPrice = ethBidPriceRaw
-    ? parseFloat(formatWeiToEth(ethBidPriceRaw as bigint, 6))
+  const ethBidPrice = effectiveEthBidPriceRaw
+    ? parseFloat(formatWeiToEth(effectiveEthBidPriceRaw, 6))
     : 0;
   const cstBidPrice = cstBidPriceRaw
     ? parseFloat(formatWeiToEth(cstBidPriceRaw as bigint, 2))
@@ -544,7 +576,7 @@ export default function PlayPage() {
       return;
     }
 
-    if (!ethBidPriceRaw) {
+    if (!effectiveEthBidPriceRaw) {
       showError("Unable to get bid price. Please try again.");
       return;
     }
@@ -559,8 +591,8 @@ export default function PlayPage() {
     try {
       // Calculate value with buffer
       const valueInWei =
-        (ethBidPriceRaw as bigint) +
-        ((ethBidPriceRaw as bigint) * BigInt(priceBuffer)) / BigInt(100);
+        effectiveEthBidPriceRaw! +
+        (effectiveEthBidPriceRaw! * BigInt(priceBuffer)) / BigInt(100);
       // Use ceiling division for RandomWalk discount to match contract: ceil(x/2) = (x+1)/2
       const finalValue = useRandomWalkNft ? (valueInWei + BigInt(1)) / BigInt(2) : valueInWei;
 
