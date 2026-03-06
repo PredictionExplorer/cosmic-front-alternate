@@ -50,9 +50,9 @@ export default function PrizesPage() {
 			},
 			{
 				name: "NFT Stakers",
-				percentage: dashboardData?.StakignPercentage || 0,
+				percentage: dashboardData?.StakingPercentage || 0,
 				description: "Distributed to all staked NFTs",
-				rewards: [`${dashboardData?.StakignPercentage || 0}% of ETH pool (proportional)`],
+				rewards: [`${dashboardData?.StakingPercentage || 0}% of ETH pool (proportional)`],
 				color: "success",
 			},
 			{

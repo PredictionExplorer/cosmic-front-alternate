@@ -115,7 +115,7 @@ export default function StakePage() {
   const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
 
   // Get staking percentage from dashboard API
-  const stakingPercentage = apiDashboardData?.StakignPercentage || 0;
+  const stakingPercentage = apiDashboardData?.StakingPercentage || 0;
 
   // Random Walk NFT state
   const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(

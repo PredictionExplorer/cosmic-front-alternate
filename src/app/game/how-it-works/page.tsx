@@ -680,9 +680,9 @@ export default function HowItWorksPage() {
 								},
 								{
 									name: 'NFT Stakers',
-									percentage: dashboardData?.StakignPercentage || 0,
+									percentage: dashboardData?.StakingPercentage || 0,
 									recipients: 'All',
-									rewards: [`${dashboardData?.StakignPercentage || 0}% of ETH distributed proportionally`],
+									rewards: [`${dashboardData?.StakingPercentage || 0}% of ETH distributed proportionally`],
 									color: 'success'
 								},
 								{
@@ -738,7 +738,7 @@ export default function HowItWorksPage() {
 									(dashboardData?.PrizePercentage || 0) - 
 									(dashboardData?.ChronoWarriorPercentage || 0) - 
 									(dashboardData?.RafflePercentage || 0) - 
-									(dashboardData?.StakignPercentage || 0) - 
+									(dashboardData?.StakingPercentage || 0) - 
 									(dashboardData?.CharityPercentage || 0)
 								}% of the prize pool rolls over to the next round, ensuring growing prizes over time.
 							</p>

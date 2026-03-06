@@ -1944,9 +1944,9 @@ export default function PlayPage() {
                       label: "NFT Stakers",
                       value: `${(
                         currentRound.prizePool *
-                        ((dashboardData?.StakignPercentage || 0) / 100)
+                        ((dashboardData?.StakingPercentage || 0) / 100)
                       ).toFixed(4)} ETH`,
-                      percentage: `${dashboardData?.StakignPercentage || 0}%`,
+                      percentage: `${dashboardData?.StakingPercentage || 0}%`,
                       subtitle: "Proportional distribution",
                     },
                     {

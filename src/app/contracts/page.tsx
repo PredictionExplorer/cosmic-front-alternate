@@ -35,7 +35,7 @@ interface DashboardData {
 	PrizePercentage: number;
 	ChronoWarriorPercentage: number;
 	RafflePercentage: number;
-	StakignPercentage: number;
+	StakingPercentage: number;
 	NumRaffleEthWinnersBidding: number;
 	NumRaffleNFTWinnersBidding: number;
 	NumRaffleNFTWinnersStakingRWalk: number;
@@ -218,7 +218,7 @@ export default function ContractsPage() {
 		},
 		{
 			name: 'Staking Percentage',
-			value: data ? `${data.StakignPercentage}%` : '--',
+			value: data ? `${data.StakingPercentage}%` : '--',
 		},
 		{
 			name: 'Raffle ETH Winners for Bidding',

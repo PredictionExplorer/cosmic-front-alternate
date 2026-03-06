@@ -53,7 +53,7 @@ interface DashboardData {
 	PrizePercentage: number;
 	ChronoWarriorPercentage: number;
 	RafflePercentage: number;
-	StakignPercentage: number; // Note: Typo in API field name
+	StakingPercentage: number; // Note: Typo in API field name
 	CharityPercentage: number;
 	// Raffle configuration
 	NumRaffleEthWinnersBidding: number;
