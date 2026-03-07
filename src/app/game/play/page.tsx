@@ -7,7 +7,7 @@ import { useAccount } from "wagmi";
 import { parseEther, parseUnits, erc20Abi, erc721Abi } from "viem";
 import { readContract, writeContract, waitForTransactionReceipt, estimateFeesPerGas } from "@wagmi/core";
 import { wagmiConfig } from "@/lib/web3/config";
-import { CONTRACTS } from "@/lib/web3/contracts";
+import { CONTRACTS, isDeployedAddress } from "@/lib/web3/contracts";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -603,6 +603,11 @@ export default function PlayPage() {
       return;
     }
 
+    if (!isDeployedAddress(CONTRACTS.COSMIC_GAME)) {
+      showError("Contract not deployed on this network. Please switch to the correct network.");
+      return;
+    }
+
     if (!isRoundActive) {
       showWarning(`Round has not started yet. Please wait ${formatTime(timeUntilRoundStarts)}.`);
       return;
@@ -806,6 +811,11 @@ export default function PlayPage() {
   const handleCstBid = async () => {
     if (!isConnected) {
       showWarning("Please connect your wallet first");
+      return;
+    }
+
+    if (!isDeployedAddress(CONTRACTS.COSMIC_GAME)) {
+      showError("Contract not deployed on this network. Please switch to the correct network.");
       return;
     }
 
@@ -1203,8 +1213,22 @@ export default function PlayPage() {
     timeRemaining,
   };
 
+  const contractDeployed = isDeployedAddress(CONTRACTS.COSMIC_GAME);
+
   return (
     <div className="min-h-screen">
+      {/* Wrong-network / undeployed banner */}
+      {!contractDeployed && (
+        <div className="w-full bg-status-error/10 border-b border-status-error/40 text-status-error py-3">
+          <Container>
+            <div className="flex items-center justify-center gap-2 text-sm font-semibold">
+              <AlertCircle size={16} />
+              Cosmic Signature is not deployed on this network. Please switch your wallet to the correct network before placing bids.
+            </div>
+          </Container>
+        </div>
+      )}
+
       {/* Compact Header with Round Info */}
       <section className="py-6 bg-background-surface/50 border-b border-text-muted/10">
         <Container>
