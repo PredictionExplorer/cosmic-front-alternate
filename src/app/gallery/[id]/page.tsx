@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect, useCallback } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -556,7 +557,7 @@ export default function NFTDetailPage({
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">Transaction</span>
                   <a
-                    href={`https://arbiscan.io/tx/${nft.Tx.TxHash}`}
+                    href={explorer.tx(nft.Tx.TxHash)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center text-primary hover:text-primary/80 transition-colors"
@@ -861,7 +862,7 @@ export default function NFTDetailPage({
                               <td className="py-3 px-2 text-right">
                                 {entry.Tx?.TxHash && (
                                   <a
-                                    href={`https://arbiscan.io/tx/${entry.Tx.TxHash}`}
+                                    href={explorer.tx(entry.Tx.TxHash)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center text-sm text-primary hover:text-primary/80 transition-colors"

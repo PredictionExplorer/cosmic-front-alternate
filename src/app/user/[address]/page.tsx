@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, use } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { 
@@ -1178,7 +1179,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                         </td>
                         <td className="px-6 py-4 text-center">
                           <a
-                            href={`https://sepolia.arbiscan.io/tx/${bid.TxHash}`}
+                            href={explorer.tx(bid.TxHash)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center text-primary hover:text-primary/80"

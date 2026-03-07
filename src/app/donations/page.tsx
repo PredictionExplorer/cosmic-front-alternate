@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import {
   Gift,
@@ -174,7 +175,7 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
               #{nft.NFTTokenId}
             </span>
             <a
-              href={`https://arbiscan.io/token/${nft.TokenAddr}?a=${nft.NFTTokenId}`}
+              href={explorer.token(nft.TokenAddr, nft.NFTTokenId)}
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-primary transition-colors"
@@ -681,7 +682,7 @@ export default function DonationsPage() {
                                   showCopy={false}
                                 />
                                 <a
-                                  href={`https://arbiscan.io/token/${token.TokenAddr}`}
+                                  href={explorer.token(token.TokenAddr)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-text-muted hover:text-primary"

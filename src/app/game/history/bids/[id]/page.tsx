@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Trophy, ArrowLeft, Clock, User, MessageSquare, Gift, ExternalLink, Image as ImageIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -303,7 +304,7 @@ export default function BidDetailPage({
                   <div className="border-t border-text-muted/10 pt-4">
                     <p className="text-sm text-text-secondary mb-2">Transaction</p>
                     <a
-                      href={`https://arbiscan.io/tx/${bidInfo.Tx.TxHash}`}
+                      href={explorer.tx(bidInfo.Tx.TxHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-primary hover:underline font-mono text-sm"
@@ -411,7 +412,7 @@ export default function BidDetailPage({
                         </div>
                         <div>
                           <a
-                            href={`https://arbiscan.io/token/${bidInfo.NFTDonationTokenAddr}?a=${bidInfo.NFTDonationTokenId}`}
+                            href={explorer.token(bidInfo.NFTDonationTokenAddr, bidInfo.NFTDonationTokenId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
@@ -461,7 +462,7 @@ export default function BidDetailPage({
                         </div>
                         <div>
                           <a
-                            href={`https://arbiscan.io/token/${bidInfo.DonatedERC20TokenAddr}`}
+                            href={explorer.token(bidInfo.DonatedERC20TokenAddr)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
@@ -515,7 +516,7 @@ export default function BidDetailPage({
                   <div className="p-4 rounded-lg bg-background-elevated">
                     <p className="text-sm text-text-secondary mb-1">Block Number</p>
                     <a
-                      href={`https://arbiscan.io/block/${bidInfo.Tx.BlockNum}`}
+                      href={explorer.block(bidInfo.Tx.BlockNum)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-xl font-semibold text-primary hover:underline inline-flex items-center gap-2"

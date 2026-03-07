@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState, use } from "react";
+import { explorer } from '@/lib/web3/chains';
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -169,7 +170,7 @@ function AdminEventsTable({ list }: { list: AdminEvent[] }) {
                     <td className="px-6 py-4">
                       {event.TxHash ? (
                         <Link
-                          href={`https://arbiscan.io/tx/${event.TxHash}`}
+                          href={explorer.tx(event.TxHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-text-secondary hover:text-primary transition-colors inline-flex items-center gap-1"

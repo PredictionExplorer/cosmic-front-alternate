@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { explorer } from '@/lib/web3/chains';
 import { ExternalLink, Github, Palette, Shield, Code } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
@@ -299,7 +300,7 @@ export default function AboutPage() {
 									<div className="flex items-center justify-between">
 										<code className="text-xs text-text-muted font-mono">{contract.address}</code>
 										<a
-											href={`https://arbiscan.io/address/${contract.address}`}
+											href={explorer.address(contract.address)}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="text-primary hover:text-primary/80 transition-colors"

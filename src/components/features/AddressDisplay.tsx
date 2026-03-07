@@ -1,6 +1,7 @@
 'use client';
 
 import { Copy, ExternalLink, Check } from 'lucide-react';
+import { explorer } from '@/lib/web3/chains';
 import { useState } from 'react';
 import { cn, shortenAddress } from '@/lib/utils';
 
@@ -32,7 +33,7 @@ export function AddressDisplay({
 	};
 
 	const displayAddress = shorten ? shortenAddress(address, chars) : address;
-	const explorerUrl = `https://arbiscan.io/address/${address}`;
+	const explorerUrl = explorer.address(address);
 
 	return (
 		<div className={cn('inline-flex items-center space-x-2', className)}>

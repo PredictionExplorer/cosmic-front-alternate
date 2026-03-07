@@ -161,3 +161,19 @@ export const chainConfig = {
     return supportedChains.some((chain) => chain.id === chainId);
   },
 };
+
+// ─── Network-aware explorer helpers ──────────────────────────────────────────
+// These use defaultChain so every page automatically gets the right explorer.
+
+const explorerBase: string =
+  defaultChain.blockExplorers?.default?.url ?? "https://arbiscan.io";
+
+export const explorer = {
+  tx:      (hash: string)                          => `${explorerBase}/tx/${hash}`,
+  address: (addr: string)                          => `${explorerBase}/address/${addr}`,
+  token:   (addr: string, tokenId?: number | string) =>
+    tokenId !== undefined
+      ? `${explorerBase}/token/${addr}?a=${tokenId}`
+      : `${explorerBase}/token/${addr}`,
+  block:   (blockNum: number | string)             => `${explorerBase}/block/${blockNum}`,
+};

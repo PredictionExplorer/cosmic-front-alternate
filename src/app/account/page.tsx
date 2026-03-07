@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -294,7 +295,7 @@ function AccountPageContent() {
                   )}
                 </button>
                 <a
-                  href={`https://sepolia.arbiscan.io/address/${viewAddress}`}
+                  href={explorer.address(viewAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors"

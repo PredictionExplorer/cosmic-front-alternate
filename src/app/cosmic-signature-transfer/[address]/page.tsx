@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Calendar } from "lucide-react";
@@ -226,7 +227,7 @@ export default function CosmicSignatureTransferPage() {
                       const txHash = transfer.Tx.TxHash;
                       return (
                         <a
-                          href={`https://arbiscan.io/tx/${txHash}`}
+                          href={explorer.tx(txHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-primary hover:underline font-mono text-sm"

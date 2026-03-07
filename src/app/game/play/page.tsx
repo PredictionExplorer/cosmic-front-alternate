@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
 import { useAccount } from "wagmi";
@@ -1944,7 +1945,7 @@ export default function PlayPage() {
                       <p className="text-sm text-text-secondary">
                         Transaction:{" "}
                         <a
-                          href={`https://arbiscan.io/tx/${transactionHash}`}
+                          href={explorer.tx(transactionHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary hover:underline font-mono"

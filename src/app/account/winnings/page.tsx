@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -926,7 +927,7 @@ export default function MyWinningsPage() {
                   </p>
                   {prizesWallet.transactionHash && (
                     <a
-                      href={`https://sepolia.arbiscan.io/tx/${prizesWallet.transactionHash}`}
+                      href={explorer.tx(prizesWallet.transactionHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
@@ -1027,7 +1028,7 @@ export default function MyWinningsPage() {
                           >
                             <td className="px-6 py-4">
                               <a
-                                href={`https://sepolia.arbiscan.io/tx/${winning.TxHash}`}
+                                href={explorer.tx(winning.TxHash)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-sm text-primary hover:text-primary/80 inline-flex items-center gap-1"

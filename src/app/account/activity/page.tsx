@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Coins, Trophy, Loader2, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -273,7 +274,7 @@ export default function MyActivityPage() {
                       {/* Transaction Link */}
                       <div className="flex-shrink-0">
                         <a
-                          href={`https://sepolia.arbiscan.io/tx/${bid.TxHash}`}
+                          href={explorer.tx(bid.TxHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
