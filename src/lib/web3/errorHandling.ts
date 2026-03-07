@@ -86,11 +86,30 @@ export function parseContractError(error: unknown): string {
 		}
 	}
 
+	// Known ERC-20 error selectors (not in the game ABI but thrown by token contracts)
+	if (errorMessage.includes('0xe450d38c')) {
+		return 'Insufficient CST token balance. You need more CST tokens to place this bid.';
+	}
+	if (errorMessage.includes('0xfb8f41b2')) {
+		return 'Insufficient CST allowance. Please approve the contract to spend your CST tokens.';
+	}
+	if (errorMessage.includes('0xe602df05') || errorMessage.includes('0x94280d62')) {
+		return 'Invalid token approval address.';
+	}
+
 	// Check for unknown error signature (can't decode)
 	if (errorMessage.includes('Unable to decode signature') && errorMessage.includes('0x')) {
 		const signatureMatch = errorMessage.match(/0x[0-9a-fA-F]{8}/);
 		if (signatureMatch) {
 			const signature = signatureMatch[0];
+
+			// ERC-20 selectors inside "Unable to decode" path
+			if (signature === '0xe450d38c') {
+				return 'Insufficient CST token balance. You need more CST tokens to place this bid.';
+			}
+			if (signature === '0xfb8f41b2') {
+				return 'Insufficient CST allowance. Please approve the contract to spend your CST tokens.';
+			}
 			
 			// Check context to provide specific error
 			if (errorMessage.includes('bidWithEthAndDonateNft') || errorMessage.includes('bidWithCstAndDonateNft')) {
@@ -105,6 +124,9 @@ export function parseContractError(error: unknown): string {
 			if (errorMessage.includes('claimMainPrize')) {
 				return 'Cannot claim main prize. You may not be the last bidder or the claim period may have expired.';
 			}
+			if (errorMessage.includes('bidWithCst')) {
+				return 'CST bid failed. Check your CST balance and try again.';
+			}
 			return `Transaction validation failed (Error: ${signature}). Please check all requirements are met.`;
 		}
 	}
@@ -117,6 +139,12 @@ export function parseContractError(error: unknown): string {
 	}
 
 	// Common error patterns
+	if (errorMessage.includes('ERC20InsufficientBalance') || errorMessage.includes('insufficient balance')) {
+		return 'Insufficient CST token balance. You need more CST tokens to place this bid.';
+	}
+	if (errorMessage.includes('ERC20InsufficientAllowance') || errorMessage.includes('insufficient allowance')) {
+		return 'Insufficient CST allowance. Please approve the contract to spend your CST tokens.';
+	}
 	if (errorMessage.includes('insufficient funds')) {
 		return 'Insufficient ETH balance for this transaction';
 	}
