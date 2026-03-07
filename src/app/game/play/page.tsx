@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
 import { useAccount } from "wagmi";
 import { parseEther, parseUnits, erc20Abi, erc721Abi } from "viem";
-import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
+import { readContract, writeContract, waitForTransactionReceipt, estimateFeesPerGas } from "@wagmi/core";
 import { wagmiConfig } from "@/lib/web3/config";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { Container } from "@/components/ui/Container";
@@ -64,8 +64,40 @@ export default function PlayPage() {
   const lastBidder = dashboardData?.LastBidderAddr;
   const { data: ethBidPriceRaw, refetch: refetchEthPrice, error: ethPriceError } =
     read.useEthBidPrice();
-  const { data: cstBidPriceRaw, refetch: refetchCstPrice } =
+  const { data: cstBidPriceRaw, refetch: refetchCstPrice, error: cstPriceError } =
     read.useCstBidPrice();
+
+  // API fallback for CST bid price — used when the contract read is blocked/failing
+  const [apiFallbackCstWei, setApiFallbackCstWei] = useState<bigint | null>(null);
+  useEffect(() => {
+    if (cstBidPriceRaw !== undefined && cstBidPriceRaw !== null) {
+      setApiFallbackCstWei(null);
+      return;
+    }
+    if (cstPriceError) {
+      console.warn('[CST bid price] Contract read failed — falling back to API:', cstPriceError.message);
+    }
+    let cancelled = false;
+    async function fetchCstFallback() {
+      try {
+        const priceData = await api.getCSTPrice();
+        const weiStr = priceData?.CSTPrice ?? priceData?.cst_price ?? priceData?.price ?? priceData?.NextBidPrice;
+        if (weiStr != null && !cancelled) {
+          const wei = BigInt(weiStr);
+          console.log('[CST bid price] API fallback price (wei):', wei.toString());
+          setApiFallbackCstWei(wei);
+        }
+      } catch (err) {
+        console.error('[CST bid price] API fallback also failed:', err);
+      }
+    }
+    fetchCstFallback();
+    const id = setInterval(fetchCstFallback, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [cstBidPriceRaw, cstPriceError]);
+
+  // Effective CST price: prefer on-chain, fall back to API
+  const effectiveCstBidPriceRaw = (cstBidPriceRaw as bigint | undefined) ?? apiFallbackCstWei ?? undefined;
 
   // API fallback for ETH bid price — used when the contract read is blocked/failing
   const [apiFallbackPriceWei, setApiFallbackPriceWei] = useState<bigint | null>(null);
@@ -346,8 +378,8 @@ export default function PlayPage() {
   const ethBidPrice = effectiveEthBidPriceRaw
     ? parseFloat(formatWeiToEth(effectiveEthBidPriceRaw, 6))
     : 0;
-  const cstBidPrice = cstBidPriceRaw
-    ? parseFloat(formatWeiToEth(cstBidPriceRaw as bigint, 2))
+  const cstBidPrice = effectiveCstBidPriceRaw
+    ? parseFloat(formatWeiToEth(effectiveCstBidPriceRaw, 2))
     : 0;
 
   // Calculate adjusted price with buffer
@@ -782,7 +814,7 @@ export default function PlayPage() {
       return;
     }
 
-    if (cstBidPriceRaw === undefined) {
+    if (effectiveCstBidPriceRaw === undefined) {
       showError("Unable to get CST bid price. Please try again.");
       return;
     }
@@ -798,7 +830,7 @@ export default function PlayPage() {
       // Determine max limit based on current price
       let maxLimit: bigint;
 
-      if (cstBidPriceRaw === BigInt(0)) {
+      if (effectiveCstBidPriceRaw === BigInt(0)) {
         // Free bid - price is 0
         maxLimit = BigInt(0);
       } else if (maxCstPrice) {
@@ -806,7 +838,7 @@ export default function PlayPage() {
         maxLimit = parseEther(maxCstPrice);
       } else {
         // Auto calculate: current price * 1.1 for slippage protection
-        maxLimit = ((cstBidPriceRaw as bigint) * BigInt(110)) / BigInt(100);
+        maxLimit = (effectiveCstBidPriceRaw * BigInt(110)) / BigInt(100);
       }
 
       // Track if we need to refresh NFTs (NFT donated)
@@ -951,20 +983,20 @@ export default function PlayPage() {
 
   // Handle Main Prize Claim
   const handleClaimMainPrize = async () => {
-    if (!isConnected) {
+    if (!isConnected || !address) {
       showWarning("Please connect your wallet first");
       return;
     }
 
-    try {
-      // First check: verify time on frontend (with small buffer for blockchain sync)
-      if (timeRemaining > 5) {
-        showWarning(`⏳ Please wait ${Math.ceil(timeRemaining)} more seconds before claiming the prize.`);
-        return;
-      }
+    // Frontend time guard — allow a 5-second buffer for clock drift
+    if (timeRemaining > 5) {
+      showWarning(`⏳ Please wait ${Math.ceil(timeRemaining)} more seconds before claiming the prize.`);
+      return;
+    }
 
-      // Second check: estimate gas to validate transaction on-chain
-      // This will fail with the actual contract error if timing isn't right
+    try {
+      // Advisory pre-flight simulation — only block on definitive contract errors,
+      // never block on RPC / fee / infrastructure issues.
       showInfo("Validating claim eligibility...");
       const estimation = await estimateContractGas(wagmiConfig, {
         address: CONTRACTS.COSMIC_GAME,
@@ -975,31 +1007,67 @@ export default function PlayPage() {
       });
 
       if (!estimation.success) {
-        // Check if error is about time not elapsed
         const errorMsg = estimation.error || '';
-        if (errorMsg.toLowerCase().includes('time') || errorMsg.toLowerCase().includes('elapsed')) {
-          showError(`⏳ Not quite ready yet. The blockchain timer hasn't fully expired. Please wait a few more seconds and try again.`);
-        } else {
-          showError(errorMsg || 'Cannot claim prize at this time');
+        const isTimingError =
+          errorMsg.toLowerCase().includes('time') ||
+          errorMsg.toLowerCase().includes('elapsed') ||
+          errorMsg.toLowerCase().includes('early') ||
+          errorMsg.toLowerCase().includes('EarlyClaim') ||
+          errorMsg.toLowerCase().includes('not yet');
+        const isInfraError =
+          errorMsg.toLowerCase().includes('rpc') ||
+          errorMsg.toLowerCase().includes('network') ||
+          errorMsg.toLowerCase().includes('fetch') ||
+          errorMsg.toLowerCase().includes('timeout') ||
+          errorMsg.toLowerCase().includes('blocked');
+
+        if (isTimingError) {
+          showError("⏳ The blockchain timer hasn't fully expired yet. Please wait a few more seconds and try again.");
+          return;
         }
-        return;
+        if (isInfraError) {
+          // Infrastructure issue — log it but don't block the user; let MetaMask decide
+          console.warn('[claimMainPrize] Simulation blocked by infra error, proceeding to wallet:', errorMsg);
+        } else {
+          // Genuine contract revert
+          showError(errorMsg || 'Cannot claim prize at this time');
+          return;
+        }
       }
 
-      // Track that this is a claim prize action
-      setLastActionType("claimPrize");
+      // Build transaction with a fee buffer so baseFee fluctuations don't block the tx
+      let feeParams: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint } = {};
+      try {
+        const fees = await estimateFeesPerGas(wagmiConfig);
+        if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
+          feeParams = {
+            maxFeePerGas: (fees.maxFeePerGas * 3n) / 2n,
+            maxPriorityFeePerGas: (fees.maxPriorityFeePerGas * 3n) / 2n,
+          };
+        }
+      } catch {
+        // Fee estimation failed — fall back to wallet defaults
+      }
 
-      console.log("Submitting claimMainPrize transaction");
+      setLastActionType("claimPrize");
       showInfo("Please confirm the transaction in your wallet...");
-      
-      await write.claimMainPrize();
-      console.log("claimMainPrize submitted successfully");
-      
+      console.log("[claimMainPrize] Submitting transaction", feeParams);
+
+      await writeContract(wagmiConfig, {
+        address: CONTRACTS.COSMIC_GAME,
+        abi: CosmicGameABI,
+        functionName: 'claimMainPrize',
+        ...feeParams,
+      });
+
+      console.log("[claimMainPrize] Transaction submitted successfully");
       showInfo("Transaction submitted! Waiting for blockchain confirmation...");
     } catch (error) {
-      console.error("Claim Main Prize error:", error);
+      console.error("[claimMainPrize] Error:", error);
       const friendlyError = parseContractError(error);
-      showError(friendlyError);
-      // Reset action type on error
+      if (friendlyError && !friendlyError.includes('Transaction was rejected')) {
+        showError(friendlyError);
+      }
       setLastActionType(null);
     }
   };
@@ -1460,7 +1528,11 @@ export default function PlayPage() {
                           Current CST Bid Price
                         </label>
                         <div className="flex items-baseline space-x-2">
-                          {cstBidPrice === 0 ? (
+                          {numBids === 0 ? (
+                            <span className="font-mono text-2xl font-semibold text-status-warning">
+                              ETH bid required first
+                            </span>
+                          ) : cstBidPrice === 0 ? (
                             <>
                               <span className="font-mono text-4xl font-semibold text-status-success">
                                 FREE
@@ -1477,7 +1549,9 @@ export default function PlayPage() {
                           )}
                         </div>
                         <p className="text-xs text-text-secondary">
-                          {cstBidPrice === 0
+                          {numBids === 0
+                            ? "The first bid in each round must be placed with ETH."
+                            : cstBidPrice === 0
                             ? "🎉 Dutch auction ended - Bid for free!"
                             : "Price decreases to 0 over time"}
                         </p>
@@ -1872,15 +1946,22 @@ export default function PlayPage() {
                     </p>
                     <p
                       className={`font-mono text-2xl font-semibold ${
-                        cstBidPrice === 0
+                        numBids === 0
+                          ? "text-status-warning"
+                          : cstBidPrice === 0
                           ? "text-status-success"
                           : "text-status-info"
                       }`}
                     >
-                      {cstBidPrice === 0
+                      {numBids === 0
+                        ? "ETH first"
+                        : cstBidPrice === 0
                         ? "FREE"
                         : `${cstBidPrice.toFixed(2)} CST`}
                     </p>
+                    {numBids === 0 && (
+                      <p className="text-xs text-status-warning mt-1">First bid must be ETH</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
