@@ -69,7 +69,7 @@ export function SystemModeProvider({
   children,
   refreshInterval = 60_000,
 }: SystemModeProviderProps) {
-  const [currentMode, setCurrentMode] = useState(0);
+  const [currentMode] = useState(0);
   const [modeList, setModeList] = useState<SystemModeChange[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

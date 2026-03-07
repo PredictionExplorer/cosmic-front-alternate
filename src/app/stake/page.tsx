@@ -762,7 +762,7 @@ export default function StakePage() {
       handleTxError(error, "Failed to approve. Please try again.");
       return false;
     }
-  }, [nftContract, showSuccess, showError, showInfo, refetchCSTApproval]);
+  }, [nftContract, showSuccess, showError, showInfo, refetchCSTApproval, handleTxError]);
 
   // Handle staking action
   const handleStake = async (tokenId: number) => {
@@ -954,7 +954,7 @@ export default function StakePage() {
       handleTxError(error, "Failed to approve. Please try again.");
       return false;
     }
-  }, [rwlkNftContract, showInfo, showError, showSuccess, refetchRWLKApproval]);
+  }, [rwlkNftContract, showInfo, showError, showSuccess, refetchRWLKApproval, handleTxError]);
 
   // Handle RWLK staking action
   const handleRWLKStake = async (tokenId: number) => {

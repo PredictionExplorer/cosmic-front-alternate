@@ -31,7 +31,7 @@ export default function PlayPage() {
   const { read, write, isTransactionPending, transactionHash } =
     useCosmicGame();
   const { read: readRandomWalk } = useRandomWalkNFT();
-  const { dashboardData, refresh: refreshDashboard, isLoading: isDashboardLoading } = useApiData();
+  const { dashboardData, refresh: refreshDashboard } = useApiData();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
   const { applyOffset } = useTimeOffset();
 
@@ -170,7 +170,7 @@ export default function PlayPage() {
       refetchPrizeAmount();
       }
     }
-  }, [dashboardData?.CurRoundNum, dashboardData?.CurNumBids, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
+  }, [dashboardData, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
 
   // Fetch used NFTs from API
   useEffect(() => {

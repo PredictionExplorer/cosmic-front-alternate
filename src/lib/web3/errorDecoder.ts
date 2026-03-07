@@ -96,7 +96,7 @@ export function decodeContractError(error: unknown): string | null {
 
         return null;
       }
-    } catch (e) {
+    } catch {
       // This ABI doesn't have this error, try next one
       continue;
     }

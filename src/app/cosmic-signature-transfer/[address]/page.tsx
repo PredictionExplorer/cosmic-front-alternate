@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, ExternalLink, Calendar, ArrowRight } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar } from "lucide-react";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";

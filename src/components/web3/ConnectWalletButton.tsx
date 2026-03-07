@@ -20,6 +20,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image, Trophy, Activity, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
+import { useBalance, useAccount } from "wagmi";
 import { api } from "@/services/api";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -63,9 +64,16 @@ export function ConnectWalletButton({
   showBalance = true,
   className,
 }: ConnectWalletButtonProps) {
-  // Get CST token balance
+  // Get CST token balance (polls every 15 s + on each new block)
   const { formattedBalance: cstBalance, isLoading: cstLoading } = useCosmicTokenBalance();
   const pathname = usePathname();
+
+  // ETH balance with block-level polling so it updates after bids/claims
+  const { address: connectedAddress } = useAccount();
+  const { data: ethBalanceData } = useBalance({
+    address: connectedAddress,
+    query: { refetchInterval: 15_000 },
+  });
   
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -234,11 +242,11 @@ export function ConnectWalletButton({
                           </div>
                           
                           {/* ETH Balance */}
-                          {account.balanceFormatted && (
+                          {ethBalanceData && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-text-muted/10">
                               <span className="text-sm text-text-secondary">ETH</span>
                               <span className="font-mono text-sm text-text-primary font-medium">
-                                {parseFloat(account.balanceFormatted).toFixed(4)}
+                                {parseFloat(ethBalanceData.formatted).toFixed(4)}
                               </span>
                             </div>
                           )}

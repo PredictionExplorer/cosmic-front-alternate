@@ -29,6 +29,8 @@ export function useCosmicTokenRead() {
 	return {
 		/**
 		 * Get token balance for an address
+		 * Polls every 15 s and re-fetches on every new block so the value
+		 * updates automatically after bids and prize claims.
 		 */
 		useBalance: (address?: Address) =>
 			useReadContract({
@@ -36,7 +38,8 @@ export function useCosmicTokenRead() {
 				functionName: 'balanceOf',
 				args: address ? [address] : undefined,
 				query: {
-					enabled: !!address
+					enabled: !!address,
+					refetchInterval: 15_000,
 				}
 			}),
 
