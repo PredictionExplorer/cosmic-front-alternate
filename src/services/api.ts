@@ -744,6 +744,22 @@ class CosmicSignatureAPI {
   }
 
   /**
+   * Get RandomWalk NFT token IDs owned by a user (unstaked, in wallet)
+   * Falls back to an empty array if the endpoint doesn't exist.
+   */
+  async getRWLKTokensByUser(address: string): Promise<number[]> {
+    try {
+      const { data } = await apiClient.get(`rwalk/tokens/by_user/${address}`);
+      const raw = data.RWalkTokens ?? data.Tokens ?? data.TokenIds ?? [];
+      return (raw as Array<{ TokenId?: number } | number>).map((item) =>
+        typeof item === 'number' ? item : (item.TokenId ?? 0)
+      ).filter((id) => id >= 0);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Get staked RandomWalk tokens by user
    */
   async getStakedRWLKTokensByUser(address: string) {

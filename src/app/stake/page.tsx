@@ -251,9 +251,39 @@ export default function StakePage() {
     );
 
   // Get user's Random Walk NFT token IDs
-  const { data: rwlkTokenIds, refetch: refetchRWLKWallet } = rwlkNftContract.read.useWalletOfOwner(
+  const { data: rwlkTokenIds, refetch: refetchRWLKWallet, error: rwlkWalletError } = rwlkNftContract.read.useWalletOfOwner(
     address as `0x${string}` | undefined
   );
+
+  // API fallback: fetch RWLK token IDs when the contract read is blocked/failing
+  const [apiFallbackRwlkIds, setApiFallbackRwlkIds] = useState<bigint[] | null>(null);
+  useEffect(() => {
+    if (!address || !isConnected) { setApiFallbackRwlkIds(null); return; }
+    if (rwlkTokenIds && (effectiveRwlkTokenIds as bigint[]).length >= 0) {
+      setApiFallbackRwlkIds(null); // contract working fine
+      return;
+    }
+    if (rwlkWalletError) {
+      console.warn('[RWLK wallet] Contract read failed — falling back to API:', rwlkWalletError.message);
+    }
+    let cancelled = false;
+    async function fetchRwlkFallback() {
+      try {
+        const ids = await api.getRWLKTokensByUser(address!);
+        if (!cancelled && ids.length > 0) {
+          console.log('[RWLK wallet] API fallback token IDs:', ids);
+          setApiFallbackRwlkIds(ids.map(BigInt));
+        }
+      } catch (err) {
+        console.error('[RWLK wallet] API fallback also failed:', err);
+      }
+    }
+    fetchRwlkFallback();
+    return () => { cancelled = true; };
+  }, [address, isConnected, rwlkTokenIds, rwlkWalletError]);
+
+  // Effective token IDs: on-chain first, API fallback second
+  const effectiveRwlkTokenIds = (rwlkTokenIds as bigint[] | undefined) ?? apiFallbackRwlkIds ?? undefined;
 
   // Refresh token data
   const refreshTokenData = useCallback(async () => {
@@ -369,7 +399,7 @@ export default function StakePage() {
 
   // Fetch user's Random Walk NFTs
   useEffect(() => {
-    if (!address || !isConnected || !rwlkTokenIds) {
+    if (!address || !isConnected || !effectiveRwlkTokenIds) {
       setAvailableRWLKTokens([]);
       setStakedRWLKTokens([]);
       setRwlkCurrentPage(1);
@@ -395,7 +425,7 @@ export default function StakePage() {
         }));
 
         // Convert BigInt array to number array and sort
-        const ownedTokenIds = (rwlkTokenIds as bigint[])
+        const ownedTokenIds = (effectiveRwlkTokenIds as bigint[])
           .map((id) => Number(id))
           .sort((a, b) => a - b);
 
@@ -451,7 +481,7 @@ export default function StakePage() {
     };
 
     fetchRWLKTokens();
-  }, [address, isConnected, rwlkTokenIds]);
+  }, [address, isConnected, effectiveRwlkTokenIds]);
 
   // Fetch staking rewards
   const fetchStakingRewards = useCallback(async () => {

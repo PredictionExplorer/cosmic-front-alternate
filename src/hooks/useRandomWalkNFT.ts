@@ -24,6 +24,7 @@ export function useRandomWalkNFT() {
 			args: ownerAddress ? [ownerAddress] : undefined,
 			query: {
 				enabled: !!ownerAddress,
+				retry: 1,
 			}
 		});
 	};
