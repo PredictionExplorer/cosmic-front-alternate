@@ -139,28 +139,7 @@ export default function PlayPage() {
   const { data: userNfts, refetch: refetchWalletNfts, error: rwlkWalletError } =
     readRandomWalk.useWalletOfOwner(address);
 
-  // API fallback for RWLK wallet when contract read is blocked
-  const [apiFallbackNfts, setApiFallbackNfts] = useState<bigint[]>([]);
-  useEffect(() => {
-    if (userNfts && (userNfts as bigint[]).length >= 0) {
-      setApiFallbackNfts([]); // contract working
-      return;
-    }
-    if (!address) return;
-    if (rwlkWalletError) {
-      console.warn('[RWLK wallet] Contract read failed — falling back to API:', rwlkWalletError.message);
-    }
-    let cancelled = false;
-    api.getRWLKTokensByUser(address).then((ids) => {
-      if (!cancelled && ids.length > 0) {
-        console.log('[RWLK wallet] API fallback NFT IDs:', ids);
-        setApiFallbackNfts(ids.map(BigInt));
-      }
-    }).catch(console.error);
-    return () => { cancelled = true; };
-  }, [address, userNfts, rwlkWalletError]);
-
-  const ownedNfts = (userNfts as bigint[] | undefined) ?? apiFallbackNfts;
+  const ownedNfts = (userNfts as bigint[] | undefined) ?? [];
 
   // Auto-refresh blockchain data every 5 seconds for real-time updates
   useEffect(() => {

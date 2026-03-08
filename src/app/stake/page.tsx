@@ -185,6 +185,9 @@ export default function StakePage() {
   const [stakedRWLKTokens, setStakedRWLKTokens] = useState<StakedRWLKToken[]>(
     []
   );
+  // Tracks token IDs the contract confirmed can never be staked again.
+  // Persists across re-fetches so confirmed-used tokens don't reappear.
+  const confirmedUsedRwlkIds = useRef<Set<number>>(new Set());
   const [rwlkLoading, setRwlkLoading] = useState(false);
   const [rwlkCurrentPage, setRwlkCurrentPage] = useState(1);
   const [stakedRwlkCurrentPage, setStakedRwlkCurrentPage] = useState(1);
@@ -215,6 +218,12 @@ export default function StakePage() {
       StakeStatisticsCST?: {
         TotalTokensStaked?: number;
         TotalRewardEth?: number;
+      };
+      StakeStatisticsRWalk?: {
+        TotalTokensStaked?: number;
+        NumActiveStakers?: number;
+        TotalNumStakeActions?: number;
+        TotalNumUnstakeActions?: number;
       };
     };
   } | null>(null);
@@ -316,35 +325,7 @@ export default function StakePage() {
     address as `0x${string}` | undefined
   );
 
-  // API fallback: fetch RWLK token IDs when the contract read is blocked/failing
-  const [apiFallbackRwlkIds, setApiFallbackRwlkIds] = useState<bigint[] | null>(null);
-  useEffect(() => {
-    if (!address || !isConnected) { setApiFallbackRwlkIds(null); return; }
-    if (rwlkTokenIds && (effectiveRwlkTokenIds as bigint[]).length >= 0) {
-      setApiFallbackRwlkIds(null); // contract working fine
-      return;
-    }
-    if (rwlkWalletError) {
-      console.warn('[RWLK wallet] Contract read failed — falling back to API:', rwlkWalletError.message);
-    }
-    let cancelled = false;
-    async function fetchRwlkFallback() {
-      try {
-        const ids = await api.getRWLKTokensByUser(address!);
-        if (!cancelled && ids.length > 0) {
-          console.log('[RWLK wallet] API fallback token IDs:', ids);
-          setApiFallbackRwlkIds(ids.map(BigInt));
-        }
-      } catch (err) {
-        console.error('[RWLK wallet] API fallback also failed:', err);
-      }
-    }
-    fetchRwlkFallback();
-    return () => { cancelled = true; };
-  }, [address, isConnected, rwlkTokenIds, rwlkWalletError]);
-
-  // Effective token IDs: on-chain first, API fallback second
-  const effectiveRwlkTokenIds = (rwlkTokenIds as bigint[] | undefined) ?? apiFallbackRwlkIds ?? undefined;
+  const effectiveRwlkTokenIds = rwlkTokenIds as bigint[] | undefined;
 
   // Refresh token data
   const refreshTokenData = useCallback(async () => {
@@ -377,22 +358,18 @@ export default function StakePage() {
     if (!address || !isConnected) return;
 
     try {
-      // Refetch wallet data first and get the fresh data
-      const walletResult = await refetchRWLKWallet();
+      // Fetch staked tokens, history, and wallet in parallel.
+      // Staked tokens come from the API — always refresh them regardless of contract state.
+      const walletResultPromise = refetchRWLKWallet();
+      const [stakedTokensRaw, stakingHistory, walletResult] = await Promise.all([
+        api.getStakedRWLKTokensByUser(address),
+        api.getEverStakedRWLKTokenIdsByUser(address).catch(() => []),
+        walletResultPromise,
+      ]);
+
       const freshRwlkTokenIds = walletResult?.data;
-      
-      if (!freshRwlkTokenIds) {
-        console.log("No RWLK tokens found in wallet");
-        setAvailableRWLKTokens([]);
-        setStakedRWLKTokens([]);
-        return;
-      }
-      
-      // Fetch staked tokens
-      const stakedTokensRaw = await api.getStakedRWLKTokensByUser(address);
 
       // Transform API response to match StakedRWLKToken interface
-      // API returns StakedTokenId, we need TokenId
       const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
         TokenId: token.StakedTokenId ?? token.TokenId,
         TokenName: token.TokenName,
@@ -403,44 +380,57 @@ export default function StakePage() {
         UserAid: token.UserAid,
       }));
 
+      // Always update staked tokens from API (independent of contract state)
+      setStakedRWLKTokens(stakedTokens);
+
+      // stakingHistory is already number[] from getEverStakedRWLKTokenIdsByUser
+      const everStakedIds = new Set<number>(stakingHistory as number[]);
+      everStakedIds.forEach(id => confirmedUsedRwlkIds.current.add(id));
+
+      // If walletOfOwner failed we can still show staked tokens — just skip available
+      if (!freshRwlkTokenIds) {
+        setAvailableRWLKTokens([]);
+        return;
+      }
+
       // Convert BigInt array to number array and sort
       const ownedTokenIds = (freshRwlkTokenIds as bigint[])
         .map((id) => Number(id))
         .sort((a, b) => a - b);
 
-      // Create set of staked token IDs for quick lookup
+      // Create set of currently staked token IDs
       const stakedTokenIdsSet = new Set(
         stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
       );
 
-      // Check which NFTs were used (cannot be restaked).
-      // wasNftUsed returns uint256: 0 = never staked, non-zero = staked before.
-      const usedNftsChecks = await Promise.all(
-        ownedTokenIds.map(async (tokenId) => {
-          try {
-            const result = await readContract(wagmiConfig, {
-              address: CONTRACTS.STAKING_WALLET_RWLK,
-              abi: StakingWalletRWLKABI,
-              functionName: "wasNftUsed",
-              args: [BigInt(tokenId)],
-            });
-            return { tokenId, wasUsed: (result as bigint) !== 0n };
-          } catch (error) {
-            console.error(`Error checking wasNftUsed for token ${tokenId}:`, error);
-            return { tokenId, wasUsed: false };
-          }
-        })
+      // Try wasNftUsed contract call as secondary check (may not exist on older deployments)
+      const contractUsedIds = new Set<number>();
+      await Promise.all(
+        ownedTokenIds
+          .filter(id => !everStakedIds.has(id)) // skip already-known used tokens
+          .map(async (tokenId) => {
+            try {
+              const result = await readContract(wagmiConfig, {
+                address: CONTRACTS.STAKING_WALLET_RWLK,
+                abi: StakingWalletRWLKABI,
+                functionName: "wasNftUsed",
+                args: [BigInt(tokenId)],
+              });
+              if ((result as bigint) !== 0n) contractUsedIds.add(tokenId);
+            } catch {
+              // Function may not exist on this contract version — ignore silently
+            }
+          })
       );
 
-      const usedNftsSet = new Set(
-        usedNftsChecks
-          .filter((check) => check.wasUsed)
-          .map((check) => check.tokenId)
-      );
-
-      // Filter available tokens (owned, not currently staked, and not used)
+      // Filter: owned, not currently staked, not in history, not confirmed by contract
       const available: RWLKToken[] = ownedTokenIds
-        .filter((tokenId) => !stakedTokenIdsSet.has(tokenId) && !usedNftsSet.has(tokenId))
+        .filter(id =>
+          !stakedTokenIdsSet.has(id) &&
+          !everStakedIds.has(id) &&
+          !contractUsedIds.has(id) &&
+          !confirmedUsedRwlkIds.current.has(id)
+        )
         .map((tokenId) => ({
           TokenId: tokenId,
           IsUsed: false,
@@ -449,7 +439,6 @@ export default function StakePage() {
 
       console.log(`[RWLK Stake] Refreshed: ${available.length} available, ${stakedTokens.length} staked`);
 
-      setStakedRWLKTokens(stakedTokens);
       setAvailableRWLKTokens(available);
       setSelectedRWLKTokenIds(new Set());
       setSelectedStakedRWLKIds(new Set());
@@ -470,11 +459,12 @@ export default function StakePage() {
     const fetchRWLKTokens = async () => {
       setRwlkLoading(true);
       try {
-        // Fetch staked tokens
-        const stakedTokensRaw = await api.getStakedRWLKTokensByUser(address);
+        // Fetch staked tokens + full staking history in parallel
+        const [stakedTokensRaw, stakingHistory] = await Promise.all([
+          api.getStakedRWLKTokensByUser(address),
+          api.getEverStakedRWLKTokenIdsByUser(address).catch(() => []),
+        ]);
 
-        // Transform API response to match StakedRWLKToken interface
-        // API returns StakedTokenId, we need TokenId
         const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
           TokenId: token.StakedTokenId ?? token.TokenId,
           TokenName: token.TokenName,
@@ -485,44 +475,45 @@ export default function StakePage() {
           UserAid: token.UserAid,
         }));
 
-        // Convert BigInt array to number array and sort
+        // stakingHistory is already number[] from getEverStakedRWLKTokenIdsByUser
+        const everStakedIds = new Set<number>(stakingHistory as number[]);
+        everStakedIds.forEach(id => confirmedUsedRwlkIds.current.add(id));
+
         const ownedTokenIds = (effectiveRwlkTokenIds as bigint[])
           .map((id) => Number(id))
           .sort((a, b) => a - b);
 
-        // Create set of staked token IDs for quick lookup
         const stakedTokenIdsSet = new Set(
           stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
         );
 
-        // Check which NFTs were used (cannot be restaked).
-        // wasNftUsed returns uint256: 0 = never staked, non-zero = staked before.
-        const usedNftsChecks = await Promise.all(
-          ownedTokenIds.map(async (tokenId) => {
-            try {
-              const result = await readContract(wagmiConfig, {
-                address: CONTRACTS.STAKING_WALLET_RWLK,
-                abi: StakingWalletRWLKABI,
-                functionName: "wasNftUsed",
-                args: [BigInt(tokenId)],
-              });
-              return { tokenId, wasUsed: (result as bigint) !== 0n };
-            } catch (error) {
-              console.error(`Error checking wasNftUsed for token ${tokenId}:`, error);
-              return { tokenId, wasUsed: false };
-            }
-          })
+        // wasNftUsed contract check as secondary (may not exist on older deployments)
+        const contractUsedIds = new Set<number>();
+        await Promise.all(
+          ownedTokenIds
+            .filter(id => !everStakedIds.has(id))
+            .map(async (tokenId) => {
+              try {
+                const result = await readContract(wagmiConfig, {
+                  address: CONTRACTS.STAKING_WALLET_RWLK,
+                  abi: StakingWalletRWLKABI,
+                  functionName: "wasNftUsed",
+                  args: [BigInt(tokenId)],
+                });
+                if ((result as bigint) !== 0n) contractUsedIds.add(tokenId);
+              } catch {
+                // Function may not exist on this contract version — ignore silently
+              }
+            })
         );
 
-        const usedNftsSet = new Set(
-          usedNftsChecks
-            .filter((check) => check.wasUsed)
-            .map((check) => check.tokenId)
-        );
-
-        // Filter available tokens (owned, not currently staked, and not used)
         const available: RWLKToken[] = ownedTokenIds
-          .filter((tokenId) => !stakedTokenIdsSet.has(tokenId) && !usedNftsSet.has(tokenId))
+          .filter(id =>
+            !stakedTokenIdsSet.has(id) &&
+            !everStakedIds.has(id) &&
+            !contractUsedIds.has(id) &&
+            !confirmedUsedRwlkIds.current.has(id)
+          )
           .map((tokenId) => ({
             TokenId: tokenId,
             IsUsed: false,
@@ -531,7 +522,7 @@ export default function StakePage() {
 
         setStakedRWLKTokens(stakedTokens);
         setAvailableRWLKTokens(available);
-        setRwlkCurrentPage(1); // Reset to first page when data changes
+        setRwlkCurrentPage(1);
       } catch (error) {
         console.error("Failed to fetch Random Walk tokens:", error);
         setAvailableRWLKTokens([]);
@@ -1071,7 +1062,19 @@ export default function StakePage() {
       });
 
       if (!estimation.success) {
-        showError(estimation.error || 'Cannot stake this NFT at this time');
+        const errMsg = estimation.error || '';
+        const isAlreadyUsed =
+          errMsg.toLowerCase().includes("already been staked") ||
+          errMsg.toLowerCase().includes("staked only once") ||
+          errMsg.toLowerCase().includes("nfthasalreadybeenstaked");
+        if (isAlreadyUsed) {
+          // Contract confirmed permanently used — hide forever
+          confirmedUsedRwlkIds.current.add(tokenId);
+          setAvailableRWLKTokens((prev) => prev.filter((t) => t.TokenId !== tokenId));
+          showError("This RandomWalk NFT has already been staked before. Each NFT can only be staked once.");
+        } else {
+          showError(errMsg || 'Cannot stake this NFT at this time');
+        }
         setStakingRWLKTokenId(null);
         return;
       }
@@ -1125,7 +1128,18 @@ export default function StakePage() {
       });
 
       if (!estimation.success) {
-        showError(estimation.error || 'Cannot stake these NFTs at this time');
+        const errMsg = estimation.error || '';
+        const isAlreadyUsed =
+          errMsg.toLowerCase().includes("already been staked") ||
+          errMsg.toLowerCase().includes("staked only once") ||
+          errMsg.toLowerCase().includes("nfthasalreadybeenstaked");
+        if (isAlreadyUsed) {
+          // Refresh to let wasNftUsed re-run and filter out the culprit(s)
+          await refreshRWLKTokenData();
+          showError("One or more NFTs have already been staked before. The list has been refreshed — please try again.");
+        } else {
+          showError(errMsg || 'Cannot stake these NFTs at this time');
+        }
         setIsStakingRWLKMultiple(false);
         return;
       }
@@ -1387,6 +1401,11 @@ export default function StakePage() {
   const totalStaked = dashboardData?.MainStats?.StakeStatisticsCST?.TotalTokensStaked || 0;
   const stakingAmountEth = dashboardData?.MainStats?.StakeStatisticsCST?.TotalRewardEth || 0;
   const rewardPerNFT = totalStaked > 0 ? stakingAmountEth / totalStaked : 0;
+
+  // RWLK staking global stats
+  const rwlkStatsGlobal = dashboardData?.MainStats?.StakeStatisticsRWalk;
+  const totalRwlkStaked = rwlkStatsGlobal?.TotalTokensStaked || 0;
+  const totalRwlkActiveStakers = rwlkStatsGlobal?.NumActiveStakers || 0;
 
   return (
     <div className="min-h-screen">
@@ -2212,14 +2231,40 @@ export default function StakePage() {
           {/* Random Walk Header */}
           <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
             <Container>
-              <div className="max-w-3xl">
-                <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
-                  Random Walk
-                  <span className="text-gradient block">NFT Staking</span>
-                </h1>
-                <p className="text-lg text-text-secondary leading-relaxed">
-                  Stake Random Walk NFTs to become eligible for raffle prize drawings each round.
-                </p>
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                <div className="max-w-3xl">
+                  <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
+                    Random Walk
+                    <span className="text-gradient block">NFT Staking</span>
+                  </h1>
+                  <p className="text-lg text-text-secondary leading-relaxed">
+                    Stake Random Walk NFTs to become eligible for raffle prize drawings each round.
+                  </p>
+                </div>
+
+                {/* Global RWLK staking stats */}
+                <div className="flex flex-wrap gap-4 lg:flex-shrink-0">
+                  <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
+                    <p className="text-2xl font-mono font-bold text-primary">{totalRwlkStaked}</p>
+                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Globally Staked</p>
+                  </div>
+                  <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
+                    <p className="text-2xl font-mono font-bold text-primary">{totalRwlkActiveStakers}</p>
+                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Active Stakers</p>
+                  </div>
+                  {isConnected && (
+                    <div className="px-5 py-3 rounded-xl bg-primary/10 border border-primary/20 text-center min-w-[110px]">
+                      <p className="text-2xl font-mono font-bold text-primary">{stakedRWLKTokens.length}</p>
+                      <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Your Staked</p>
+                    </div>
+                  )}
+                  {isConnected && availableRWLKTokens.length > 0 && (
+                    <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
+                      <p className="text-2xl font-mono font-bold text-text-primary">{availableRWLKTokens.length}</p>
+                      <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Available</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </Container>
           </section>

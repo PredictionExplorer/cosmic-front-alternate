@@ -724,13 +724,30 @@ class CosmicSignatureAPI {
   }
 
   /**
-   * Get RandomWalk staking actions by user
+   * Get RandomWalk staking actions by user (all history including unstaked)
    */
   async getStakingRWLKActionsByUser(address: string) {
     const { data } = await apiClient.get(
       `staking/rwalk/actions/by_user/${address}/0/1000000`
     );
     return data.UserStakingActionsRWalk || [];
+  }
+
+  /**
+   * Get all RWLK NFT token IDs that were ever staked by this user.
+   * RWLK NFTs can only be staked once, so any token in this list
+   * is permanently used and must not appear in the "available to stake" list.
+   */
+  async getEverStakedRWLKTokenIdsByUser(address: string): Promise<number[]> {
+    try {
+      const actions = await this.getStakingRWLKActionsByUser(address);
+      const ids = (actions as Array<Record<string, unknown>>)
+        .map(a => Number(a['TokenId'] ?? a['StakedTokenId'] ?? a['NftTokenId'] ?? -1))
+        .filter(id => id >= 0);
+      return [...new Set(ids)]; // deduplicate
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -741,22 +758,6 @@ class CosmicSignatureAPI {
       "staking/rwalk/actions/global/0/1000000"
     );
     return data.GlobalStakingActionsRWalk || [];
-  }
-
-  /**
-   * Get RandomWalk NFT token IDs owned by a user (unstaked, in wallet)
-   * Falls back to an empty array if the endpoint doesn't exist.
-   */
-  async getRWLKTokensByUser(address: string): Promise<number[]> {
-    try {
-      const { data } = await apiClient.get(`rwalk/tokens/by_user/${address}`);
-      const raw = data.RWalkTokens ?? data.Tokens ?? data.TokenIds ?? [];
-      return (raw as Array<{ TokenId?: number } | number>).map((item) =>
-        typeof item === 'number' ? item : (item.TokenId ?? 0)
-      ).filter((id) => id >= 0);
-    } catch {
-      return [];
-    }
   }
 
   /**
