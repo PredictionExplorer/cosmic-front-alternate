@@ -58,16 +58,47 @@ async function getAvailableCSTTokensByUser(
 }
 
 /**
- * Get NFT image URL from token ID
+ * Build Cosmic Signature NFT image URL from its seed.
+ * Pattern: https://nfts.cosmicsignature.com/images/new/cosmicsignature/0x{seed}.png
  */
-function getNFTImageUrl(tokenId: number): string {
-  return `/nfts/${tokenId}.jpg`;
+function getCSTImageUrl(seed: string): string {
+  if (!seed) return PLACEHOLDER_IMAGE;
+  const hex = seed.startsWith("0x") ? seed : `0x${seed}`;
+  return `https://nfts.cosmicsignature.com/images/new/cosmicsignature/${hex}.png`;
 }
 
 /**
  * Placeholder image for failed loads
  */
 const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
+
+/**
+ * Build the RandomWalk NFT image URL.
+ * Pattern: https://nfts.cosmicsignature.com/images/randomwalk/000066_black_thumb.jpg
+ * Token ID is zero-padded to 6 digits.
+ */
+function getRWLKImageUrl(tokenId: number, thumb = true): string {
+  const padded = tokenId.toString().padStart(6, "0");
+  const suffix = thumb ? "_black_thumb.jpg" : "_black.jpg";
+  return `https://nfts.cosmicsignature.com/images/randomwalk/${padded}${suffix}`;
+}
+
+/**
+ * RandomWalk NFT image — loads directly from the known CDN pattern.
+ */
+function RWLKNFTImage({ tokenId, alt, className }: { tokenId: number; alt: string; className?: string }) {
+  const [errored, setErrored] = useState(false);
+  return (
+    <Image
+      src={errored ? PLACEHOLDER_IMAGE : getRWLKImageUrl(tokenId)}
+      alt={alt}
+      fill
+      unoptimized
+      className={className}
+      onError={() => setErrored(true)}
+    />
+  );
+}
 
 /**
  * Fetch current EIP-1559 fee data and add a 50% buffer so writeContract calls
@@ -114,8 +145,38 @@ export default function StakePage() {
   const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
   const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
 
-  // Get staking percentage from dashboard API
-  const stakingPercentage = apiDashboardData?.StakingPercentage || 0;
+  // Staking percentage: try contract first (most accurate), fall back to API
+  const [stakingPercentage, setStakingPercentage] = useState<number>(
+    // API may return it under StakingPercentage or the full contract field name
+    Number(
+      apiDashboardData?.StakingPercentage ||
+      (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+      0
+    )
+  );
+  useEffect(() => {
+    // Prefer fresh on-chain value
+    async function fetchStakingPercent() {
+      try {
+        const raw = await readContract(wagmiConfig, {
+          address: CONTRACTS.COSMIC_GAME,
+          abi: [{ name: 'cosmicSignatureNftStakingTotalEthRewardAmountPercentage', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }],
+          functionName: 'cosmicSignatureNftStakingTotalEthRewardAmountPercentage',
+        });
+        if (raw != null) setStakingPercentage(Number(raw));
+      } catch {
+        // Fall back to API value — already set in state initialiser
+        const fromApi = Number(
+          apiDashboardData?.StakingPercentage ||
+          (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+          0
+        );
+        if (fromApi > 0) setStakingPercentage(fromApi);
+      }
+    }
+    fetchStakingPercent();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Random Walk NFT state
   const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(
@@ -185,9 +246,9 @@ export default function StakePage() {
     setFailedImages((prev) => new Set(prev).add(tokenId));
   };
 
-  // Get image URL with fallback for failed images
-  const getImageUrl = (tokenId: number) => {
-    return failedImages.has(tokenId) ? PLACEHOLDER_IMAGE : getNFTImageUrl(tokenId);
+  // Get CST NFT image URL from seed, fallback to placeholder on error
+  const getImageUrl = (tokenId: number, seed: string) => {
+    return failedImages.has(tokenId) ? PLACEHOLDER_IMAGE : getCSTImageUrl(seed);
   };
 
   // Fetch dashboard data for global staking stats
@@ -593,9 +654,8 @@ export default function StakePage() {
       !stakingContract.status.isConfirming &&
       (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
     ) {
-      // Transaction failed, show error and reset states
-      const errorMessage = (stakingContract.status.error as Error)?.message || "Transaction failed";
-      showError(errorMessage);
+      // Transaction failed, show error and reset states (silences wallet rejections)
+      handleTxError(stakingContract.status.error, "Transaction failed");
       
       // Clear processed transaction
       processedCSTTxRef.current = null;
@@ -611,7 +671,7 @@ export default function StakePage() {
     stakingTokenId,
     isStakingMultiple,
     unstakingActionId,
-    showError,
+    handleTxError,
   ]);
 
   // Get reward for a specific token
@@ -651,18 +711,10 @@ export default function StakePage() {
     console.log("Select all called");
     console.log("Staked tokens:", stakedTokens);
     const allStakeActionIds = new Set(
-      stakedTokens.map((stakedToken) => {
-        const actionId = stakedToken.TokenInfo.StakeActionId;
-        console.log(
-          "Mapping token:",
-          stakedToken.TokenInfo.TokenId,
-          "StakeActionId:",
-          actionId
-        );
-        return actionId;
-      })
+      stakedTokens.map((stakedToken) =>
+        stakedToken.StakeActionId ?? stakedToken.TokenInfo.StakeActionId
+      )
     );
-    console.log("All StakeActionIds:", Array.from(allStakeActionIds));
     setSelectedStakedIds(allStakeActionIds);
   };
 
@@ -672,7 +724,9 @@ export default function StakePage() {
     const endIdx = startIdx + stakedItemsPerPage;
     const pageTokens = stakedTokens.slice(startIdx, endIdx);
     const pageActionIds = new Set(
-      pageTokens.map((stakedToken) => stakedToken.TokenInfo.StakeActionId)
+      pageTokens.map((stakedToken) =>
+        stakedToken.StakeActionId ?? stakedToken.TokenInfo.StakeActionId
+      )
     );
     setSelectedStakedIds(pageActionIds);
   };
@@ -1267,9 +1321,8 @@ export default function StakePage() {
       !rwlkStakingContract.status.isConfirming &&
       (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
     ) {
-      // Transaction failed, show error and reset states
-      const errorMessage = (rwlkStakingContract.status.error as Error)?.message || "Transaction failed";
-      showError(errorMessage);
+      // Transaction failed, show error and reset states (silences wallet rejections)
+      handleTxError(rwlkStakingContract.status.error, "Transaction failed");
       
       // Clear processed transaction
       processedRWLKTxRef.current = null;
@@ -1285,7 +1338,7 @@ export default function StakePage() {
     stakingRWLKTokenId,
     isStakingRWLKMultiple,
     unstakingRWLKActionId,
-    showError,
+    handleTxError,
   ]);
 
   // Calculate pagination for available tokens
@@ -1656,12 +1709,13 @@ export default function StakePage() {
                           >
                       <div className="aspect-square bg-background-elevated relative">
                         <Image
-                                src={getImageUrl(token.TokenId)}
+                                src={getImageUrl(token.TokenId, token.Seed)}
                                 alt={
                                   token.TokenName || `Token #${token.TokenId}`
                                 }
                           fill
-                          className="object-cover"
+                          unoptimized
+                          className="object-contain"
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                                 onError={() => handleImageError(token.TokenId)}
                         />
@@ -1944,8 +1998,9 @@ export default function StakePage() {
                         <tbody className="divide-y divide-text-muted/10">
                           {paginatedStakedTokens.map((stakedToken) => {
                             const token = stakedToken.TokenInfo;
-                            // Use TokenInfo.StakeActionId as the unique identifier
-                            const actionId = token.StakeActionId;
+                            // Use the top-level StakeActionId from the staking contract,
+                            // NOT TokenInfo.StakeActionId which is the NFT's internal field.
+                            const actionId = stakedToken.StakeActionId ?? token.StakeActionId;
                             const isSelected = selectedStakedIds.has(actionId);
                             
                             return (
@@ -1974,13 +2029,14 @@ export default function StakePage() {
                                 <div className="flex items-center space-x-3">
                                   <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
                                     <Image
-                                        src={getImageUrl(token.TokenId)}
+                                        src={getImageUrl(token.TokenId, token.Seed)}
                                         alt={
                                           token.TokenName ||
                                           `Token #${token.TokenId}`
                                         }
                                       fill
-                                      className="object-cover"
+                                      unoptimized
+                                      className="object-contain"
                                       sizes="48px"
                                         onError={() => handleImageError(token.TokenId)}
                                     />
@@ -2441,17 +2497,11 @@ export default function StakePage() {
                                 isSelected ? "ring-2 ring-primary" : ""
                               }`}
                             >
-                              <div className="aspect-square bg-background-elevated relative">
-                                <Image
-                                  src={getImageUrl(token.TokenId)}
-                                  alt={
-                                    token.TokenName ||
-                                    `Random Walk #${token.TokenId}`
-                                  }
-                                  fill
-                                  className="object-cover"
-                                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                                  onError={() => handleImageError(token.TokenId)}
+                              <div className="aspect-square bg-background-elevated relative overflow-hidden">
+                                <RWLKNFTImage
+                                  tokenId={token.TokenId}
+                                  alt={token.TokenName || `Random Walk #${token.TokenId}`}
+                                  className="object-contain"
                                 />
                                 <div className="absolute top-3 left-3 flex items-center gap-2">
                                   <Badge variant="default">
@@ -2793,18 +2843,10 @@ export default function StakePage() {
                                   <td className="p-4">
                                     <div className="flex items-center space-x-3">
                                       <div className="h-12 w-12 rounded bg-background-elevated overflow-hidden relative">
-                                        <Image
-                                          src={getImageUrl(
-                                            stakedToken.TokenId
-                                          )}
-                                          alt={
-                                            stakedToken.TokenName ||
-                                            `Random Walk #${stakedToken.TokenId}`
-                                          }
-                                          fill
-                                          className="object-cover"
-                                          sizes="48px"
-                                          onError={() => handleImageError(stakedToken.TokenId)}
+                                        <RWLKNFTImage
+                                          tokenId={stakedToken.TokenId}
+                                          alt={stakedToken.TokenName || `Random Walk #${stakedToken.TokenId}`}
+                                          className="object-contain"
                                         />
                                       </div>
                                       <div>
