@@ -1,47 +1,11 @@
 /**
  * API Response Transformers
- * 
- * Utilities to transform API responses into formats expected by components.
- * The API returns nested structures, but components expect flattened data.
+ *
+ * Utilities to transform API DTO shapes into flattened formats expected by
+ * components. Operates on already-validated data from the API layer.
  */
 
-/**
- * API Bid Response (nested structure from backend)
- */
-interface ApiBidResponse {
-  Tx?: {
-    EvtLogId?: number;
-    TimeStamp?: number;
-    TxHash?: string;
-    BlockNum?: number;
-    DateTime?: string;
-  };
-  BidderAddr?: string;
-  BidderAid?: number;
-  RoundNum?: number;
-  BidType?: number;
-  BidPosition?: number;
-  EthPrice?: string;
-  EthPriceEth?: number;
-  CstPrice?: string;
-  CstPriceEth?: number;
-  RWalkNFTId?: number;
-  CSTReward?: string;
-  CSTRewardEth?: number;
-  Message?: string;
-  PrizeTime?: number;
-  PrizeTimeDate?: string;
-  TimeUntilPrize?: number;
-  NFTDonationTokenId?: number;
-  NFTDonationTokenAddr?: string;
-  NFTTokenURI?: string;
-  ImageURL?: string;
-  DonatedERC20TokenAddr?: string;
-  DonatedERC20TokenAmount?: string;
-  DonatedERC20TokenAmountEth?: number;
-  NumCSTTokensEth?: number;
-  [key: string]: unknown;
-}
+import type { ApiBidResponse, ApiRaffleDepositResponse } from "@/services/apiTypes";
 
 /**
  * Component Bid Data (flattened structure)
@@ -105,30 +69,6 @@ export function transformBidData(apiBid: ApiBidResponse): ComponentBidData {
  */
 export function transformBidList(apiBids: ApiBidResponse[]): ComponentBidData[] {
   return apiBids.map(transformBidData);
-}
-
-/**
- * API Raffle Deposit Response (nested structure from backend)
- */
-interface ApiRaffleDepositResponse {
-  RecordId?: number;
-  Tx?: {
-    EvtLogId?: number;
-    BlockNum?: number;
-    TxId?: number;
-    TxHash?: string;
-    TimeStamp?: number;
-    DateTime?: string;
-  };
-  RecordType?: number;
-  WinnerAddr?: string;
-  WinnerAid?: number;
-  WinnerIndex?: number;
-  RoundNum?: number;
-  Amount?: number;
-  Claimed?: boolean;
-  ClaimTimeStamp?: number;
-  ClaimDateTime?: string;
 }
 
 /**

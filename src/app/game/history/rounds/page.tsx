@@ -102,7 +102,7 @@ export default function RoundsArchivePage() {
 			setLoading(true);
 			setError(null);
 			try {
-				const data = await api.getRoundList();
+				const data = await api.getRoundList() as unknown as ApiRoundData[];
 				// Sort by timestamp (most recent first)
 				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => 
 					b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp

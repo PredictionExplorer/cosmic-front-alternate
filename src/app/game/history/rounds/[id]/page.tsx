@@ -186,7 +186,7 @@ export default function RoundDetailPage({
       setError(null);
       try {
         const response = await api.getRoundInfo(roundNum);
-        setRound(response);
+        setRound(response as unknown as ApiRoundInfo);
       } catch (err) {
         console.error("Error fetching round data:", err);
         setError("Failed to load round data. Please try again later.");

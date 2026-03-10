@@ -1,6 +1,7 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Share2, CheckCircle2, ChevronLeft, ChevronRight, Edit2, X, Check, Send, Loader2 } from "lucide-react";
@@ -76,98 +77,71 @@ export default function NFTDetailPage({
   const nftContract = useCosmicSignatureNFT();
   
   const [showVideo, setShowVideo] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [nft, setNft] = useState<NFTData | null>(null);
-  const [imageUrl, setImageUrl] = useState<string>("");
   const [imageError, setImageError] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
-  const [maxTokenId, setMaxTokenId] = useState<number | null>(null);
-  
+
   // Name editing state
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState("");
-  
+
   // Transfer state
   const [transferAddress, setTransferAddress] = useState("");
   const [transferError, setTransferError] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
-  
-  // Name history state
-  const [nameHistory, setNameHistory] = useState<NameHistoryEntry[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  
+
   const { showSuccess, showError } = useNotification();
 
   // Fetch name change history
-  const fetchNameHistory = useCallback(async () => {
-    try {
-      setLoadingHistory(true);
-      const history = await api.getNameHistory(parseInt(id));
-      setNameHistory(history);
-    } catch (err) {
-      console.error("Error fetching name history:", err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  }, [id]);
+  const { data: nameHistoryRaw, isLoading: loadingHistory, refetch: refetchNameHistory } = useApiQuery(
+    "gallery-nft-history-" + id,
+    () => api.getNameHistory(parseInt(id)),
+  );
+  const nameHistory = nameHistoryRaw ?? [];
 
-  useEffect(() => {
-    const fetchNFTData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        setImageError(false);
+  // Fetch NFT data and max token ID
+  const { data: nftBundle, isLoading: loading, error: fetchError, refetch: refetchNFT } = useApiQuery(
+    "gallery-nft-" + id,
+    async () => {
+      const [tokenInfo, tokenList] = await Promise.all([
+        api.getCSTInfo(parseInt(id)),
+        api.getCSTList()
+      ]);
 
-        // Fetch NFT info and max token ID in parallel
-        const [tokenInfo, tokenList] = await Promise.all([
-          api.getCSTInfo(parseInt(id)),
-          api.getCSTList()
-        ]);
-        
-        setNft(tokenInfo);
-
-        // Find the highest token ID
-        if (tokenList && tokenList.length > 0) {
-          const maxId = Math.max(...tokenList.map((token: TokenListItem) => token.TokenId));
-          setMaxTokenId(maxId);
-        }
-
-        // Generate image and video URLs from seed
-        const fileName = `0x${tokenInfo.Seed}`;
-        setImageUrl(getAssetsUrl(`images/new/cosmicsignature/${fileName}.png`));
-        setVideoUrl(getAssetsUrl(`images/new/cosmicsignature/${fileName}.mp4`));
-        
-        // Fetch name history
-        fetchNameHistory();
-      } catch (err) {
-        console.error("Error fetching NFT data:", err);
-        setError("Failed to load NFT data");
-      } finally {
-        setLoading(false);
+      let maxId: number | null = null;
+      if (tokenList && tokenList.length > 0) {
+        maxId = Math.max(...tokenList.map((token: TokenListItem) => token.TokenId));
       }
-    };
 
-    fetchNFTData();
-  }, [id, fetchNameHistory]);
+      const fileName = `0x${(tokenInfo as Record<string, unknown>).Seed}`;
+
+      return {
+        nft: tokenInfo as unknown as NFTData,
+        maxTokenId: maxId,
+        imageUrl: getAssetsUrl(`images/new/cosmicsignature/${fileName}.png`),
+        videoUrl: getAssetsUrl(`images/new/cosmicsignature/${fileName}.mp4`),
+      };
+    },
+  );
+  const nft = nftBundle?.nft ?? null;
+  const maxTokenId = nftBundle?.maxTokenId ?? null;
+  const imageUrl = nftBundle?.imageUrl ?? "";
+  const videoUrl = nftBundle?.videoUrl ?? "";
+  const error = fetchError?.message ?? null;
+
+  // Reset image error when navigating to a different NFT
+  useEffect(() => {
+    setImageError(false);
+  }, [id]);
 
   // Refetch NFT data when name change transaction is successful
   useEffect(() => {
     if (nftContract.status.isSuccess && isEditingName) {
-      const refetchData = async () => {
-        try {
-          const tokenInfo = await api.getCSTInfo(parseInt(id));
-          setNft(tokenInfo);
-          setIsEditingName(false);
-          setNewName("");
-        } catch (err) {
-          console.error("Failed to refetch NFT data:", err);
-        }
-      };
-      refetchData();
+      refetchNFT();
+      refetchNameHistory();
+      setIsEditingName(false);
+      setNewName("");
     }
-  }, [nftContract.status.isSuccess, id, isEditingName]);
+  }, [nftContract.status.isSuccess, isEditingName, refetchNFT, refetchNameHistory]);
 
   // Reset transfer state and show notification when transfer errors out (e.g. user rejection)
   useEffect(() => {
@@ -184,23 +158,17 @@ export default function NFTDetailPage({
   // Refetch NFT data when transfer transaction is successful
   useEffect(() => {
     if (nftContract.status.isSuccess && isTransferring) {
-      const refetchData = async () => {
-        try {
-          // Wait a bit longer for the API to update after transfer
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          const tokenInfo = await api.getCSTInfo(parseInt(id));
-          setNft(tokenInfo);
+      const handleTransferSuccess = () => {
+        setTimeout(() => {
+          refetchNFT();
           setIsTransferring(false);
           setTransferAddress("");
           showSuccess("NFT transferred successfully! Owner information updated.");
-        } catch (err) {
-          console.error("Failed to refetch NFT data:", err);
-          showError("Transfer completed but failed to refresh data. Please reload the page.");
-        }
+        }, 3000);
       };
-      refetchData();
+      handleTransferSuccess();
     }
-  }, [nftContract.status.isSuccess, id, isTransferring, showSuccess, showError]);
+  }, [nftContract.status.isSuccess, isTransferring, refetchNFT, showSuccess]);
 
   if (loading) {
     return (
@@ -270,9 +238,8 @@ export default function NFTDetailPage({
     try {
       await nftContract.write.setName(BigInt(nft.TokenId), newName.trim());
       showSuccess("NFT name updated successfully!");
-      // Refetch name history after successful update
       setTimeout(() => {
-        fetchNameHistory();
+        refetchNameHistory();
       }, 2000);
     } catch (error: unknown) {
       showError(error instanceof Error ? error.message : "Failed to update NFT name");

@@ -76,7 +76,7 @@ export function SystemModeProvider({
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const list: SystemModeChange[] = await api.getSystemModeList();
+      const list = (await api.getSystemModeList()) as unknown as SystemModeChange[];
       setModeList(Array.isArray(list) ? list : []);
 
       // Future: derive currentMode from contract read.

@@ -27,6 +27,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
+import type { ApiDonatedNFT } from "@/services/apiTypes";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { formatTime } from "@/lib/utils";
@@ -243,41 +244,37 @@ export default function MyWinningsPage() {
       );
 
       // Transform donated NFTs from API response
-      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
-        const tx = nft.Tx as Record<string, unknown>;
-        return {
-          RecordId: nft.RecordId as number,
-          Tx: {
-            EvtLogId: tx?.EvtLogId as number || 0,
-            BlockNum: tx?.BlockNum as number || 0,
-            TxId: tx?.TxId as number || 0,
-            TxHash: tx?.TxHash as string || '',
-            TimeStamp: tx?.TimeStamp as number || 0,
-            DateTime: tx?.DateTime as string || '',
-          },
-          Index: nft.Index as number,
-          TokenAddr: nft.TokenAddr as string,
-          NFTTokenId: nft.NFTTokenId as number,
-          NFTTokenURI: nft.NFTTokenURI as string || '',
-          RoundNum: nft.RoundNum as number,
-          DonorAid: nft.DonorAid as number,
-          DonorAddr: nft.DonorAddr as string,
-          TokenAddressId: nft.TokenAddressId as number | undefined,
-          WinnerIndex: nft.WinnerIndex as number | undefined,
-          WinnerAid: nft.WinnerAid as number | undefined,
-          WinnerAddr: nft.WinnerAddr as string | undefined,
-          // Add transformed fields for backward compatibility
-          NftAddr: nft.TokenAddr as string,
-          TokenId: nft.NFTTokenId as number,
-          TimeStamp: tx?.TimeStamp as number || 0,
-          Claimed: claimed,
-        };
-      };
+      const transformNFT = (nft: ApiDonatedNFT, claimed: boolean): DonatedNFT => ({
+        RecordId: nft.RecordId,
+        Tx: {
+          EvtLogId: nft.Tx?.EvtLogId || 0,
+          BlockNum: nft.Tx?.BlockNum || 0,
+          TxId: nft.Tx?.TxId || 0,
+          TxHash: nft.Tx?.TxHash || '',
+          TimeStamp: nft.Tx?.TimeStamp || 0,
+          DateTime: nft.Tx?.DateTime || '',
+        },
+        Index: nft.Index,
+        TokenAddr: nft.TokenAddr,
+        NFTTokenId: nft.NFTTokenId,
+        NFTTokenURI: nft.NFTTokenURI || '',
+        RoundNum: nft.RoundNum,
+        DonorAid: nft.DonorAid,
+        DonorAddr: nft.DonorAddr,
+        TokenAddressId: nft.TokenAddressId,
+        WinnerIndex: nft.WinnerIndex,
+        WinnerAid: nft.WinnerAid,
+        WinnerAddr: nft.WinnerAddr,
+        NftAddr: nft.TokenAddr,
+        TokenId: nft.NFTTokenId,
+        TimeStamp: nft.Tx?.TimeStamp || 0,
+        Claimed: claimed,
+      });
 
-      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft) => 
         transformNFT(nft, false)
       );
-      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
+      const transformedClaimedNFTs = claimedNFTs.map((nft) => 
         transformNFT(nft, true)
       );
 
@@ -293,7 +290,7 @@ export default function MyWinningsPage() {
           (a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp
         )
       );
-      setStakingRewards(stakingRewardsData);
+      setStakingRewards(stakingRewardsData as unknown as StakingReward[]);
       
       // Extract action IDs from staked tokens
       // Note: StakeActionId is inside TokenInfo object
@@ -325,13 +322,13 @@ export default function MyWinningsPage() {
         (sum: number, w: RaffleWinning) => sum + w.Amount,
         0
       );
-      const stakingTotal = stakingRewardsData.reduce(
+      const stakingTotal = (stakingRewardsData as unknown as StakingReward[]).reduce(
         (sum: number, r: StakingReward) => sum + r.PendingToClaimEth,
         0
       );
 
       setTotalEthToClaim(ethTotal);
-      setTotalChronoWarriorEth(winningsSummary?.ETHChronoWarriorToClaim || 0);
+      setTotalChronoWarriorEth(Number(winningsSummary?.ETHChronoWarriorToClaim) || 0);
       setTotalStakingRewards(stakingTotal);
 
       // Fetch round timeouts for raffle winnings

@@ -144,26 +144,27 @@ function AccountPageContent() {
 
         // Set user info
         if (userInfoResponse && userInfoResponse.UserInfo) {
-          setUserInfo(userInfoResponse.UserInfo);
+          setUserInfo(userInfoResponse.UserInfo as UserInfoAPI);
         }
 
         // Set balances
         if (balanceResponse) {
           setBalance({
-            CosmicToken: Number(formatEther(BigInt(balanceResponse.CosmicTokenBalance || "0"))),
-            ETH: Number(formatEther(BigInt(balanceResponse.ETH_Balance || "0"))),
+            CosmicToken: Number(formatEther(BigInt((balanceResponse.CosmicTokenBalance || "0") as string))),
+            ETH: Number(formatEther(BigInt((balanceResponse.ETH_Balance || "0") as string))),
           });
         }
 
         // Set winnings — clamp numeric prize fields to ≥ 0 so stale/partial
         // API responses after claiming can't produce negative displayed amounts.
         if (winningsResponse) {
+          const wr = winningsResponse as unknown as UserWinningsAPI;
           setWinnings({
-            ...winningsResponse,
-            ETHRaffleToClaim: Math.max(0, Number(winningsResponse.ETHRaffleToClaim) || 0),
-            ETHChronoWarriorToClaim: Math.max(0, Number(winningsResponse.ETHChronoWarriorToClaim) || 0),
-            UnclaimedStakingReward: Math.max(0, Number(winningsResponse.UnclaimedStakingReward) || 0),
-            DonatedERC20Tokens: winningsResponse.DonatedERC20Tokens || [],
+            ...wr,
+            ETHRaffleToClaim: Math.max(0, Number(wr.ETHRaffleToClaim) || 0),
+            ETHChronoWarriorToClaim: Math.max(0, Number(wr.ETHChronoWarriorToClaim) || 0),
+            UnclaimedStakingReward: Math.max(0, Number(wr.UnclaimedStakingReward) || 0),
+            DonatedERC20Tokens: wr.DonatedERC20Tokens || [],
           });
         }
       } catch (err) {

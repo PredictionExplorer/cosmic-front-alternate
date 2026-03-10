@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import {
@@ -262,113 +263,73 @@ type ClaimFilter = "all" | "unclaimed" | "claimed";
 export default function DonationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("nfts");
 
-  // NFT state
-  const [nfts, setNfts] = useState<DonatedNFT[]>([]);
-  const [nftsLoading, setNftsLoading] = useState(true);
-  const [nftsError, setNftsError] = useState<string | null>(null);
+  // Fetch donated NFTs (with claim status enrichment)
+  const { data: nftsRaw, isLoading: nftsLoading, error: nftsQueryError } = useApiQuery(
+    "donations-nfts",
+    async () => {
+      const listData = await api.getNFTDonationsList();
+      const rawNfts: DonatedNFT[] = Array.isArray(listData) ? (listData as unknown as DonatedNFT[]) : [];
+      if (rawNfts.length === 0) return [];
+
+      const uniqueRounds = [...new Set(rawNfts.map((n) => n.RoundNum))];
+      const unclaimedResults = await Promise.all(
+        uniqueRounds.map((roundNum) =>
+          api.getUnclaimedDonatedNFTsByRound(roundNum)
+        )
+      );
+
+      const unclaimedKeys = new Set<string>();
+      unclaimedResults.forEach((items, i) => {
+        const roundNum = uniqueRounds[i];
+        (items as unknown as DonatedNFT[]).forEach((item) => {
+          unclaimedKeys.add(`${roundNum}-${item.Index}`);
+        });
+      });
+
+      return rawNfts.map((nft) => ({
+        ...nft,
+        Claimed: !unclaimedKeys.has(`${nft.RoundNum}-${nft.Index}`),
+      }));
+    },
+  );
+  const nfts = nftsRaw ?? [];
+  const nftsError = nftsQueryError?.message ?? null;
 
   // NFT statistics from dedicated endpoint
-  const [nftStats, setNftStats] = useState<NFTDonationStats | null>(null);
+  const { data: nftStats } = useApiQuery(
+    "donations-nft-stats",
+    async () => {
+      const data = await api.getNFTDonationStatistics();
+      if (data && typeof data === "object") return data as NFTDonationStats;
+      return null;
+    },
+  );
 
-  // ERC-20 state
-  const [erc20s, setErc20s] = useState<DonatedERC20[]>([]);
-  const [erc20Loading, setErc20Loading] = useState(true);
-  const [erc20Error, setErc20Error] = useState<string | null>(null);
+  // ERC-20 donations
+  const { data: erc20sRaw, isLoading: erc20Loading, error: erc20QueryError } = useApiQuery(
+    "donations-erc20",
+    async () => {
+      const data = await api.getERC20DonationsList();
+      return Array.isArray(data) ? (data as unknown as DonatedERC20[]) : [];
+    },
+  );
+  const erc20s = erc20sRaw ?? [];
+  const erc20Error = erc20QueryError?.message ?? null;
 
-  // ETH donations state
-  const [ethDonations, setEthDonations] = useState<ETHDonation[]>([]);
-  const [ethLoading, setEthLoading] = useState(true);
-  const [ethError, setEthError] = useState<string | null>(null);
+  // ETH donations
+  const { data: ethDonationsRaw, isLoading: ethLoading, error: ethQueryError } = useApiQuery(
+    "donations-eth",
+    async () => {
+      const data = await api.getAllETHDonations();
+      return Array.isArray(data) ? (data as unknown as ETHDonation[]) : [];
+    },
+  );
+  const ethDonations = ethDonationsRaw ?? [];
+  const ethError = ethQueryError?.message ?? null;
 
   // Filters
   const [roundFilter, setRoundFilter] = useState("");
   const [claimFilter, setClaimFilter] = useState<ClaimFilter>("all");
-
-  // Fetch all data in parallel
-  useEffect(() => {
-    async function fetchNFTs() {
-      try {
-        setNftsLoading(true);
-        setNftsError(null);
-        const listData = await api.getNFTDonationsList();
-        const rawNfts: DonatedNFT[] = Array.isArray(listData) ? listData : [];
-
-        if (rawNfts.length === 0) {
-          setNfts([]);
-          return;
-        }
-
-        // The list endpoint doesn't JOIN the claims table, so Claimed is always
-        // undefined. Enrich it by fetching unclaimed NFTs per unique round.
-        const uniqueRounds = [...new Set(rawNfts.map((n) => n.RoundNum))];
-        const unclaimedResults = await Promise.all(
-          uniqueRounds.map((roundNum) =>
-            api.getUnclaimedDonatedNFTsByRound(roundNum).catch(() => [])
-          )
-        );
-
-        // Build a set of "round-index" keys that are still unclaimed
-        const unclaimedKeys = new Set<string>();
-        unclaimedResults.forEach((items, i) => {
-          const roundNum = uniqueRounds[i];
-          (items as DonatedNFT[]).forEach((item) => {
-            unclaimedKeys.add(`${roundNum}-${item.Index}`);
-          });
-        });
-
-        const enriched = rawNfts.map((nft) => ({
-          ...nft,
-          Claimed: !unclaimedKeys.has(`${nft.RoundNum}-${nft.Index}`),
-        }));
-
-        setNfts(enriched);
-      } catch {
-        setNftsError("Failed to load donated NFTs");
-      } finally {
-        setNftsLoading(false);
-      }
-    }
-
-    async function fetchNFTStats() {
-      try {
-        const data = await api.getNFTDonationStatistics();
-        if (data && typeof data === "object") setNftStats(data as NFTDonationStats);
-      } catch {
-        // stats are non-critical, fail silently
-      }
-    }
-
-    async function fetchERC20() {
-      try {
-        setErc20Loading(true);
-        setErc20Error(null);
-        const data = await api.getERC20DonationsList();
-        setErc20s(Array.isArray(data) ? data : []);
-      } catch {
-        setErc20Error("Failed to load donated ERC-20 tokens");
-      } finally {
-        setErc20Loading(false);
-      }
-    }
-
-    async function fetchETHDonations() {
-      try {
-        setEthLoading(true);
-        setEthError(null);
-        const data = await api.getAllETHDonations();
-        setEthDonations(Array.isArray(data) ? data : []);
-      } catch {
-        setEthError("Failed to load ETH donations");
-      } finally {
-        setEthLoading(false);
-      }
-    }
-
-    fetchNFTs();
-    fetchNFTStats();
-    fetchERC20();
-    fetchETHDonations();
-  }, []);
 
   // Filter helpers
   const filteredNFTs = nfts.filter((n) => {

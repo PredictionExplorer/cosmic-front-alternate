@@ -17,182 +17,25 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { api } from "@/services/api";
+import type {
+  ApiClaimHistory as ClaimHistory,
+  ApiMarketingReward as MarketingReward,
+  ApiStakingAction as StakingAction,
+  ApiStakingReward as StakingReward,
+  ApiCollectedStakingReward as CollectedStakingReward,
+  ApiRWLKMint as RWLKMint,
+  ApiDonatedNFT as DonatedNFT,
+  ApiDonatedERC20 as DonatedERC20,
+  ApiUserInfo as UserInfo,
+  ApiDashboardData as DashboardData,
+} from "@/services/apiTypes";
+import type { ComponentBidData as Bid } from "@/lib/apiTransforms";
 import { formatEther, isAddress } from "viem";
 import { safeTimestamp } from "@/lib/utils";
-
-interface Bid {
-  EvtLogId: number;
-  BidderAddr: string;
-  BidType: number;
-  BidPriceEth: number;
-  RoundNum: number;
-  TimeStamp: number;
-  TxHash: string;
-}
-
-interface ClaimHistory {
-  EvtLogId: number;
-  TimeStamp: number;
-  RoundNum: number;
-  Description: string;
-  PrizeAmount: number;
-}
-
-interface MarketingReward {
-  EvtLogId: number;
-  TimeStamp: number;
-  RoundNum: number;
-  AmountEth: number;
-}
 
 interface CSTToken {
   TokenId: number;
   TokenName: string;
-}
-
-interface StakingAction {
-  ActionType: number; // 0 = stake, 1 = unstake
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  UnstakeDate: string;
-  UnstakeTimeStamp: number;
-  ActionId: number;
-  TokenId: number;
-  NumStakedNFTs: number;
-  Modulo: string;
-  ModuloF64: number;
-  Claimed: boolean;
-}
-
-interface StakingReward {
-  TokenId: number;
-  RewardCollectedEth: number;
-  RewardToCollectEth: number;
-  UserAid: number;
-  UserAddr: string;
-}
-
-interface CollectedStakingReward {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  DepositId: number;
-  RoundNum: number;
-  NumStakedNFTs: number;
-  TotalDepositAmountEth: number;
-  YourTokensStaked: number;
-  YourAmountToClaimEth: number;
-  DepositAmountPerTokenEth: number;
-  NumTokensCollected: number;
-  YourCollectedAmountEth: number;
-  DepositTimeStamp: number;
-  DepositDate: string;
-  FullyClaimed: boolean;
-}
-
-interface RWLKMint {
-  TokenId: number;
-  RoundNum: number;
-  TimeStamp: number;
-}
-
-interface DonatedNFT {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  Index: number;
-  TokenAddr: string;
-  NFTTokenId: number;
-  NFTTokenURI: string;
-  RoundNum: number;
-  DonorAid: number;
-  DonorAddr: string;
-  TokenAddressId?: number; // Only in unclaimed
-  WinnerIndex?: number; // Only in claimed
-  WinnerAid?: number; // Only in claimed
-  WinnerAddr?: string; // Only in claimed
-  // Transformed fields for UI (always set by transformation)
-  NftAddr: string;
-  TokenId: number;
-  TimeStamp: number;
-  Claimed: boolean;
-}
-
-interface DonatedERC20 {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  RoundNum: number;
-  TokenAid: number;
-  TokenAddr: string;
-  AmountDonated: string;
-  AmountDonatedEth: number;
-  AmountClaimed: string;
-  AmountClaimedEth: number;
-  DonateClaimDiff: string;
-  DonateClaimDiffEth: number;
-  WinnerAid: number;
-  WinnerAddr: string;
-  Claimed: boolean;
-}
-
-interface DashboardData {
-  CurRoundNum: number;
-  TsRoundStart: number;
-  NumRaffleEthWinnersBidding?: number;
-  NumRaffleNFTWinnersBidding?: number;
-}
-
-interface UserInfo {
-  AddressId?: number;
-  Address: string;
-  NumBids: number;
-  CosmicSignatureNumTransfers: number;
-  CosmicTokenNumTransfers?: number;
-  MaxBidAmount: number;
-  NumPrizes: number;
-  MaxWinAmount: number;
-  SumRaffleEthWinnings: number;
-  SumRaffleEthWithdrawal: number;
-  UnclaimedNFTs: number;
-  NumRaffleEthWinnings: number;
-  RaffleNFTsCount: number;
-  RewardNFTsCount: number;
-  TotalCSTokensWon: number;
-  TotalDonatedCount?: number;
-  TotalDonatedAmountEth?: number;
-  StakingStatisticsRWalk?: {
-    NumActiveStakers: number;
-    TotalNumStakeActions: number;
-    TotalNumUnstakeActions: number;
-    TotalTokensMinted: number;
-    TotalTokensStaked: number;
-  };
 }
 
 interface StatItemProps {
@@ -365,61 +208,40 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
 
       // Set user info
       if (userInfoResponse && userInfoResponse.UserInfo) {
-        setUserInfo(userInfoResponse.UserInfo);
-        setBidHistory(userInfoResponse.Bids || []);
+        setUserInfo(userInfoResponse.UserInfo as UserInfo);
+        setBidHistory((userInfoResponse.Bids || []) as Bid[]);
       }
 
       // Set balances
       if (balanceResponse) {
         setBalance({
-          CosmicToken: Number(formatEther(BigInt(balanceResponse.CosmicTokenBalance || "0"))),
-          ETH: Number(formatEther(BigInt(balanceResponse.ETH_Balance || "0"))),
+          CosmicToken: Number(formatEther(BigInt((balanceResponse.CosmicTokenBalance as string) || "0"))),
+          ETH: Number(formatEther(BigInt((balanceResponse.ETH_Balance as string) || "0"))),
         });
       }
 
       // Transform donated NFTs from API response
-      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
-        const tx = nft.Tx as Record<string, unknown>;
+      const transformNFT = (nft: DonatedNFT, claimed: boolean): DonatedNFT => {
         return {
-          RecordId: nft.RecordId as number,
-          Tx: {
-            EvtLogId: tx?.EvtLogId as number || 0,
-            BlockNum: tx?.BlockNum as number || 0,
-            TxId: tx?.TxId as number || 0,
-            TxHash: tx?.TxHash as string || '',
-            TimeStamp: tx?.TimeStamp as number || 0,
-            DateTime: tx?.DateTime as string || '',
-          },
-          Index: nft.Index as number,
-          TokenAddr: nft.TokenAddr as string,
-          NFTTokenId: nft.NFTTokenId as number,
-          NFTTokenURI: nft.NFTTokenURI as string || '',
-          RoundNum: nft.RoundNum as number,
-          DonorAid: nft.DonorAid as number,
-          DonorAddr: nft.DonorAddr as string,
-          TokenAddressId: nft.TokenAddressId as number | undefined,
-          WinnerIndex: nft.WinnerIndex as number | undefined,
-          WinnerAid: nft.WinnerAid as number | undefined,
-          WinnerAddr: nft.WinnerAddr as string | undefined,
-          // Add transformed fields for backward compatibility
-          NftAddr: nft.TokenAddr as string,
-          TokenId: nft.NFTTokenId as number,
-          TimeStamp: tx?.TimeStamp as number || 0,
+          ...nft,
+          NftAddr: nft.TokenAddr,
+          TokenId: nft.NFTTokenId,
+          TimeStamp: nft.Tx?.TimeStamp || 0,
           Claimed: claimed,
         };
       };
 
-      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft) => 
         transformNFT(nft, false)
       );
-      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
+      const transformedClaimedNFTs = claimedNFTs.map((nft) => 
         transformNFT(nft, true)
       );
 
       // Set all other data
       setClaimHistory(claimHist);
       setStakingCSTActions(cstActions);
-      setStakingRWLKActions(rwalkActions);
+      setStakingRWLKActions(rwalkActions as unknown as StakingAction[]);
       setMarketingRewards(mRewards);
       setCSTList(userCstList);
       setCstStakingRewards(stakingRewards);
@@ -428,7 +250,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
       setDonatedNFTs([...transformedUnclaimedNFTs, ...transformedClaimedNFTs]);
       
       // Extract and sort ERC20 tokens from API response
-      const erc20List = erc20Tokens?.DonatedPrizesERC20ByWinner || [];
+      const erc20List = erc20Tokens || [];
       setDonatedERC20(erc20List.sort((a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp));
       
       setDashboardData(dashData);
@@ -1415,7 +1237,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                     <div className="flex justify-between">
                       <span className="text-text-secondary">Contract</span>
                       <span className="font-mono text-xs text-text-muted">
-                        {nft.NftAddr.substring(0, 6)}...{nft.NftAddr.slice(-4)}
+                        {nft.NftAddr?.substring(0, 6)}...{nft.NftAddr?.slice(-4)}
                       </span>
                     </div>
                   </div>

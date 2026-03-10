@@ -15,56 +15,42 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
 import { useAccount } from 'wagmi';
 import api from '@/services/api';
+import type { ApiDashboardData as DashboardData } from '@/services/apiTypes';
+import { validateDashboard } from '@/services/apiValidators';
+import { reportError } from '@/lib/errorReporter';
 
 /**
- * Dashboard data type (simplified - expand as needed)
+ * Parse the ActivationTime field from the dashboard API response.
+ * The backend sends this as a Unix timestamp (number), an ISO date string,
+ * "0", or an empty string. We normalize it to a Unix timestamp in seconds
+ * or `null` if the round is already active.
  */
-interface CurRoundStats {
-	RoundNum: number;
-	TotalBids: number;
-	TotalDonatedNFTs: number;
-	NumERC20Donations: number;
-	TotalRaffleEthDeposits: string;
-	TotalRaffleEthDepositsEth: number;
-	TotalRaffleNFTs: number;
-	TotalDonatedCount: number;
-	TotalDonatedAmount: string;
-	TotalDonatedAmountEth: number;
-	// Round timing — API may return a Unix timestamp (number) or ISO string; 0/empty = already active
-	ActivationTime: number | string;
-	ParamWindowStartTime: string;
-	ParamWindowDurationSeconds: number;
-	RoundStartTime: string;
-	RoundEndTime: string;
-	RoundDurationSeconds: number;
+export function parseActivationTime(val: unknown): number | null {
+	if (val == null || val === "" || val === "0" || val === 0) return null;
+	if (typeof val === "number") return val;
+	const num = Number(val);
+	if (!isNaN(num) && num > 1_000_000_000) return num;
+	if (typeof val === "string") {
+		const parsed = new Date(val).getTime();
+		if (!isNaN(parsed)) return Math.floor(parsed / 1000);
+	}
+	return null;
 }
 
-interface DashboardData {
-	CurRoundNum: number;
-	LastBidderAddr: string;
-	BidPriceEth: number;
-	BidPrice: string;
-	PrizeAmountEth: number;
-	CosmicGameBalanceEth: number;
-	CurNumBids: number;
-	MainStats: Record<string, unknown>;
-	CurRoundStats: CurRoundStats;
-	// Prize percentages
-	PrizePercentage: number;
-	ChronoWarriorPercentage: number;
-	RafflePercentage: number;
-	StakingPercentage: number; // Note: Typo in API field name
-	CharityPercentage: number;
-	// Raffle configuration
-	NumRaffleEthWinnersBidding: number;
-	NumRaffleNFTWinnersBidding: number;
-	NumRaffleNFTWinnersStakingRWalk: number;
-	RaffleAmountEth: number;
-	// Game configuration
-	InitialSecondsUntilPrize: number;
-	TimeoutClaimPrize: number;
-	// Add more fields as needed based on API response
-	[key: string]: unknown;
+/**
+ * Validate and normalize the raw dashboard API response. This is the single
+ * place where the dashboard shape is checked and any backend quirks (e.g.
+ * mixed ActivationTime formats) are resolved.
+ */
+function normalizeDashboard(raw: Record<string, unknown>): DashboardData {
+	const data = validateDashboard(raw);
+
+	if (data.CurRoundStats) {
+		(data.CurRoundStats as unknown as Record<string, unknown>)._activationTimestamp =
+			parseActivationTime(data.CurRoundStats.ActivationTime);
+	}
+
+	return data;
 }
 
 /**
@@ -136,11 +122,12 @@ export function ApiDataProvider({ children, refreshInterval = 15000, autoRefresh
 			setIsLoading(true);
 			setError(null);
 
-			const data = await api.getDashboardInfo();
-			setDashboardData(data);
+			const raw = await api.getDashboardInfo();
+			const normalized = normalizeDashboard(raw as unknown as Record<string, unknown>);
+			setDashboardData(normalized);
 			setLastUpdated(Date.now());
 		} catch (err) {
-			console.error('Failed to fetch dashboard data:', err);
+			reportError(err, 'ApiDataContext.fetchData');
 			const error = err as Error;
 			setError(error.message || 'Failed to fetch data');
 		} finally {

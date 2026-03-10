@@ -131,8 +131,8 @@ export default function ContractsPage() {
 		const fetchData = async () => {
 			try {
 				setLoading(true);
-				const dashboardData = await api.getDashboardInfo();
-				setData(dashboardData);
+			const dashboardData = await api.getDashboardInfo();
+			setData(dashboardData as unknown as DashboardData);
 			} catch (error) {
 				console.error('Error fetching dashboard data:', error);
 			} finally {

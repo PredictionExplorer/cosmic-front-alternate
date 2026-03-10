@@ -81,9 +81,9 @@ export default function BidDetailPage({
         const response = await api.getBidInfo(bidId);
         // API returns { BidInfo: {...}, error: "", status: 1 }
         if (response && typeof response === 'object' && 'BidInfo' in response) {
-          setBidInfo(response.BidInfo);
+          setBidInfo(response.BidInfo as BidInfo);
         } else {
-          setBidInfo(response);
+          setBidInfo(response as unknown as BidInfo);
         }
       } catch (err) {
         console.error("Failed to fetch bid info:", err);

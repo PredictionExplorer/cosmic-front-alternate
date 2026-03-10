@@ -47,7 +47,7 @@ export default function MyActivityPage() {
         
         if (userInfoResponse && userInfoResponse.Bids) {
           // Sort by timestamp descending (most recent first)
-          const sortedBids = userInfoResponse.Bids.sort((a: BidData, b: BidData) => 
+          const sortedBids = (userInfoResponse.Bids as BidData[]).sort((a: BidData, b: BidData) => 
             b.TimeStamp - a.TimeStamp
           );
           setBidHistory(sortedBids);

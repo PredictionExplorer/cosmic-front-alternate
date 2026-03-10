@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { GlobalErrorHandler } from '@/components/GlobalErrorHandler';
 import { Web3Provider } from '@/providers/Web3Provider';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ApiDataProvider } from '@/contexts/ApiDataContext';
@@ -74,9 +76,12 @@ export default function RootLayout({
 						<TimeOffsetProvider>
 							<ApiDataProvider refreshInterval={5000}>
 								<SystemModeProvider>
+									<GlobalErrorHandler />
 									<div className="flex min-h-screen flex-col">
 										<Header />
-										<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
+										<ErrorBoundary>
+											<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
+										</ErrorBoundary>
 										<Footer />
 									</div>
 								</SystemModeProvider>

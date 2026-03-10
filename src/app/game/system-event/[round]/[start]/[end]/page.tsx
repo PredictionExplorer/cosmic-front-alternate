@@ -286,7 +286,7 @@ export default function SystemEventPage({ params }: PageProps) {
       try {
         setLoading(true);
         const data = await api.getSystemEvents(startId, endId);
-        setEvents(Array.isArray(data) ? data : []);
+        setEvents(Array.isArray(data) ? (data as unknown as AdminEvent[]) : []);
       } catch (err) {
         console.error("Failed to fetch system events:", err);
         setEvents([]);

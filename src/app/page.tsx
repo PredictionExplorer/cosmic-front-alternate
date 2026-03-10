@@ -28,6 +28,7 @@ import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api, { getAssetsUrl } from "@/services/api";
 import type { ComponentBidData } from "@/lib/apiTransforms";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { safeTimestamp } from "@/lib/utils";
 import { shortenAddress } from "@/lib/web3/utils";
 import { formatDate } from "@/lib/utils";
@@ -38,21 +39,7 @@ export default function Home() {
   const { useCurrentChampions, useCstRewardPerBid } =
     useCosmicGameRead();
   const { data: cstRewardPerBid } = useCstRewardPerBid();
-  const [featuredNFTs, setFeaturedNFTs] = useState<
-    Array<{
-      id: number;
-      tokenId: number;
-      name: string;
-      customName?: string;
-      seed: string;
-      imageUrl: string;
-      owner: string;
-      round: number;
-      mintedAt: string;
-      attributes: unknown[];
-    }>
-  >([]);
-  const [isLoadingNFTs, setIsLoadingNFTs] = useState(true);
+  // featuredNFTs and isLoadingNFTs driven by useApiQuery below
   const [currentBids, setCurrentBids] = useState<
     Array<{
       id: number;
@@ -72,7 +59,6 @@ export default function Home() {
     }>
   >([]);
   const [isLoadingBids, setIsLoadingBids] = useState(true);
-  const [bannedBids, setBannedBids] = useState<number[]>([]);
 
   // Helper function to map bid type numbers to labels
   const getBidTypeLabel = (bidType: number | string): string => {
@@ -118,27 +104,13 @@ export default function Home() {
     ? Number(cstRewardPerBid) / 1e18 
     : 100; // Fallback to 100 if not loaded yet
 
-  // Get prize time from API
-  const [mainPrizeTime, setMainPrizeTime] = useState<number | null>(null);
+  const { data: mainPrizeTime } = useApiQuery<number>(
+    "home-prize-time",
+    () => api.getPrizeTime(),
+    { refetchInterval: 10000 },
+  );
 
-  // Calculate time remaining (in seconds)
   const [timeRemaining, setTimeRemaining] = useState(0);
-
-  // Fetch prize time from API
-  useEffect(() => {
-    async function fetchPrizeTime() {
-      try {
-        const prizeTime = await api.getPrizeTime();
-        setMainPrizeTime(prizeTime);
-      } catch (error) {
-        console.error("Failed to fetch prize time:", error);
-      }
-    }
-    fetchPrizeTime();
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchPrizeTime, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (mainPrizeTime) {
@@ -155,66 +127,39 @@ export default function Home() {
     }
   }, [mainPrizeTime, applyOffset]);
 
-  // Fetch featured NFTs
-  useEffect(() => {
-    async function fetchNFTs() {
-      try {
-        const nfts = await api.getCSTList();
-        // Check if nfts is null or not an array
-        if (!nfts || !Array.isArray(nfts)) {
-          setFeaturedNFTs([]);
-          return;
-        }
-        // Get the 6 most recent NFTs
-        const recent = nfts
-          .sort(
-            (a: Record<string, unknown>, b: Record<string, unknown>) =>
-              ((b.TokenId as number) || 0) - ((a.TokenId as number) || 0)
-          )
-          .slice(0, 6)
-          .map((nft: Record<string, unknown>) => ({
-            id: (nft.TokenId as number) || 0,
-            tokenId: (nft.TokenId as number) || 0,
-            name: `Cosmic Signature #${nft.TokenId}`,
-            customName: (nft.TokenName as string) || undefined,
-            seed: `0x${nft.Seed}`,
-            imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
-            owner: (nft.WinnerAddr as string) || "0x0",
-            round: (nft.RoundNum as number) || 0,
-            mintedAt: safeTimestamp(nft),
-            attributes: [],
-          }));
-        setFeaturedNFTs(recent);
-      } catch (error) {
-        console.error("Failed to fetch NFTs:", error);
-        setFeaturedNFTs([]);
-      } finally {
-        setIsLoadingNFTs(false);
-      }
-    }
-    fetchNFTs();
-  }, []);
+  const { data: featuredNFTsRaw, isLoading: isLoadingNFTs, error: nftError } = useApiQuery(
+    "home-featured-nfts",
+    async () => {
+      const nfts = await api.getCSTList();
+      if (!nfts || !Array.isArray(nfts)) return [];
+      return nfts
+        .sort((a, b) => (b.TokenId || 0) - (a.TokenId || 0))
+        .slice(0, 6)
+        .map((nft) => ({
+          id: nft.TokenId || 0,
+          tokenId: nft.TokenId || 0,
+          name: `Cosmic Signature #${nft.TokenId}`,
+          customName: nft.TokenName || undefined,
+          seed: `0x${nft.Seed}`,
+          imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
+          owner: nft.WinnerAddr || "0x0",
+          round: nft.RoundNum || 0,
+          mintedAt: safeTimestamp(nft as unknown as Record<string, unknown>),
+          attributes: [] as unknown[],
+        }));
+    },
+  );
+  const featuredNFTs = featuredNFTsRaw ?? [];
 
-  // Fetch banned bids list
-  useEffect(() => {
-    async function fetchBannedBids() {
-      try {
-        const bids = await api.getBannedBids();
-        // Check if bids is null or not an array
-        if (!bids || !Array.isArray(bids)) {
-          setBannedBids([]);
-          return;
-        }
-        const bannedIds = bids.map(
-          (x: Record<string, unknown>) => x.bid_id as number
-        );
-        setBannedBids(bannedIds);
-      } catch (error) {
-        console.error("Failed to fetch banned bids:", error);
-      }
-    }
-    fetchBannedBids();
-  }, []);
+  const { data: bannedBidsData } = useApiQuery<number[]>(
+    "home-banned-bids",
+    async () => {
+      const bids = await api.getBannedBids();
+      if (!bids || !Array.isArray(bids)) return [];
+      return bids.map((x: Record<string, unknown>) => x.bid_id as number);
+    },
+  );
+  const bannedBids = bannedBidsData ?? [];
 
   // Fetch current round bids
   useEffect(() => {
@@ -351,23 +296,15 @@ export default function Home() {
 
   const isPendingActivation = timeUntilActivation > 0;
 
-  // ETH bid price from API
-  const [ethBidPrice, setEthBidPrice] = useState<number>(0);
-  useEffect(() => {
-    async function fetchPrice() {
-      try {
-        const priceData = await api.getETHBidPrice();
-        setEthBidPrice(
-          priceData?.ETHPrice ? parseFloat(priceData.ETHPrice) / 1e18 : 0
-        );
-      } catch (error) {
-        console.error("Failed to fetch ETH price:", error);
-      }
-    }
-    fetchPrice();
-    const interval = setInterval(fetchPrice, 5000); // Update every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
+  const { data: ethBidPriceData } = useApiQuery(
+    "home-eth-bid-price",
+    async () => {
+      const priceData = await api.getETHBidPrice();
+      return priceData?.ETHPrice ? parseFloat(priceData.ETHPrice as string) / 1e18 : 0;
+    },
+    { refetchInterval: 5000 },
+  );
+  const ethBidPrice = ethBidPriceData ?? 0;
 
   return (
     <div className="overflow-hidden">

@@ -49,7 +49,7 @@ export default function CosmicSignatureTransferPage() {
         setLoading(true);
         setError(null);
         const data = await api.getCSTTransfers(address);
-        setTransfers(data);
+        setTransfers(data as Transfer[]);
       } catch (err) {
         console.error("Failed to fetch transfers:", err);
         setError("Failed to load transfer history");

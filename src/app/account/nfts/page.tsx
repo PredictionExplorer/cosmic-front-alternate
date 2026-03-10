@@ -21,6 +21,7 @@ import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { useNotification } from "@/contexts/NotificationContext";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
+import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 
 interface NFTData {
   TokenId: number;
@@ -161,9 +162,17 @@ export default function MyNFTsPage() {
       }
 
       // Proceed with staking
-      await stakingContract.write.stake(BigInt(tokenId));
+      showInfo("Please confirm the transaction in your wallet...");
+      const stakeHash = await writeContract(wagmiConfig, {
+        address: CONTRACTS.STAKING_WALLET_CST,
+        abi: StakingWalletCSTABI,
+        functionName: "stake",
+        args: [BigInt(tokenId)],
+      });
+      showInfo("Transaction submitted! Waiting for confirmation...");
+      await waitForTransactionReceipt(wagmiConfig, { hash: stakeHash });
       showSuccess(
-        `Successfully staked NFT #${tokenId}! It may take a moment to update.`
+        `Successfully staked NFT #${tokenId}!`
       );
 
       // Refresh NFT list
