@@ -138,67 +138,73 @@ function getApiBaseUrl(chainId?: number): string {
   return API_ENDPOINTS[defaultChainId as keyof typeof API_ENDPOINTS];
 }
 
-// Default API base URL (from environment config)
-const API_BASE_URL = getApiBaseUrl();
 const ASSETS_BASE_URL =
   process.env.NEXT_PUBLIC_ASSETS_BASE_URL ||
   "https://nfts.cosmicsignature.com/";
 
-/**
- * Check if we need to use proxy
- * Returns true if:
- * 1. We're on HTTPS and trying to access HTTP (mixed content)
- * 2. We're in development mode (localhost) to avoid CORS issues
- */
+// ── Per-request chain resolution ────────────────────────────────────────
+//
+// The active chain ID lives at module scope so the request interceptor can
+// read it at request time.  This avoids the old design where the base URL
+// was baked into the axios instance at module load and mutated later via
+// `setChainId` — a race that could send the first request to the wrong
+// backend.
+
+let _currentChainId: number = getDefaultChainId();
+
+function getCurrentBaseUrl(): string {
+  return getApiBaseUrl(_currentChainId);
+}
+
 function shouldUseProxy(url: string): boolean {
-  // Only apply in browser
   if (typeof window === "undefined") return false;
 
-  // Use proxy in development (localhost) to avoid CORS issues
   const isDevelopment =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
 
-  // Check if page is HTTPS
   const isPageSecure = window.location.protocol === "https:";
 
-  // Check if target URL is HTTP
-  const targetUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
+  const baseUrl = getCurrentBaseUrl();
+  const targetUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
   const isTargetHttp = targetUrl.startsWith("http://");
 
-  // Use proxy if in development OR if mixed content (HTTPS page + HTTP API)
   return isDevelopment || (isPageSecure && isTargetHttp);
 }
 
 /**
- * Axios instance with default configuration
+ * Axios instance.  The baseURL is intentionally left empty here — the
+ * request interceptor resolves it per-request from the current chain.
  */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // 30 second timeout
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 /**
- * Request interceptor for proxy routing and auth
+ * Request interceptor: resolves base URL from the current chain on every
+ * request, then applies proxy rewriting if needed.
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // If we need proxy, rewrite the URL
+    // Resolve base URL at request time (not module-load time)
+    const baseUrl = getCurrentBaseUrl();
+    config.baseURL = baseUrl;
+
     if (config.url && shouldUseProxy(config.url)) {
       const fullUrl = config.url.startsWith("http")
         ? config.url
-        : `${config.baseURL || API_BASE_URL}${config.url}`;
+        : `${baseUrl}${config.url}`;
 
       config.url = `/api/proxy?url=${encodeURIComponent(fullUrl)}`;
-      config.baseURL = ""; // Clear baseURL since we're using absolute proxy path
+      config.baseURL = "";
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 /**
@@ -233,32 +239,22 @@ apiClient.interceptors.response.use(
  */
 class CosmicSignatureAPI {
   /**
-   * Current chain ID
-   * Used to determine which API endpoint to use
-   */
-  private currentChainId: number = getDefaultChainId(); // Default from environment config
-
-  /**
-   * Set the current chain ID and update API base URL
-   * Should be called when the user switches networks
+   * Update the active chain.  The request interceptor will resolve the
+   * correct base URL on every subsequent request — no mutable
+   * `apiClient.defaults.baseURL` involved.
    */
   setChainId(chainId: number) {
-    this.currentChainId = chainId;
-    const newBaseUrl = getApiBaseUrl(chainId);
-    apiClient.defaults.baseURL = newBaseUrl;
+    _currentChainId = chainId;
 
     if (process.env.NODE_ENV === "development") {
       console.log(
-        `API endpoint switched to ${newBaseUrl} for chain ${chainId}`
+        `API chain set to ${chainId} → ${getApiBaseUrl(chainId)}`,
       );
     }
   }
 
-  /**
-   * Get the current chain ID
-   */
   getChainId(): number {
-    return this.currentChainId;
+    return _currentChainId;
   }
 
   // ==================== DASHBOARD & STATISTICS ====================
