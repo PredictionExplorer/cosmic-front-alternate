@@ -13,6 +13,7 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
 import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
+import { reportError } from "@/lib/errorReporter";
 import type { ApiCurRoundStats, ApiRaffleNFTWinner, ApiRaffleDepositResponse, ApiRoundDetail } from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
 
@@ -105,6 +106,7 @@ export default function RoundDetailPage({
         setBids(formattedBids);
       } catch (error) {
         console.error("Failed to fetch bids:", error);
+        reportError(error, "round bids fetch");
         setBids([]);
       } finally {
         setIsLoadingBids(false);
@@ -148,6 +150,7 @@ export default function RoundDetailPage({
         setNftDonations(formattedNftDonations);
       } catch (error) {
         console.error("Failed to fetch donations:", error);
+        reportError(error, "round donations fetch");
         setEthDonations([]);
         setNftDonations([]);
       } finally {

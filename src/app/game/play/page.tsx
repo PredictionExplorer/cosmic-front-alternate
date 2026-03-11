@@ -44,7 +44,6 @@ export default function PlayPage() {
   const [bidMessageError, setBidMessageError] = useState("");
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2);
-  const [lastBidMessage, setLastBidMessage] = useState<string>("");
   const [showHelpCard, setShowHelpCard] = useState(true);
 
   // Advanced Options State
@@ -149,25 +148,15 @@ export default function PlayPage() {
   const usedNfts = usedNftsData ?? [];
 
   // Fetch last bid message from API
-  useEffect(() => {
-    const fetchLastBidMessage = async () => {
-      if (!roundNum) return;
-      try {
-        const bids = await api.getBidListByRound(Number(roundNum), "desc");
-        if (bids && bids.length > 0) {
-          setLastBidMessage(bids[0].Message || "");
-        } else {
-          setLastBidMessage("");
-        }
-      } catch (error) {
-        console.error("Failed to fetch last bid message:", error);
-        setLastBidMessage("");
-      }
-    };
-    fetchLastBidMessage();
-    const interval = setInterval(fetchLastBidMessage, 5000);
-    return () => clearInterval(interval);
-  }, [roundNum]);
+  const { data: lastBidMessageData } = useApiQuery<string>(
+    roundNum != null ? `play-last-bid-${roundNum}` : "",
+    async () => {
+      const bids = await api.getBidListByRound(Number(roundNum), "desc");
+      return (bids && bids.length > 0) ? (bids[0].Message || "") : "";
+    },
+    { enabled: roundNum != null, refetchInterval: 5000 },
+  );
+  const lastBidMessage = lastBidMessageData ?? "";
 
   // Filter out used NFTs and sort
   const availableNfts = ownedNfts
@@ -319,10 +308,6 @@ export default function PlayPage() {
         refetchEthPrice();
         refetchCstPrice();
         refetchPrizeAmount();
-        try {
-          const bids = await api.getBidListByRound(Number(roundNum), "desc");
-          if (bids && bids.length > 0) setLastBidMessage(bids[0].Message || "");
-        } catch {}
         if (useRandomWalkNft || (donationType === "nft" && donationNftAddress && donationNftTokenId)) {
           try {
             await refetchWalletNfts();
@@ -362,10 +347,6 @@ export default function PlayPage() {
         refetchEthPrice();
         refetchCstPrice();
         refetchPrizeAmount();
-        try {
-          const bids = await api.getBidListByRound(Number(roundNum), "desc");
-          if (bids && bids.length > 0) setLastBidMessage(bids[0].Message || "");
-        } catch {}
         if (donationType === "nft" && donationNftAddress && donationNftTokenId) {
           try {
             await refetchWalletNfts();

@@ -40,25 +40,6 @@ export default function Home() {
     useCosmicGameRead();
   const { data: cstRewardPerBid } = useCstRewardPerBid();
   // featuredNFTs and isLoadingNFTs driven by useApiQuery below
-  const [currentBids, setCurrentBids] = useState<
-    Array<{
-      id: number;
-      bidder: string;
-      bidType: string;
-      bidTypeNum: number;
-      amount: number;
-      timestamp: number;
-      message?: string;
-      roundNum?: number;
-      rwalkNftId?: number;
-      duration?: number;
-      nftDonationAddr?: string;
-      nftDonationId?: number;
-      erc20DonationAddr?: string;
-      erc20DonationAmount?: string;
-    }>
-  >([]);
-  const [isLoadingBids, setIsLoadingBids] = useState(true);
 
   // Helper function to map bid type numbers to labels
   const getBidTypeLabel = (bidType: number | string): string => {
@@ -162,88 +143,70 @@ export default function Home() {
   const bannedBids = bannedBidsData ?? [];
 
   // Fetch current round bids
-  useEffect(() => {
-    async function fetchCurrentBids() {
-      try {
-        const currentRoundNumber =
-          roundNum?.toString() || dashboardData?.CurRoundNum?.toString();
-        
-        // Round 0 is valid, so check if we have a valid number (including 0)
-        if (currentRoundNumber !== undefined && currentRoundNumber !== null && currentRoundNumber !== '') {
-          const bids = await api.getBidListByRound(
-            parseInt(currentRoundNumber),
-            "desc"
-          );
-          // Check if bids is null or not an array
-          if (!bids || !Array.isArray(bids)) {
-            setCurrentBids([]);
-            return;
+  const { data: currentBidsData, isLoading: isLoadingBids } = useApiQuery(
+    roundNum != null ? `home-bids-round-${roundNum}` : "",
+    async () => {
+      const currentRoundNumber =
+        roundNum?.toString() || dashboardData?.CurRoundNum?.toString();
+
+      if (currentRoundNumber === undefined || currentRoundNumber === null || currentRoundNumber === '') {
+        return [];
+      }
+
+      const bids = await api.getBidListByRound(
+        parseInt(currentRoundNumber),
+        "desc"
+      );
+      if (!bids || !Array.isArray(bids)) {
+        return [];
+      }
+
+      return bids
+        .slice(0, 10)
+        .map((bid: ComponentBidData, index: number) => {
+          const bidTypeNum = bid.BidType || 0;
+          const timestamp = bid.TimeStamp || 0;
+
+          let duration = 0;
+          if (index === 0) {
+            duration = Date.now() / 1000 - timestamp;
+          } else {
+            const prevTimestamp = bids[index - 1].TimeStamp || 0;
+            duration = prevTimestamp - timestamp;
           }
 
-          // Get the 10 most recent bids and calculate durations
-          const recentBids = bids
-            .slice(0, 10)
-            .map((bid: ComponentBidData, index: number) => {
-              const bidTypeNum = bid.BidType || 0;
-              const timestamp = bid.TimeStamp || 0;
+          const amount = bidTypeNum === 2
+            ? (bid.NumCSTTokensEth || 0)
+            : (bid.BidPriceEth || 0);
 
-              // Calculate duration (time between this bid and the previous one, or now for the most recent)
-              let duration = 0;
-              if (index === 0) {
-                // Most recent bid - duration is from bid time to now
-                duration = Date.now() / 1000 - timestamp;
-              } else {
-                // Duration is from this bid to the previous bid
-                const prevTimestamp = bids[index - 1].TimeStamp || 0;
-                duration = prevTimestamp - timestamp;
-              }
-
-              // For CST bids, use NumCSTTokensEth field; for ETH/RWLK bids, use BidPrice
-              const amount = bidTypeNum === 2
-                ? (bid.NumCSTTokensEth || 0)
-                : (bid.BidPriceEth || 0);
-
-              const processedBid = {
-                id: bid.EvtLogId || 0,
-                bidder: bid.BidderAddr || "0x0",
-                bidType: getBidTypeLabel(bidTypeNum),
-                bidTypeNum,
-                amount,
-                timestamp,
-                message: bid.Message || undefined,
-                roundNum: bid.RoundNum || undefined,
-                rwalkNftId:
-                  bid.RWalkNFTId !== null && bid.RWalkNFTId !== undefined
-                    ? bid.RWalkNFTId
-                    : undefined,
-                duration,
-                nftDonationAddr: bid.NFTDonationTokenAddr || undefined,
-                nftDonationId:
-                  bid.NFTDonationTokenId !== null &&
-                  bid.NFTDonationTokenId !== undefined
-                    ? bid.NFTDonationTokenId
-                    : undefined,
-                erc20DonationAddr: bid.DonatedERC20TokenAddr || undefined,
-                erc20DonationAmount: bid.DonatedERC20TokenAmount || undefined,
-              };
-
-              return processedBid;
-            });
-
-          setCurrentBids(recentBids);
-        }
-      } catch (error) {
-        console.error("Failed to fetch bids:", error);
-        setCurrentBids([]);
-      } finally {
-        setIsLoadingBids(false);
-      }
-    }
-    fetchCurrentBids();
-    // Refresh bids every 10 seconds
-    const interval = setInterval(fetchCurrentBids, 10000);
-    return () => clearInterval(interval);
-  }, [roundNum, dashboardData]);
+          return {
+            id: bid.EvtLogId || 0,
+            bidder: bid.BidderAddr || "0x0",
+            bidType: getBidTypeLabel(bidTypeNum),
+            bidTypeNum,
+            amount,
+            timestamp,
+            message: bid.Message || undefined,
+            roundNum: bid.RoundNum || undefined,
+            rwalkNftId:
+              bid.RWalkNFTId !== null && bid.RWalkNFTId !== undefined
+                ? bid.RWalkNFTId
+                : undefined,
+            duration,
+            nftDonationAddr: bid.NFTDonationTokenAddr || undefined,
+            nftDonationId:
+              bid.NFTDonationTokenId !== null &&
+              bid.NFTDonationTokenId !== undefined
+                ? bid.NFTDonationTokenId
+                : undefined,
+            erc20DonationAddr: bid.DonatedERC20TokenAddr || undefined,
+            erc20DonationAmount: bid.DonatedERC20TokenAmount || undefined,
+          };
+        });
+    },
+    { enabled: roundNum != null, refetchInterval: 10000 },
+  );
+  const currentBids = currentBidsData ?? [];
 
   // Prepare display data with safe defaults
   const currentRound = {

@@ -14,6 +14,7 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { formatDate, formatEth } from "@/lib/utils";
 import api from "@/services/api";
+import { reportError } from "@/lib/errorReporter";
 import type { ApiBidInfo } from "@/services/apiTypes";
 
 /** Convert ipfs:// and ipfs.io gateway URIs to a reliable HTTP gateway URL */
@@ -94,6 +95,7 @@ export default function BidDetailPage({
         }
       } catch (err) {
         console.error("Failed to resolve NFT image from token URI:", err);
+        reportError(err, "NFT image resolution");
       } finally {
         setNftImageLoading(false);
       }

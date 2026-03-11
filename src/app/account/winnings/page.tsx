@@ -27,6 +27,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
+import { reportError } from "@/lib/errorReporter";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import type { ApiDonatedNFT, ApiDonatedERC20, ApiStakingRewardDeposit } from "@/services/apiTypes";
 import type { ComponentRaffleDepositData } from "@/lib/apiTransforms";
@@ -227,6 +228,7 @@ export default function MyWinningsPage() {
           }
         } catch (err) {
           console.error(`Error fetching timeout for round ${roundNum}:`, err);
+          reportError(err, `timeout fetch for round ${roundNum}`);
         }
       }
 

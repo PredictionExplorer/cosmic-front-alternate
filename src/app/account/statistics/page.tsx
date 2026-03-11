@@ -36,6 +36,7 @@ import type {
 } from "@/services/apiTypes";
 import type { ComponentBidData as Bid } from "@/lib/apiTransforms";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
+import { useNotification } from "@/contexts/NotificationContext";
 import { formatEther } from "viem";
 import { safeTimestamp } from "@/lib/utils";
 
@@ -117,6 +118,7 @@ export default function UserStatisticsPage() {
   const itemsPerPage = 10;
   
   const prizesWallet = usePrizesWallet();
+  const { showError } = useNotification();
   const { dashboardData: ctxDashboard } = useApiData();
 
   const { data: statsData, isLoading: loading, refetch } = useApiQuery(
@@ -237,6 +239,7 @@ export default function UserStatisticsPage() {
       }, 3000);
     } catch (error) {
       console.error("Error claiming NFT:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingNFT(null);
     }
   };
@@ -256,6 +259,7 @@ export default function UserStatisticsPage() {
       }, 3000);
     } catch (error) {
       console.error("Error claiming all NFTs:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingNFT(null);
     }
   };
@@ -275,6 +279,7 @@ export default function UserStatisticsPage() {
       }, 3000);
     } catch (error) {
       console.error("Error claiming ERC20:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingERC20(null);
     }
   };
@@ -299,6 +304,7 @@ export default function UserStatisticsPage() {
       }, 3000);
     } catch (error) {
       console.error("Error claiming all ERC20:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingERC20(null);
     }
   };
