@@ -9,6 +9,7 @@ import { Container } from "@/components/ui/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { formatEth, shortenAddress } from "@/lib/utils";
 import api from "@/services/api";
+import { useApiData } from "@/contexts/ApiDataContext";
 
 interface LeaderboardEntry {
   rank: number;
@@ -35,12 +36,9 @@ export default function LeaderboardPage() {
   const [category, setCategory] = useState<"prizes" | "bids" | "spending">(
     "prizes"
   );
-  // Fetch current round number
-  const { data: dashboardForRound } = useApiQuery(
-    "leaderboard-dashboard",
-    () => api.getDashboardInfo(),
-  );
-  const currentRound = dashboardForRound?.CurRoundNum ?? 0;
+  // Current round number from global context
+  const { dashboardData } = useApiData();
+  const currentRound = dashboardData?.CurRoundNum ?? 0;
 
   // Fetch leaderboard data (key includes category, timeframe, and round for proper cache separation)
   const { data: leaderboardDataRaw, isLoading } = useApiQuery<LeaderboardEntry[]>(

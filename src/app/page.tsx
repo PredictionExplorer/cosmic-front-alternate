@@ -247,7 +247,7 @@ export default function Home() {
 
   // Prepare display data with safe defaults
   const currentRound = {
-    roundNumber: roundNum?.toString() || "0",
+    roundNumber: (roundNum != null && roundNum >= 0) ? roundNum.toString() : "0",
     prizePool: (dashboardData?.PrizeAmountEth as number) || 0,
     totalBids: (dashboardData?.CurNumBids as number) || 0,
     lastBidder: lastBidder

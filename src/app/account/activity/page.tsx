@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Coins, Trophy, Loader2, ExternalLink } from "lucide-react";
@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { weiToEther } from "@/lib/utils";
 
 interface BidData {
@@ -30,37 +31,21 @@ interface BidData {
 export default function MyActivityPage() {
   const { address, isConnected } = useAccount();
   const [filterType, setFilterType] = useState<"all" | "eth" | "cst">("all");
-  const [loading, setLoading] = useState(true);
-  const [bidHistory, setBidHistory] = useState<BidData[]>([]);
 
-  // Fetch user's bid history
-  useEffect(() => {
-    async function fetchActivity() {
-      if (!address || !isConnected) {
-        setLoading(false);
-        return;
+  const { data: activityData, isLoading: loading } = useApiQuery(
+    "account-activity-" + address,
+    async () => {
+      const userInfoResponse = await api.getUserInfo(address!);
+      if (userInfoResponse && userInfoResponse.Bids) {
+        return (userInfoResponse.Bids as BidData[]).sort(
+          (a: BidData, b: BidData) => b.TimeStamp - a.TimeStamp
+        );
       }
-
-      try {
-        setLoading(true);
-        const userInfoResponse = await api.getUserInfo(address);
-        
-        if (userInfoResponse && userInfoResponse.Bids) {
-          // Sort by timestamp descending (most recent first)
-          const sortedBids = (userInfoResponse.Bids as BidData[]).sort((a: BidData, b: BidData) => 
-            b.TimeStamp - a.TimeStamp
-          );
-          setBidHistory(sortedBids);
-        }
-      } catch (error) {
-        console.error("Error fetching activity:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchActivity();
-  }, [address, isConnected]);
+      return [] as BidData[];
+    },
+    { enabled: !!address }
+  );
+  const bidHistory = activityData ?? [];
 
   const filteredBids = bidHistory.filter((bid) => {
     if (filterType === "all") return true;

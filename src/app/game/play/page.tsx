@@ -22,6 +22,7 @@ import { formatWeiToEth } from "@/lib/web3/utils";
 import { validateBidMessageLength, getByteLength } from "@/lib/web3/errorDecoder";
 import { formatEth, formatTime } from "@/lib/utils";
 import { api } from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 export default function PlayPage() {
   const { address, isConnected } = useAccount();
@@ -43,7 +44,6 @@ export default function PlayPage() {
   const [bidMessageError, setBidMessageError] = useState("");
   const [maxCstPrice, setMaxCstPrice] = useState("");
   const [priceBuffer, setPriceBuffer] = useState(2);
-  const [usedNfts, setUsedNfts] = useState<number[]>([]);
   const [lastBidMessage, setLastBidMessage] = useState<string>("");
   const [showHelpCard, setShowHelpCard] = useState(true);
 
@@ -64,62 +64,30 @@ export default function PlayPage() {
     read.useCstBidPrice();
 
   // API fallback for CST bid price
-  const [apiFallbackCstWei, setApiFallbackCstWei] = useState<bigint | null>(null);
-  useEffect(() => {
-    if (cstBidPriceRaw !== undefined && cstBidPriceRaw !== null) {
-      setApiFallbackCstWei(null);
-      return;
-    }
-    if (cstPriceError) {
-      console.warn('[CST bid price] Contract read failed — falling back to API:', cstPriceError.message);
-    }
-    let cancelled = false;
-    async function fetchCstFallback() {
-      try {
-        const priceData = await api.getCSTPrice();
-        const weiStr = priceData?.CSTPrice ?? priceData?.cst_price ?? priceData?.price ?? priceData?.NextBidPrice;
-        if (weiStr != null && !cancelled) {
-          const wei = BigInt(weiStr as string);
-          setApiFallbackCstWei(wei);
-        }
-      } catch (err) {
-        console.error('[CST bid price] API fallback also failed:', err);
-      }
-    }
-    fetchCstFallback();
-    const id = setInterval(fetchCstFallback, 5000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [cstBidPriceRaw, cstPriceError]);
+  const { data: apiFallbackCstWei } = useApiQuery<bigint | null>(
+    "play-cst-price-fallback",
+    async () => {
+      const priceData = await api.getCSTPrice();
+      const weiStr = priceData?.CSTPrice ?? priceData?.cst_price ?? priceData?.price ?? priceData?.NextBidPrice;
+      if (weiStr != null) return BigInt(String(weiStr));
+      return null;
+    },
+    { enabled: cstBidPriceRaw === undefined || cstBidPriceRaw === null, refetchInterval: 5000 },
+  );
 
   const effectiveCstBidPriceRaw = (cstBidPriceRaw as bigint | undefined) ?? apiFallbackCstWei ?? undefined;
 
   // API fallback for ETH bid price
-  const [apiFallbackPriceWei, setApiFallbackPriceWei] = useState<bigint | null>(null);
-  useEffect(() => {
-    if (ethBidPriceRaw) {
-      setApiFallbackPriceWei(null);
-      return;
-    }
-    if (ethPriceError) {
-      console.warn('[ETH bid price] Contract read failed — falling back to API:', ethPriceError.message);
-    }
-    let cancelled = false;
-    async function fetchFallback() {
-      try {
-        const priceData = await api.getETHBidPrice();
-        const weiStr = priceData?.ETHPrice ?? priceData?.eth_price ?? priceData?.price;
-        if (weiStr && !cancelled) {
-          const wei = BigInt(weiStr as string);
-          setApiFallbackPriceWei(wei);
-        }
-      } catch (err) {
-        console.error('[ETH bid price] API fallback also failed:', err);
-      }
-    }
-    fetchFallback();
-    const id = setInterval(fetchFallback, 5000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [ethBidPriceRaw, ethPriceError]);
+  const { data: apiFallbackPriceWei } = useApiQuery<bigint | null>(
+    "play-eth-price-fallback",
+    async () => {
+      const priceData = await api.getETHBidPrice();
+      const weiStr = priceData?.ETHPrice ?? priceData?.eth_price ?? priceData?.price;
+      if (weiStr != null) return BigInt(String(weiStr));
+      return null;
+    },
+    { enabled: !ethBidPriceRaw, refetchInterval: 5000 },
+  );
 
   const effectiveEthBidPriceRaw = (ethBidPriceRaw as bigint | undefined) ?? apiFallbackPriceWei ?? undefined;
   const { data: prizeAmount, refetch: refetchPrizeAmount } =
@@ -161,28 +129,24 @@ export default function PlayPage() {
   }, [dashboardData, refetchEthPrice, refetchCstPrice, refetchPrizeAmount]);
 
   // Fetch used NFTs from API
-  useEffect(() => {
-    const fetchUsedNfts = async () => {
-      try {
-        const response = await api.getUsedRWLKNfts();
-        let normalizedList: number[] = [];
-        if (Array.isArray(response)) {
-          normalizedList = response.map((item) => {
-            if (typeof item === "object" && item !== null && "RWalkTokenId" in item) {
-              return Number(item.RWalkTokenId);
-            }
-            return Number(item);
-          });
-        }
-        setUsedNfts(normalizedList);
-      } catch (error) {
-        console.error("Failed to fetch used NFTs:", error);
+  const { data: usedNftsData, refetch: refetchUsedNfts } = useApiQuery<number[]>(
+    "play-used-nfts",
+    async () => {
+      const response = await api.getUsedRWLKNfts();
+      let normalizedList: number[] = [];
+      if (Array.isArray(response)) {
+        normalizedList = response.map((item) => {
+          if (typeof item === "object" && item !== null && "RWalkTokenId" in item) {
+            return Number(item.RWalkTokenId);
+          }
+          return Number(item);
+        });
       }
-    };
-    fetchUsedNfts();
-    const interval = setInterval(fetchUsedNfts, 15000);
-    return () => clearInterval(interval);
-  }, []);
+      return normalizedList;
+    },
+    { refetchInterval: 15000 },
+  );
+  const usedNfts = usedNftsData ?? [];
 
   // Fetch last bid message from API
   useEffect(() => {
@@ -218,20 +182,11 @@ export default function PlayPage() {
   }, [availableNfts, selectedNftId]);
 
   // Prize time
-  const [mainPrizeTime, setMainPrizeTime] = useState<number | null>(null);
-  useEffect(() => {
-    async function fetchPrizeTime() {
-      try {
-        const prizeTime = await api.getPrizeTime();
-        setMainPrizeTime(prizeTime);
-      } catch (error) {
-        console.error("Failed to fetch prize time:", error);
-      }
-    }
-    fetchPrizeTime();
-    const interval = setInterval(fetchPrizeTime, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  const { data: mainPrizeTime } = useApiQuery<number | null>(
+    "play-prize-time",
+    () => api.getPrizeTime(),
+    { refetchInterval: 10000 },
+  );
 
   // Calculate timer with offset
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -371,15 +326,7 @@ export default function PlayPage() {
         if (useRandomWalkNft || (donationType === "nft" && donationNftAddress && donationNftTokenId)) {
           try {
             await refetchWalletNfts();
-            const response = await api.getUsedRWLKNfts();
-            let normalizedList: number[] = [];
-            if (Array.isArray(response)) {
-              normalizedList = response.map((item) => {
-                if (typeof item === "object" && item !== null && "RWalkTokenId" in item) return Number(item.RWalkTokenId);
-                return Number(item);
-              });
-            }
-            setUsedNfts(normalizedList);
+            refetchUsedNfts();
             if (useRandomWalkNft && selectedNftId !== null) setSelectedNftId(null);
           } catch {}
         }
@@ -442,7 +389,7 @@ export default function PlayPage() {
 
   // Prepare display data
   const currentRound = {
-    roundNumber: roundNum?.toString() || "0",
+    roundNumber: (roundNum != null && roundNum >= 0) ? roundNum.toString() : "0",
     prizePool: prizeAmount
       ? parseFloat(formatWeiToEth(prizeAmount as bigint, 4))
       : 0,

@@ -12,7 +12,6 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/game/StatCard";
 import { formatEth } from "@/lib/utils";
-import { api } from "@/services/api";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { wagmiConfig } from "@/lib/web3/config";
@@ -51,7 +50,7 @@ function RWLKNFTImage({ tokenId, alt, className }: { tokenId: number; alt: strin
 
 export default function StakePage() {
   const { address, isConnected } = useAccount();
-  const { dashboardData: apiDashboardData } = useApiData();
+  const { dashboardData } = useApiData();
 
   // ── Tabs & UI state ──────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
@@ -83,29 +82,11 @@ export default function StakePage() {
   const [selectedRWLKTokenIds, setSelectedRWLKTokenIds] = useState<Set<number>>(new Set());
   const [selectedStakedRWLKIds, setSelectedStakedRWLKIds] = useState<Set<number>>(new Set());
 
-  // ── Dashboard data ──────────────────────────────────────────────────
-  const [dashboardData, setDashboardData] = useState<{
-    CosmicSignatureTokenStakingTotalSupply?: number;
-    RandomWalkNFTStakingTotalSupply?: number;
-    MainStats?: {
-      StakeStatisticsCST?: {
-        TotalTokensStaked?: number;
-        TotalRewardEth?: number;
-      };
-      StakeStatisticsRWalk?: {
-        TotalTokensStaked?: number;
-        NumActiveStakers?: number;
-        TotalNumStakeActions?: number;
-        TotalNumUnstakeActions?: number;
-      };
-    };
-  } | null>(null);
-
   // ── Staking percentage ──────────────────────────────────────────────
   const [stakingPercentage, setStakingPercentage] = useState<number>(
     Number(
-      apiDashboardData?.StakingPercentage ||
-      (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+      dashboardData?.StakingPercentage ||
+      (dashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
       0
     )
   );
@@ -121,8 +102,8 @@ export default function StakePage() {
         if (raw != null) setStakingPercentage(Number(raw));
       } catch {
         const fromApi = Number(
-          apiDashboardData?.StakingPercentage ||
-          (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+          dashboardData?.StakingPercentage ||
+          (dashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
           0
         );
         if (fromApi > 0) setStakingPercentage(fromApi);
@@ -130,18 +111,6 @@ export default function StakePage() {
     }
     fetchStakingPercent();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const data = await api.getDashboardInfo();
-        setDashboardData(data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      }
-    };
-    fetchDashboardData();
   }, []);
 
   // Reset pages when data changes
@@ -243,11 +212,16 @@ export default function StakePage() {
   const yourStakedCount = isConnected ? cst.stakedTokens.length : 0;
   const yourAvailableCount = isConnected ? cst.availableTokens.length : 0;
 
-  const totalStaked = dashboardData?.MainStats?.StakeStatisticsCST?.TotalTokensStaked || 0;
-  const stakingAmountEth = dashboardData?.MainStats?.StakeStatisticsCST?.TotalRewardEth || 0;
+  const cstStakeStats = dashboardData?.MainStats?.StakeStatisticsCST as
+    | { TotalTokensStaked?: number; TotalRewardEth?: number }
+    | undefined;
+  const totalStaked = cstStakeStats?.TotalTokensStaked || 0;
+  const stakingAmountEth = cstStakeStats?.TotalRewardEth || 0;
   const rewardPerNFT = totalStaked > 0 ? stakingAmountEth / totalStaked : 0;
 
-  const rwlkStatsGlobal = dashboardData?.MainStats?.StakeStatisticsRWalk;
+  const rwlkStatsGlobal = dashboardData?.MainStats?.StakeStatisticsRWalk as
+    | { TotalTokensStaked?: number; NumActiveStakers?: number }
+    | undefined;
   const totalRwlkStaked = rwlkStatsGlobal?.TotalTokensStaked || 0;
   const totalRwlkActiveStakers = rwlkStatsGlobal?.NumActiveStakers || 0;
 

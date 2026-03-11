@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import {
@@ -27,6 +27,7 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import type { ApiDonatedNFT } from "@/services/apiTypes";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
@@ -158,26 +159,6 @@ function getErrorMessage(error: unknown): string {
 
 export default function MyWinningsPage() {
   const { address, isConnected } = useAccount();
-  const [loading, setLoading] = useState(true);
-
-  // Unclaimed winnings data
-  const [raffleETHWinnings, setRaffleETHWinnings] = useState<RaffleWinning[]>(
-    []
-  );
-  const [donatedNFTs, setDonatedNFTs] = useState<DonatedNFT[]>([]);
-  const [donatedERC20, setDonatedERC20] = useState<DonatedERC20[]>([]);
-  const [stakingRewards, setStakingRewards] = useState<StakingReward[]>([]);
-  const [stakedTokenActions, setStakedTokenActions] = useState<StakedTokenAction[]>([]);
-
-  // Round timeout data for expiration tracking
-  const [roundTimeouts, setRoundTimeouts] = useState<Record<number, number>>(
-    {}
-  );
-
-  // Summary data
-  const [totalEthToClaim, setTotalEthToClaim] = useState(0);
-  const [totalChronoWarriorEth, setTotalChronoWarriorEth] = useState(0);
-  const [totalStakingRewards, setTotalStakingRewards] = useState(0);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -208,42 +189,31 @@ export default function MyWinningsPage() {
     };
   }>({ type: null });
 
-  // Fetch all unclaimed winnings
-  const fetchWinnings = useCallback(async () => {
-    if (!address || !isConnected) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
+  const { data: winningsData, isLoading: loading, refetch } = useApiQuery(
+    "account-winnings-" + address,
+    async () => {
       const [
         raffleDeposits,
-        unclaimedNFTs,
-        claimedNFTs,
+        unclaimedNFTsRaw,
+        claimedNFTsRaw,
         erc20Tokens,
         stakingRewardsData,
         stakedTokens,
         winningsSummary,
       ] = await Promise.all([
-        api.getUnclaimedRaffleDeposits(address),
-        api.getUnclaimedDonatedNFTsByUser(address),
-        api.getClaimedDonatedNFTsByUser(address),
-        api.getERC20DonationsByUser(address),
-        api.getStakingCSTRewardsToClaim(address),
-        api.getStakedCSTTokensByUser(address),
-        api.getUserWinnings(address),
+        api.getUnclaimedRaffleDeposits(address!),
+        api.getUnclaimedDonatedNFTsByUser(address!),
+        api.getClaimedDonatedNFTsByUser(address!),
+        api.getERC20DonationsByUser(address!),
+        api.getStakingCSTRewardsToClaim(address!),
+        api.getStakedCSTTokensByUser(address!),
+        api.getUserWinnings(address!),
       ]);
 
-      // Sort raffle winnings by timestamp (most recent first)
-      setRaffleETHWinnings(
-        raffleDeposits.sort(
-          (a: RaffleWinning, b: RaffleWinning) => b.TimeStamp - a.TimeStamp
-        )
+      const raffleETHWinnings = raffleDeposits.sort(
+        (a: RaffleWinning, b: RaffleWinning) => b.TimeStamp - a.TimeStamp
       );
 
-      // Transform donated NFTs from API response
       const transformNFT = (nft: ApiDonatedNFT, claimed: boolean): DonatedNFT => ({
         RecordId: nft.RecordId,
         Tx: {
@@ -271,29 +241,17 @@ export default function MyWinningsPage() {
         Claimed: claimed,
       });
 
-      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft) => 
-        transformNFT(nft, false)
-      );
-      const transformedClaimedNFTs = claimedNFTs.map((nft) => 
-        transformNFT(nft, true)
+      const donatedNFTs = [
+        ...unclaimedNFTsRaw.map((nft) => transformNFT(nft, false)),
+        ...claimedNFTsRaw.map((nft) => transformNFT(nft, true)),
+      ].sort((a: DonatedNFT, b: DonatedNFT) => a.TimeStamp - b.TimeStamp);
+
+      const donatedERC20 = erc20Tokens.sort(
+        (a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp
       );
 
-      setDonatedNFTs(
-        [...transformedUnclaimedNFTs, ...transformedClaimedNFTs].sort(
-          (a: DonatedNFT, b: DonatedNFT) => a.TimeStamp - b.TimeStamp
-        )
-      );
+      const stakingRewards = stakingRewardsData as unknown as StakingReward[];
 
-      // Sort ERC20 tokens by timestamp (most recent first)
-      setDonatedERC20(
-        erc20Tokens.sort(
-          (a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp
-        )
-      );
-      setStakingRewards(stakingRewardsData as unknown as StakingReward[]);
-      
-      // Extract action IDs from staked tokens
-      // Note: StakeActionId is inside TokenInfo object
       const actionIds = stakedTokens.map((stakedToken: {
         TokenInfo: {
           TokenId: number;
@@ -305,40 +263,27 @@ export default function MyWinningsPage() {
         StakeActionId: stakedToken.TokenInfo.StakeActionId,
         StakeTimeStamp: stakedToken.TokenInfo.StakeTimeStamp,
       }));
-      
+
       console.log('Raw staked tokens data:', stakedTokens);
       console.log('Extracted staked token actions:', actionIds);
-      
-      // Validate we got real action IDs
+
       const validActionIds = actionIds.filter((a: StakedTokenAction) => a.StakeActionId > 0);
       if (validActionIds.length === 0 && stakedTokens.length > 0) {
         console.warn('Warning: No valid StakeActionIds found. Data structure may have changed.');
       }
-      
-      setStakedTokenActions(actionIds);
 
-      // Calculate totals
-      const ethTotal = raffleDeposits.reduce(
-        (sum: number, w: RaffleWinning) => sum + w.Amount,
-        0
+      const totalEthToClaim = raffleDeposits.reduce(
+        (sum: number, w: RaffleWinning) => sum + w.Amount, 0
       );
-      const stakingTotal = (stakingRewardsData as unknown as StakingReward[]).reduce(
-        (sum: number, r: StakingReward) => sum + r.PendingToClaimEth,
-        0
+      const totalChronoWarriorEth = Number(winningsSummary?.ETHChronoWarriorToClaim) || 0;
+      const totalStakingRewards = stakingRewards.reduce(
+        (sum: number, r: StakingReward) => sum + r.PendingToClaimEth, 0
       );
 
-      setTotalEthToClaim(ethTotal);
-      setTotalChronoWarriorEth(Number(winningsSummary?.ETHChronoWarriorToClaim) || 0);
-      setTotalStakingRewards(stakingTotal);
-
-      // Fetch round timeouts for raffle winnings
       const uniqueRounds: number[] = [
-        ...new Set<number>(
-          raffleDeposits.map((w: RaffleWinning) => w.RoundNum)
-        ),
+        ...new Set<number>(raffleDeposits.map((w: RaffleWinning) => w.RoundNum)),
       ];
-      const timeouts: Record<number, number> = {};
-
+      const roundTimeouts: Record<number, number> = {};
       for (const roundNum of uniqueRounds) {
         try {
           const timeoutData = await readContract(wagmiConfig, {
@@ -348,25 +293,38 @@ export default function MyWinningsPage() {
             functionName: 'roundTimeoutTimesToWithdrawPrizes',
             args: [BigInt(roundNum)]
           });
-          
           if (timeoutData) {
-            timeouts[roundNum] = Number(timeoutData);
+            roundTimeouts[roundNum] = Number(timeoutData);
           }
         } catch (err) {
           console.error(`Error fetching timeout for round ${roundNum}:`, err);
         }
       }
-      setRoundTimeouts(timeouts);
-    } catch (error) {
-      console.error("Error fetching winnings:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [address, isConnected]);
 
-  useEffect(() => {
-    fetchWinnings();
-  }, [fetchWinnings]);
+      return {
+        raffleETHWinnings,
+        donatedNFTs,
+        donatedERC20,
+        stakingRewards,
+        stakedTokenActions: actionIds as StakedTokenAction[],
+        totalEthToClaim,
+        totalChronoWarriorEth,
+        totalStakingRewards,
+        roundTimeouts,
+      };
+    },
+    { enabled: !!address }
+  );
+
+  const raffleETHWinnings = winningsData?.raffleETHWinnings ?? [];
+  const donatedNFTs = winningsData?.donatedNFTs ?? [];
+  const donatedERC20 = winningsData?.donatedERC20 ?? [];
+  const stakingRewards = winningsData?.stakingRewards ?? [];
+  const stakedTokenActions = winningsData?.stakedTokenActions ?? [];
+  const roundTimeouts = winningsData?.roundTimeouts ?? {};
+  const totalEthToClaim = winningsData?.totalEthToClaim ?? 0;
+  const totalChronoWarriorEth = winningsData?.totalChronoWarriorEth ?? 0;
+  const totalStakingRewards = winningsData?.totalStakingRewards ?? 0;
 
   // Watch for successful prizes wallet transactions
   useEffect(() => {
@@ -399,16 +357,15 @@ export default function MyWinningsPage() {
       }
       
       setPendingClaim({ type: null });
-      // Refresh winnings data after a delay to allow backend to index the transaction
       setTimeout(() => {
-        fetchWinnings();
+        refetch();
       }, 3000);
     }
   }, [
     pendingClaim,
     prizesWallet.isTransactionPending,
     prizesWallet.write.status.isSuccess,
-    fetchWinnings,
+    refetch,
     showSuccess,
   ]);
 
@@ -450,16 +407,15 @@ export default function MyWinningsPage() {
     ) {
       showSuccess(`Successfully unstaked ${pendingClaim.data?.count} NFT(s) and claimed all rewards! Refreshing data...`);
       setPendingClaim({ type: null });
-      // Refresh winnings data after a delay to allow backend to index the transaction
       setTimeout(() => {
-        fetchWinnings();
+        refetch();
       }, 3000);
     }
   }, [
     pendingClaim,
     stakingWallet.status.isPending,
     stakingWallet.status.isSuccess,
-    fetchWinnings,
+    refetch,
     showSuccess,
   ]);
 

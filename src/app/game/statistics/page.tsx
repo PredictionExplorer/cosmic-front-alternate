@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useApiData } from "@/contexts/ApiDataContext";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -226,12 +227,9 @@ export default function StatisticsPage() {
   const [bidHistoryPage, setBidHistoryPage] = useState(1);
   const bidsPerPage = 20;
 
-  // Fetch main dashboard data
-  const { data: dashboardRaw, isLoading: loading } = useApiQuery(
-    "stats-dashboard",
-    () => api.getDashboardInfo(),
-  );
-  const data = dashboardRaw as unknown as DashboardData | null;
+  // Dashboard data from global context
+  const { dashboardData, isLoading: loading } = useApiData();
+  const data = dashboardData as unknown as DashboardData | null;
 
   // Fetch current round bids (depends on dashboard data)
   const { data: currentRoundBidsRaw } = useApiQuery(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Grid3x3, List, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +22,7 @@ import { useNotification } from "@/contexts/NotificationContext";
 import { CONTRACTS } from "@/lib/web3/contracts";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 interface NFTData {
   TokenId: number;
@@ -54,10 +55,6 @@ export default function MyNFTsPage() {
   const [filter, setFilter] = useState<"all" | "staked" | "unstaked">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [nfts, setNfts] = useState<NFTData[]>([]);
-  const [stakedNFTs, setStakedNFTs] = useState<NFTData[]>([]);
-  const [stakedTokenIds, setStakedTokenIds] = useState<number[]>([]);
   const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
 
   // Staking hooks
@@ -71,35 +68,24 @@ export default function MyNFTsPage() {
     CONTRACTS.STAKING_WALLET_CST
   );
 
-  // Fetch user's NFTs
-  useEffect(() => {
-    async function fetchNFTs() {
-      if (!address || !isConnected) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        
-        // Fetch user's NFTs and staked NFTs
-        const [userNFTs, stakedTokens] = await Promise.all([
-          api.getCSTTokensByUser(address),
-          api.getStakedCSTTokensByUser(address),
-        ]);
-
-        setNfts(userNFTs);
-        setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
-        setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
-      } catch (error) {
-        console.error("Error fetching NFTs:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchNFTs();
-  }, [address, isConnected]);
+  const { data: nftData, isLoading: loading, refetch } = useApiQuery(
+    "account-nfts-" + address,
+    async () => {
+      const [userNFTs, stakedTokens] = await Promise.all([
+        api.getCSTTokensByUser(address!),
+        api.getStakedCSTTokensByUser(address!),
+      ]);
+      return {
+        nfts: userNFTs as NFTData[],
+        stakedNFTs: stakedTokens.map((token: StakedToken) => token.TokenInfo) as NFTData[],
+        stakedTokenIds: stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId) as number[],
+      };
+    },
+    { enabled: !!address }
+  );
+  const nfts = nftData?.nfts ?? [];
+  const stakedNFTs = nftData?.stakedNFTs ?? [];
+  const stakedTokenIds = nftData?.stakedTokenIds ?? [];
 
   // Handle approval
   const handleApprove = async () => {
@@ -175,18 +161,8 @@ export default function MyNFTsPage() {
         `Successfully staked NFT #${tokenId}!`
       );
 
-      // Refresh NFT list
       setTimeout(() => {
-        if (address) {
-          Promise.all([
-            api.getCSTTokensByUser(address),
-            api.getStakedCSTTokensByUser(address),
-          ]).then(([userNFTs, stakedTokens]) => {
-            setNfts(userNFTs);
-            setStakedNFTs(stakedTokens.map((token: StakedToken) => token.TokenInfo));
-            setStakedTokenIds(stakedTokens.map((token: StakedToken) => token.TokenInfo.TokenId));
-          });
-        }
+        refetch();
       }, 2000);
     } catch (error: unknown) {
       console.error("Staking error:", error);
