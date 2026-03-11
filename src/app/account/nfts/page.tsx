@@ -23,6 +23,7 @@ import { CONTRACTS } from "@/lib/web3/contracts";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import type { ApiStakedCSTToken } from "@/services/apiTypes";
 
 interface NFTData {
   TokenId: number;
@@ -39,16 +40,7 @@ interface NFTData {
   WasUnstaked: boolean;
 }
 
-interface StakedToken {
-  TokenInfo: NFTData;
-  StakeEvtLogId: number;
-  StakeBlockNum: number;
-  StakeActionId: number;
-  StakeTimeStamp: number;
-  StakeDateTime: string;
-  UserAddr: string;
-  UserAid: number;
-}
+type StakedToken = ApiStakedCSTToken;
 
 export default function MyNFTsPage() {
   const { address, isConnected } = useAccount();

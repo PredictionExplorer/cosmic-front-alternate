@@ -24,55 +24,10 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { formatDate } from "@/lib/utils";
 import api from "@/services/api";
+import type { ApiDonatedNFT, ApiDonatedERC20 } from "@/services/apiTypes";
 
-// ─── Interfaces ──────────────────────────────────────────────────────────────
-
-interface DonatedNFT {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  Index: number;
-  RoundNum: number;
-  DonorAid: number;
-  DonorAddr: string;
-  TokenAddr: string;
-  NFTTokenId: number;
-  NFTTokenURI: string;
-  ImageURL?: string;
-  WinnerAid?: number;
-  WinnerAddr?: string;
-  Claimed?: boolean;
-}
-
-interface DonatedERC20 {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  RoundNum: number;
-  TokenAid: number;
-  TokenAddr: string;
-  AmountDonated: string;
-  AmountDonatedEth: number;
-  AmountClaimed: string;
-  AmountClaimedEth: number;
-  DonateClaimDiff: string;
-  DonateClaimDiffEth: number;
-  WinnerAid: number;
-  WinnerAddr: string;
-  Claimed: boolean;
-}
+type DonatedNFT = ApiDonatedNFT & { ImageURL?: string };
+type DonatedERC20 = ApiDonatedERC20;
 
 // ─── NFT Image Card Component ─────────────────────────────────────────────────
 

@@ -11,20 +11,7 @@ import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
 import { formatDate, formatDuration, safeTimestamp } from '@/lib/utils';
 import api from '@/services/api';
-
-// API Response Interface
-interface RoundStats {
-	RoundNum: number;
-	TotalBids: number;
-	TotalDonatedNFTs: number;
-	NumERC20Donations: number;
-	TotalRaffleEthDeposits: string;
-	TotalRaffleEthDepositsEth: number;
-	TotalRaffleNFTs: number;
-	TotalDonatedCount: number;
-	TotalDonatedAmount: string;
-	TotalDonatedAmountEth: number;
-}
+import type { ApiCurRoundStats } from "@/services/apiTypes";
 
 interface MainPrize {
 	WinnerAid: number;
@@ -81,7 +68,7 @@ interface ApiRoundData {
 	StakingDeposit: StakingDeposit;
 	EnduranceChampion: EnduranceChampion;
 	ChronoWarrior: ChronoWarrior;
-	RoundStats: RoundStats;
+	RoundStats: ApiCurRoundStats;
 	RaffleNFTWinners: unknown;
 	StakingNFTWinners: unknown;
 	RaffleETHDeposits: unknown;

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { formatEth, shortenAddress } from "@/lib/utils";
 import api from "@/services/api";
 import { useApiData } from "@/contexts/ApiDataContext";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 
 interface LeaderboardEntry {
   rank: number;
@@ -26,10 +27,7 @@ interface PrizeHistoryItem {
   Address?: string;
 }
 
-interface BidItem {
-  BidderAddr?: string;
-  BidPriceEth?: number;
-}
+type BidItem = Pick<ComponentBidData, 'BidderAddr' | 'BidPriceEth'>;
 
 export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<"all-time" | "current">("all-time");

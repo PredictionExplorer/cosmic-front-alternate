@@ -15,40 +15,11 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { shortenAddress } from "@/lib/utils";
 import { api, getAssetsUrl } from "@/services/api";
+import type { ApiCSTToken } from "@/services/apiTypes";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useNotification } from "@/contexts/NotificationContext";
 
-interface NFTData {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  ContractAddr: string;
-  TokenId: number;
-  WinnerAid: number;
-  WinnerAddr: string;
-  CurOwnerAid: number;
-  CurOwnerAddr: string;
-  Seed: string;
-  RoundNum: number;
-  RecordType: number;
-  TokenName: string;
-  Staked: boolean;
-  StakedOwnerAid: number;
-  StakedOwnerAddr: string;
-  StakeActionId: number;
-  StakeTimeStamp: number;
-  StakeDateTime: string;
-  UnstakeActionId: number;
-  WasUnstaked: boolean;
-  ActualUnstakeTimeStamp: number;
-  ActualUnstakeDateTime: string;
-}
+type NFTData = ApiCSTToken;
 
 interface TokenListItem {
   TokenId: number;

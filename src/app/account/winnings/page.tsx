@@ -28,19 +28,14 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import type { ApiDonatedNFT } from "@/services/apiTypes";
+import type { ApiDonatedNFT, ApiDonatedERC20 } from "@/services/apiTypes";
+import type { ComponentRaffleDepositData } from "@/lib/apiTransforms";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { formatTime } from "@/lib/utils";
 import { useNotification } from "@/contexts/NotificationContext";
 
-interface RaffleWinning {
-  EvtLogId: number;
-  TxHash: string;
-  TimeStamp: number;
-  RoundNum: number;
-  Amount: number;
-}
+type RaffleWinning = ComponentRaffleDepositData;
 
 interface DonatedNFT {
   RecordId: number;
@@ -70,29 +65,7 @@ interface DonatedNFT {
   Claimed: boolean;
 }
 
-interface DonatedERC20 {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  RoundNum: number;
-  TokenAid: number;
-  TokenAddr: string;
-  AmountDonated: string;
-  AmountDonatedEth: number;
-  AmountClaimed: string;
-  AmountClaimedEth: number;
-  DonateClaimDiff: string;
-  DonateClaimDiffEth: number;
-  WinnerAid: number;
-  WinnerAddr: string;
-  Claimed: boolean;
-}
+type DonatedERC20 = ApiDonatedERC20;
 
 interface StakingReward {
   RecordId: number;

@@ -14,35 +14,10 @@ import { StatCard } from "@/components/game/StatCard";
 import { AlertCard } from "@/components/features/AlertCard";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
+import type { ApiUserInfo } from "@/services/apiTypes";
 import { isAddress, formatEther } from "viem";
 
-// User info API response interface
-interface UserInfoAPI {
-  AddressId?: number;
-  Address: string;
-  NumBids: number;
-  CosmicSignatureNumTransfers: number;
-  CosmicTokenNumTransfers?: number;
-  MaxBidAmount: number;
-  NumPrizes: number;
-  MaxWinAmount: number;
-  SumRaffleEthWinnings: number;
-  SumRaffleEthWithdrawal: number;
-  UnclaimedNFTs: number;
-  NumRaffleEthWinnings: number;
-  RaffleNFTsCount: number;
-  RewardNFTsCount: number;
-  TotalCSTokensWon: number;
-  TotalDonatedCount?: number;
-  TotalDonatedAmountEth?: number;
-  StakingStatisticsRWalk?: {
-    NumActiveStakers: number;
-    TotalNumStakeActions: number;
-    TotalNumUnstakeActions: number;
-    TotalTokensMinted: number;
-    TotalTokensStaked: number;
-  };
-}
+type UserInfoAPI = ApiUserInfo;
 
 // User winnings API response interface
 interface UserWinningsAPI {

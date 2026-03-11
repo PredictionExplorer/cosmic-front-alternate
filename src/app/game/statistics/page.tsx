@@ -17,20 +17,13 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { SystemModesTable } from "@/components/game/SystemModesTable";
 import { api } from "@/services/api";
+import type { ApiDashboardData } from "@/services/apiTypes";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 import type { SystemModeChange } from "@/contexts/SystemModeContext";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-interface Bid {
-  EvtLogId: number;
-  BidderAddr: string;
-  BidType: number;
-  BidPriceEth: number;
-  CstPriceEth?: number;
-  RoundNum: number;
-  TimeStamp: number;
-  TxHash: string;
-}
+type Bid = ComponentBidData;
 
 interface UniqueBidder {
   BidderAddr: string;
@@ -101,14 +94,9 @@ interface CSTBidData {
   AuctionDuration: number;
 }
 
-interface DashboardData {
-  CurRoundNum: number;
+interface DashboardData extends ApiDashboardData {
   TsRoundStart: number;
-  BidPriceEth: number;
-  CurNumBids: number;
-  PrizeAmountEth: number;
   PrizeClaimTs: number;
-  LastBidderAddr: string;
   CosmicGameBalanceEth: number;
   TotalPrizes: number;
   TotalPrizesPaidAmountEth: number;
@@ -117,10 +105,6 @@ interface DashboardData {
   NumDonatedNFTs: number;
   NumVoluntaryDonations: number;
   SumVoluntaryDonationsEth: number;
-  CurRoundStats: {
-    TotalDonatedNFTs: number;
-    TotalDonatedAmountEth: number;
-  };
   MainStats: {
     NumCSTokenMints: number;
     TotalRaffleEthDeposits: number;

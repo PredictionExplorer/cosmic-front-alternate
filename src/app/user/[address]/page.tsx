@@ -31,13 +31,11 @@ import type {
   ApiUserInfo as UserInfo,
 } from "@/services/apiTypes";
 import type { ComponentBidData as Bid } from "@/lib/apiTransforms";
+import type { ApiCSTToken } from "@/services/apiTypes";
 import { formatEther, isAddress } from "viem";
 import { safeTimestamp } from "@/lib/utils";
 
-interface CSTToken {
-  TokenId: number;
-  TokenName: string;
-}
+type CSTToken = Pick<ApiCSTToken, 'TokenId' | 'TokenName'>;
 
 interface StatItemProps {
   title: string;

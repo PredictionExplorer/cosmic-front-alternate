@@ -18,35 +18,11 @@ import {
 	CheckCircle2,
 	Loader2
 } from 'lucide-react';
+import type { ApiDashboardData } from "@/services/apiTypes";
 
-interface DashboardData {
-	ContractAddrs: {
-		CosmicGameAddr: string;
-		CosmicTokenAddr: string;
-		CosmicSignatureAddr: string;
-		RandomWalkAddr: string;
-		CosmicDaoAddr: string;
-		CharityWalletAddr: string;
-		MarketingWalletAddr: string;
-		PrizesWalletAddr: string;
-		StakingWalletCSTAddr: string;
-		StakingWalletRWalkAddr: string;
-	};
-	PrizePercentage: number;
-	ChronoWarriorPercentage: number;
-	RafflePercentage: number;
-	StakingPercentage: number;
-	NumRaffleEthWinnersBidding: number;
-	NumRaffleNFTWinnersBidding: number;
-	NumRaffleNFTWinnersStakingRWalk: number;
-	CharityPercentage: number;
-	TimeoutClaimPrize: number;
-	InitialSecondsUntilPrize: number;
-	CurRoundNum: number;
-	MainStats: {
-		TotalBids: number;
-		TotalRounds: number;
-	};
+interface DashboardData extends ApiDashboardData {
+	ContractAddrs: Record<string, string>;
+	MainStats: { TotalBids: number; TotalRounds: number };
 }
 
 interface ContractItemProps {

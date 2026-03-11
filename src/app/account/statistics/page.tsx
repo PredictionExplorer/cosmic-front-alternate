@@ -32,16 +32,14 @@ import type {
   ApiDonatedNFT as DonatedNFT,
   ApiDonatedERC20 as DonatedERC20,
   ApiUserInfo as UserInfo,
+  ApiCSTToken,
 } from "@/services/apiTypes";
 import type { ComponentBidData as Bid } from "@/lib/apiTransforms";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
 import { formatEther } from "viem";
 import { safeTimestamp } from "@/lib/utils";
 
-interface CSTToken {
-  TokenId: number;
-  TokenName: string;
-}
+type CSTToken = Pick<ApiCSTToken, 'TokenId' | 'TokenName'>;
 
 interface StatItemProps {
   title: string;

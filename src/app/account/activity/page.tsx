@@ -13,20 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { weiToEther } from "@/lib/utils";
-
-interface BidData {
-  EvtLogId: number;
-  RoundNum: number;
-  BidderAddr: string;
-  BidType: number;
-  BidPrice: string;
-  BidPriceEth: number;
-  RWalkNFTId: number;
-  NumCSTTokens: string;
-  TimeStamp: number;
-  TxHash: string;
-  Message: string;
-}
+import type { ComponentBidData } from "@/lib/apiTransforms";
 
 export default function MyActivityPage() {
   const { address, isConnected } = useAccount();
@@ -37,11 +24,11 @@ export default function MyActivityPage() {
     async () => {
       const userInfoResponse = await api.getUserInfo(address!);
       if (userInfoResponse && userInfoResponse.Bids) {
-        return (userInfoResponse.Bids as BidData[]).sort(
-          (a: BidData, b: BidData) => b.TimeStamp - a.TimeStamp
+        return (userInfoResponse.Bids as ComponentBidData[]).sort(
+          (a: ComponentBidData, b: ComponentBidData) => b.TimeStamp - a.TimeStamp
         );
       }
-      return [] as BidData[];
+      return [] as ComponentBidData[];
     },
     { enabled: !!address }
   );

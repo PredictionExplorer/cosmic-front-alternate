@@ -13,21 +13,8 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
 import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
+import type { ApiCurRoundStats } from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
-
-// API Response Interfaces
-interface RoundStats {
-  RoundNum: number;
-  TotalBids: number;
-  TotalDonatedNFTs: number;
-  NumERC20Donations: number;
-  TotalRaffleEthDeposits: string;
-  TotalRaffleEthDepositsEth: number;
-  TotalRaffleNFTs: number;
-  TotalDonatedCount: number;
-  TotalDonatedAmount: string;
-  TotalDonatedAmountEth: number;
-}
 
 interface RaffleNFTWinner {
   RecordId: number;
@@ -67,7 +54,7 @@ interface RaffleETHDeposit {
   ClaimDateTime: string;
 }
 
-interface ApiRoundInfo {
+interface RoundDetail {
   RoundNum: number;
   ClaimPrizeTx?: {
     Tx: {
@@ -123,7 +110,7 @@ interface ApiRoundInfo {
     CstAmountEth: number;
     NftTokenId: number;
   };
-  RoundStats: RoundStats;
+  RoundStats: ApiCurRoundStats;
   RaffleNFTWinners: RaffleNFTWinner[];
   StakingNFTWinners: RaffleNFTWinner[];
   RaffleETHDeposits: RaffleETHDeposit[];
@@ -138,7 +125,7 @@ export default function RoundDetailPage({
   const { id } = use(params);
   const roundNum = parseInt(id);
   
-  const [round, setRound] = useState<ApiRoundInfo | null>(null);
+  const [round, setRound] = useState<RoundDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
@@ -186,7 +173,7 @@ export default function RoundDetailPage({
       setError(null);
       try {
         const response = await api.getRoundInfo(roundNum);
-        setRound(response as unknown as ApiRoundInfo);
+        setRound(response as unknown as RoundDetail);
       } catch (err) {
         console.error("Error fetching round data:", err);
         setError("Failed to load round data. Please try again later.");
