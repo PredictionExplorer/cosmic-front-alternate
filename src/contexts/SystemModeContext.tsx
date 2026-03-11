@@ -26,6 +26,7 @@ import {
   ReactNode,
 } from 'react';
 import api from '@/services/api';
+import { reportError } from '@/lib/errorReporter';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -90,7 +91,7 @@ export function SystemModeProvider({
       // });
       // setCurrentMode(Number(result));
     } catch (err) {
-      console.error('[SystemMode] Failed to fetch system mode list:', err);
+      reportError(err, 'SystemMode.fetchData');
     } finally {
       setIsLoading(false);
     }

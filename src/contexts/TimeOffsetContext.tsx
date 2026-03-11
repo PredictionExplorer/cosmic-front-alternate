@@ -16,6 +16,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { useChainId } from 'wagmi';
 import api from '@/services/api';
+import { reportError } from '@/lib/errorReporter';
 
 /**
  * Time offset value in milliseconds
@@ -96,8 +97,7 @@ export function TimeOffsetProvider({ children, refreshInterval = 60000 }: TimeOf
 				}
 			}
 		} catch (error) {
-			console.error('[TimeOffset] Failed to fetch server time:', error);
-			// On error, use 0 offset
+			reportError(error, 'TimeOffset.fetchOffset');
 			setOffset(0);
 		} finally {
 			setIsReady(true);

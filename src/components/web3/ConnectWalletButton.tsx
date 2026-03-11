@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
 import { useBalance, useAccount } from "wagmi";
 import { api } from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -78,11 +79,25 @@ export function ConnectWalletButton({
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  // NFT state
-  const [nftCount, setNftCount] = useState(0);
-  const [stakedCount, setStakedCount] = useState(0);
-  const [nftLoading, setNftLoading] = useState(false);
+
+  // NFT counts via cached query
+  const { data: nftData } = useApiQuery<{ nftCount: number; stakedCount: number }>(
+    connectedAddress ? `wallet-nfts-${connectedAddress}` : "",
+    async () => {
+      const [userNFTs, stakedTokens] = await Promise.all([
+        api.getCSTTokensByUser(connectedAddress!),
+        api.getStakedCSTTokensByUser(connectedAddress!),
+      ]);
+      const ownedNFTs = userNFTs || [];
+      const staked = stakedTokens || [];
+      const allNFTIds = new Set([
+        ...ownedNFTs.map((nft: NFTData) => nft.TokenId),
+        ...staked.map((token: StakedToken) => token.TokenInfo.TokenId),
+      ]);
+      return { nftCount: allNFTIds.size, stakedCount: staked.length };
+    },
+    { enabled: !!connectedAddress },
+  );
   
   // Account menu items
   const accountMenuItems = [
@@ -106,33 +121,6 @@ export function ConnectWalletButton({
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isDropdownOpen]);
-  
-  // Fetch NFT data when component mounts or dropdown opens
-  const fetchNFTData = async (address: string) => {
-    try {
-      setNftLoading(true);
-      const [userNFTs, stakedTokens] = await Promise.all([
-        api.getCSTTokensByUser(address),
-        api.getStakedCSTTokensByUser(address),
-      ]);
-      
-      const ownedNFTs = userNFTs || [];
-      const staked = stakedTokens || [];
-      
-      // Merge and deduplicate NFTs
-      const allNFTIds = new Set([
-        ...ownedNFTs.map((nft: NFTData) => nft.TokenId),
-        ...staked.map((token: StakedToken) => token.TokenInfo.TokenId)
-      ]);
-      
-      setNftCount(allNFTIds.size);
-      setStakedCount(staked.length);
-    } catch (error) {
-      console.error("Error fetching NFT data:", error);
-    } finally {
-      setNftLoading(false);
-    }
-  };
   
   return (
     <ConnectButton.Custom>
@@ -198,14 +186,7 @@ export function ConnectWalletButton({
                   <Button
                     size={size}
                     variant="outline"
-                    onClick={() => {
-                      const newState = !isDropdownOpen;
-                      setIsDropdownOpen(newState);
-                      // Fetch NFT data when opening dropdown
-                      if (newState && account?.address) {
-                        fetchNFTData(account.address);
-                      }
-                    }}
+                    onClick={() => setIsDropdownOpen((prev) => !prev)}
                     type="button"
                     className="group min-w-[160px]"
                   >
@@ -262,11 +243,11 @@ export function ConnectWalletButton({
                           )}
                           
                           {/* NFT Info */}
-                          {!nftLoading && nftCount > 0 && (
+                          {nftData && nftData.nftCount > 0 && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-text-muted/10">
                               <span className="text-sm text-text-secondary">NFTs</span>
                               <span className="font-mono text-sm text-text-primary font-medium">
-                                {nftCount} owned • {stakedCount} staked
+                                {nftData.nftCount} owned • {nftData.stakedCount} staked
                               </span>
                             </div>
                           )}

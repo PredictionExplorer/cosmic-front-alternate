@@ -9,12 +9,13 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAccount } from "wagmi";
 import { Card } from "@/components/ui/Card";
 import { useApiData } from "@/contexts/ApiDataContext";
 import api from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 interface ProbabilityData {
   raffleETH: number;
@@ -26,69 +27,43 @@ interface ProbabilityData {
 export function ProbabilityDisplay() {
   const { address } = useAccount();
   const { dashboardData } = useApiData();
-  const [probabilities, setProbabilities] = useState<ProbabilityData | null>(
-    null
+
+  const currentRound = dashboardData?.CurRoundNum ?? 0;
+
+  const { data: bidsData, isLoading } = useApiQuery(
+    currentRound > 0 ? `bids-round-${currentRound}` : "",
+    () => api.getBidListByRound(currentRound, "desc"),
+    { enabled: currentRound > 0, refetchInterval: 15000 },
   );
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    async function calculateProbability() {
-      if (!address || !dashboardData) {
-        setProbabilities(null);
-        return;
-      }
+  const probabilities = useMemo<ProbabilityData | null>(() => {
+    if (!address || !dashboardData || !bidsData) return null;
 
-      setIsLoading(true);
-      try {
-        const currentRound = dashboardData.CurRoundNum;
-        const numEthWinners = dashboardData.NumRaffleEthWinnersBidding || 0;
-        const numNftWinners = dashboardData.NumRaffleNFTWinnersBidding || 0;
+    const totalBids = bidsData.length;
+    const userBids = bidsData.filter(
+      (bid: { BidderAddr?: string }) =>
+        bid.BidderAddr?.toLowerCase() === address.toLowerCase()
+    ).length;
 
-        // Fetch all bids for current round
-        const bids = await api.getBidListByRound(currentRound, "desc");
-        const totalBids = bids.length;
+    if (totalBids === 0 || userBids === 0) return null;
 
-        // Count user's bids in current round
-        const userBids = bids.filter(
-          (bid: { BidderAddr?: string }) =>
-            bid.BidderAddr?.toLowerCase() === address.toLowerCase()
-        ).length;
+    const numEthWinners = dashboardData.NumRaffleEthWinnersBidding || 0;
+    const numNftWinners = dashboardData.NumRaffleNFTWinnersBidding || 0;
 
-        if (totalBids === 0 || userBids === 0) {
-          setProbabilities(null);
-          return;
-        }
+    const calculateWinProbability = (numWinners: number): number => {
+      if (numWinners === 0) return 0;
+      const probability =
+        1 - Math.pow((totalBids - userBids) / totalBids, numWinners);
+      return Math.max(0, Math.min(1, probability));
+    };
 
-        // Calculate probability using the formula:
-        // P(win) = 1 - P(lose all draws)
-        // P(lose all draws) = ((totalBids - userBids) / totalBids)^numWinners
-        const calculateWinProbability = (numWinners: number): number => {
-          if (numWinners === 0) return 0;
-          const probability =
-            1 - Math.pow((totalBids - userBids) / totalBids, numWinners);
-          return Math.max(0, Math.min(1, probability)); // Clamp between 0 and 1
-        };
-
-        setProbabilities({
-          raffleETH: calculateWinProbability(numEthWinners),
-          raffleNFT: calculateWinProbability(numNftWinners),
-          userBids,
-          totalBids,
-        });
-      } catch (error) {
-        console.error("Failed to calculate probabilities:", error);
-        setProbabilities(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    calculateProbability();
-    
-    // Refresh probabilities every 15 seconds
-    const interval = setInterval(calculateProbability, 15000);
-    return () => clearInterval(interval);
-  }, [address, dashboardData]);
+    return {
+      raffleETH: calculateWinProbability(numEthWinners),
+      raffleNFT: calculateWinProbability(numNftWinners),
+      userBids,
+      totalBids,
+    };
+  }, [address, dashboardData, bidsData]);
 
   // Don't render if user is not connected or has no bids
   if (!address || !probabilities || probabilities.userBids === 0) {

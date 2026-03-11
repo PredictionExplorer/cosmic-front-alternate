@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import { explorer } from '@/lib/web3/chains';
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { motion } from "framer-motion";
 import { Trophy, ArrowLeft, Clock, User, MessageSquare, Gift, ExternalLink, Image as ImageIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -36,35 +37,22 @@ export default function BidDetailPage({
   const resolvedParams = use(params);
   const bidId = parseInt(resolvedParams.id);
 
-  const [bidInfo, setBidInfo] = useState<BidInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [nftImageUrl, setNftImageUrl] = useState<string>("");
   const [nftImageLoading, setNftImageLoading] = useState(false);
   const [nftImageError, setNftImageError] = useState(false);
 
-  useEffect(() => {
-    async function fetchBidInfo() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.getBidInfo(bidId);
-        // API returns { BidInfo: {...}, error: "", status: 1 }
-        if (response && typeof response === 'object' && 'BidInfo' in response) {
-          setBidInfo(response.BidInfo as BidInfo);
-        } else {
-          setBidInfo(response as unknown as BidInfo);
-        }
-      } catch (err) {
-        console.error("Failed to fetch bid info:", err);
-        setError("Failed to load bid information");
-      } finally {
-        setLoading(false);
+  const { data: bidInfo, isLoading: loading, error: fetchError } = useApiQuery<BidInfo>(
+    "bid-info-" + bidId,
+    async () => {
+      const response = await api.getBidInfo(bidId);
+      if (response && typeof response === 'object' && 'BidInfo' in response) {
+        return response.BidInfo as BidInfo;
       }
-    }
-
-    fetchBidInfo();
-  }, [bidId]);
+      return response as unknown as BidInfo;
+    },
+    { enabled: !!bidId },
+  );
+  const error = fetchError?.message ?? null;
 
   // Resolve NFT image: prefer ImageURL from API, then fetch token URI metadata
   useEffect(() => {

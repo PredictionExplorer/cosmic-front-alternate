@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { explorer } from '@/lib/web3/chains';
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { motion } from "framer-motion";
 import { Trophy, Gem, Award, TrendingUp, Activity, Loader2, Copy, CheckCircle2, ExternalLink, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -64,11 +65,6 @@ function AccountPageContent() {
   const viewAddress = addressParam || connectedAddress;
   const isViewingOwnAccount = connectedAddress && viewAddress?.toLowerCase() === connectedAddress.toLowerCase();
 
-  const [userInfo, setUserInfo] = useState<UserInfoAPI>(DEFAULT_USER_INFO);
-  const [balance, setBalance] = useState({ CosmicToken: 0, ETH: 0 });
-  const [winnings, setWinnings] = useState<UserWinningsAPI>(DEFAULT_WINNINGS);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const handleCopyAddress = () => {
@@ -79,69 +75,60 @@ function AccountPageContent() {
     }
   };
 
-  // Fetch user data from API
-  useEffect(() => {
-    async function fetchUserData() {
-      if (!viewAddress) {
-        setLoading(false);
-        return;
+  const addressValid = !!viewAddress && isAddress(viewAddress);
+
+  const { data: accountData, isLoading: loading, error: fetchError } = useApiQuery(
+    "account-overview-" + viewAddress,
+    async () => {
+      const [userInfoResponse, balanceResponse, winningsResponse] = await Promise.all([
+        api.getUserInfo(viewAddress!),
+        api.getUserBalance(viewAddress!),
+        api.getUserWinnings(viewAddress!),
+      ]);
+
+      let userInfo: UserInfoAPI = DEFAULT_USER_INFO;
+      if (userInfoResponse && userInfoResponse.UserInfo) {
+        userInfo = userInfoResponse.UserInfo as UserInfoAPI;
       }
 
-      // Validate Ethereum address
-      if (!isAddress(viewAddress)) {
-        setError("Invalid Ethereum address");
-        setLoading(false);
-        return;
+      let balance = { CosmicToken: 0, ETH: 0 };
+      if (balanceResponse) {
+        balance = {
+          CosmicToken: Number(formatEther(BigInt((balanceResponse.CosmicTokenBalance || "0") as string))),
+          ETH: Number(formatEther(BigInt((balanceResponse.ETH_Balance || "0") as string))),
+        };
       }
 
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const [userInfoResponse, balanceResponse, winningsResponse] = await Promise.all([
-          api.getUserInfo(viewAddress),
-          api.getUserBalance(viewAddress),
-          api.getUserWinnings(viewAddress),
-        ]);
-
-        // Set user info
-        if (userInfoResponse && userInfoResponse.UserInfo) {
-          setUserInfo(userInfoResponse.UserInfo as UserInfoAPI);
-        }
-
-        // Set balances
-        if (balanceResponse) {
-          setBalance({
-            CosmicToken: Number(formatEther(BigInt((balanceResponse.CosmicTokenBalance || "0") as string))),
-            ETH: Number(formatEther(BigInt((balanceResponse.ETH_Balance || "0") as string))),
-          });
-        }
-
-        // Set winnings — clamp numeric prize fields to ≥ 0 so stale/partial
-        // API responses after claiming can't produce negative displayed amounts.
-        if (winningsResponse) {
-          const wr = winningsResponse as unknown as UserWinningsAPI;
-          setWinnings({
-            ...wr,
-            ETHRaffleToClaim: Math.max(0, Number(wr.ETHRaffleToClaim) || 0),
-            ETHChronoWarriorToClaim: Math.max(0, Number(wr.ETHChronoWarriorToClaim) || 0),
-            UnclaimedStakingReward: Math.max(0, Number(wr.UnclaimedStakingReward) || 0),
-            DonatedERC20Tokens: wr.DonatedERC20Tokens || [],
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching user data:", err);
-        const msg = (err as { response?: { status?: number } })?.response?.status === 404
-          ? "This address has no activity in Cosmic Signature yet."
-          : "Could not load account data. The API may be temporarily unavailable — please try again shortly.";
-        setError(msg);
-      } finally {
-        setLoading(false);
+      // Clamp numeric prize fields to >= 0 so stale/partial
+      // API responses after claiming can't produce negative displayed amounts.
+      let winnings: UserWinningsAPI = DEFAULT_WINNINGS;
+      if (winningsResponse) {
+        const wr = winningsResponse as unknown as UserWinningsAPI;
+        winnings = {
+          ...wr,
+          ETHRaffleToClaim: Math.max(0, Number(wr.ETHRaffleToClaim) || 0),
+          ETHChronoWarriorToClaim: Math.max(0, Number(wr.ETHChronoWarriorToClaim) || 0),
+          UnclaimedStakingReward: Math.max(0, Number(wr.UnclaimedStakingReward) || 0),
+          DonatedERC20Tokens: wr.DonatedERC20Tokens || [],
+        };
       }
-    }
 
-    fetchUserData();
-  }, [viewAddress]);
+      return { userInfo, balance, winnings };
+    },
+    { enabled: addressValid },
+  );
+
+  const userInfo = accountData?.userInfo ?? DEFAULT_USER_INFO;
+  const balance = accountData?.balance ?? { CosmicToken: 0, ETH: 0 };
+  const winnings = accountData?.winnings ?? DEFAULT_WINNINGS;
+
+  const error = fetchError
+    ? (fetchError as unknown as { response?: { status?: number } })?.response?.status === 404
+      ? "This address has no activity in Cosmic Signature yet."
+      : "Could not load account data. The API may be temporarily unavailable — please try again shortly."
+    : viewAddress && !isAddress(viewAddress)
+      ? "Invalid Ethereum address"
+      : null;
 
   const hasUnclaimedPrizes =
     winnings.ETHRaffleToClaim > 0 ||

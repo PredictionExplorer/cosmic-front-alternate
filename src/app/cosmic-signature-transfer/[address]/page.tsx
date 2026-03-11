@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { explorer } from '@/lib/web3/chains';
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink, Calendar } from "lucide-react";
@@ -37,29 +37,13 @@ export default function CosmicSignatureTransferPage() {
   const params = useParams();
   const address = params.address as string;
   
-  const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchTransfers() {
-      if (!address) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.getCSTTransfers(address);
-        setTransfers(data as Transfer[]);
-      } catch (err) {
-        console.error("Failed to fetch transfers:", err);
-        setError("Failed to load transfer history");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTransfers();
-  }, [address]);
+  const { data: transfersData, isLoading: loading, error: fetchError } = useApiQuery<Transfer[]>(
+    "cst-transfers-" + address,
+    () => api.getCSTTransfers(address) as Promise<unknown> as Promise<Transfer[]>,
+    { enabled: !!address },
+  );
+  const transfers = transfersData ?? [];
+  const error = fetchError?.message ?? null;
 
   return (
     <div className="min-h-screen">

@@ -172,7 +172,7 @@ export default function PlayPage() {
 
   // Prize time
   const { data: mainPrizeTime } = useApiQuery<number | null>(
-    "play-prize-time",
+    "prize-time",
     () => api.getPrizeTime(),
     { refetchInterval: 10000 },
   );

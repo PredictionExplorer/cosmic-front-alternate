@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Users, Clock, TrendingUp, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import Link from "next/link";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
@@ -29,136 +30,67 @@ export default function RoundDetailPage({
   const { id } = use(params);
   const roundNum = parseInt(id);
   
-  const [round, setRound] = useState<RoundDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "overview" | "winners" | "stats" | "bids" | "donations"
   >("overview");
 
-  // Bids state
-  const [bids, setBids] = useState<
-    Array<{
-      id: number;
-      bidder: string;
-      bidType: string;
-      amount: number;
-      timestamp: number;
-      message?: string;
-    }>
-  >([]);
-  const [isLoadingBids, setIsLoadingBids] = useState(true);
+  const { data: round, isLoading: loading, error: roundError } = useApiQuery<RoundDetail>(
+    "round-info-" + roundNum,
+    () => api.getRoundInfo(roundNum) as Promise<unknown> as Promise<RoundDetail>,
+  );
+  const error = roundError?.message ?? null;
 
-  // Donations state
-  const [ethDonations, setEthDonations] = useState<
-    Array<{
-      id: number;
-      donor: string;
-      amount: number;
-      timestamp: number;
-      message?: string;
-    }>
-  >([]);
-  const [nftDonations, setNftDonations] = useState<
-    Array<{
-      id: number;
-      donor: string;
-      tokenId: number;
-      contractAddress: string;
-      timestamp: number;
-    }>
-  >([]);
-  const [isLoadingDonations, setIsLoadingDonations] = useState(true);
+  const { data: bidsData, isLoading: isLoadingBids } = useApiQuery(
+    "bids-round-" + roundNum,
+    async () => {
+      const bidsData = await api.getBidListByRound(round!.RoundNum, "desc");
+      return bidsData.map((bid: ComponentBidData) => ({
+        id: bid.EvtLogId || 0,
+        bidder: bid.BidderAddr || "0x0",
+        bidType: bid.BidType === 0 ? "ETH" : "CST",
+        amount: bid.BidPriceEth || 0,
+        timestamp: bid.TimeStamp || 0,
+        message: bid.Message || undefined,
+      }));
+    },
+    { enabled: !!round },
+  );
+  const bids = bidsData ?? [];
 
-  // Fetch round data from API
-  useEffect(() => {
-    async function fetchRoundData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.getRoundInfo(roundNum);
-        setRound(response as unknown as RoundDetail);
-      } catch (err) {
-        console.error("Error fetching round data:", err);
-        setError("Failed to load round data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    }
+  const { data: donationsData, isLoading: isLoadingDonations } = useApiQuery(
+    "donations-round-" + roundNum,
+    async () => {
+      const [ethDonationsData, nftDonationsData] = await Promise.all([
+        api.getETHDonationsByRound(round!.RoundNum),
+        api.getNFTDonationsByRound(round!.RoundNum),
+      ]);
 
-    fetchRoundData();
-  }, [roundNum]);
+      const eth = ethDonationsData.map(
+        (donation: Record<string, unknown>) => ({
+          id: (donation.EvtLogId as number) || 0,
+          donor: (donation.DonorAddr as string) || "0x0",
+          amount: parseFloat((donation.Amount as string) || "0") / 1e18,
+          timestamp: (donation.TimeStamp as number) || 0,
+          message: (donation.Message as string) || undefined,
+        })
+      );
 
-  // Fetch bids for this round
-  useEffect(() => {
-    async function fetchBids() {
-      if (!round) return;
-      try {
-        const bidsData = await api.getBidListByRound(round.RoundNum, "desc");
-        const formattedBids = bidsData.map((bid: ComponentBidData) => ({
-          id: bid.EvtLogId || 0,
-          bidder: bid.BidderAddr || "0x0",
-          bidType: bid.BidType === 0 ? "ETH" : "CST",
-          amount: bid.BidPriceEth || 0,
-          timestamp: bid.TimeStamp || 0,
-          message: bid.Message || undefined,
-        }));
-        setBids(formattedBids);
-      } catch (error) {
-        console.error("Failed to fetch bids:", error);
-        reportError(error, "round bids fetch");
-        setBids([]);
-      } finally {
-        setIsLoadingBids(false);
-      }
-    }
-    fetchBids();
-  }, [round]);
+      const nft = nftDonationsData.map(
+        (donation: Record<string, unknown>) => ({
+          id: (donation.EvtLogId as number) || 0,
+          donor: (donation.DonorAddr as string) || "0x0",
+          tokenId: (donation.TokenId as number) || 0,
+          contractAddress: (donation.NftAddr as string) || "0x0",
+          timestamp: (donation.TimeStamp as number) || 0,
+        })
+      );
 
-  // Fetch donations for this round
-  useEffect(() => {
-    async function fetchDonations() {
-      if (!round) return;
-      try {
-        const [ethDonationsData, nftDonationsData] = await Promise.all([
-          api.getETHDonationsByRound(round.RoundNum),
-          api.getNFTDonationsByRound(round.RoundNum),
-        ]);
-
-        // Format ETH donations
-        const formattedEthDonations = ethDonationsData.map(
-          (donation: Record<string, unknown>) => ({
-            id: (donation.EvtLogId as number) || 0,
-            donor: (donation.DonorAddr as string) || "0x0",
-            amount: parseFloat((donation.Amount as string) || "0") / 1e18,
-            timestamp: (donation.TimeStamp as number) || 0,
-            message: (donation.Message as string) || undefined,
-          })
-        );
-        setEthDonations(formattedEthDonations);
-
-        // Format NFT donations
-        const formattedNftDonations = nftDonationsData.map(
-          (donation: Record<string, unknown>) => ({
-            id: (donation.EvtLogId as number) || 0,
-            donor: (donation.DonorAddr as string) || "0x0",
-            tokenId: (donation.TokenId as number) || 0,
-            contractAddress: (donation.NftAddr as string) || "0x0",
-            timestamp: (donation.TimeStamp as number) || 0,
-          })
-        );
-        setNftDonations(formattedNftDonations);
-      } catch (error) {
-        console.error("Failed to fetch donations:", error);
-        reportError(error, "round donations fetch");
-        setEthDonations([]);
-        setNftDonations([]);
-      } finally {
-        setIsLoadingDonations(false);
-      }
-    }
-    fetchDonations();
-  }, [round]);
+      return { eth, nft };
+    },
+    { enabled: !!round },
+  );
+  const ethDonations = donationsData?.eth ?? [];
+  const nftDonations = donationsData?.nft ?? [];
 
   // Loading state
   if (loading) {

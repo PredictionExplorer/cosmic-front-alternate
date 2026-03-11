@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Trophy, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
@@ -32,32 +33,18 @@ export default function RoundsArchivePage() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [page, setPage] = useState(0);
 	const [perPage, setPerPage] = useState(20);
-	const [rounds, setRounds] = useState<ApiRoundData[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	// Fetch rounds data from API
-	useEffect(() => {
-		const fetchRounds = async () => {
-			setLoading(true);
-			setError(null);
-			try {
-				const data = await api.getRoundList() as unknown as ApiRoundData[];
-				// Sort by timestamp (most recent first)
-				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => 
-					b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp
-				);
-				setRounds(sortedData);
-			} catch (err) {
-				console.error('Error fetching rounds:', err);
-				setError('Failed to load rounds data. Please try again later.');
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchRounds();
-	}, []);
+	const { data: roundsData, isLoading: loading, error: fetchError } = useApiQuery<ApiRoundData[]>(
+		'rounds-list',
+		async () => {
+			const data = await api.getRoundList() as unknown as ApiRoundData[];
+			return data.sort((a: ApiRoundData, b: ApiRoundData) =>
+				b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp
+			);
+		},
+	);
+	const rounds = roundsData ?? [];
+	const error = fetchError?.message ?? null;
 
 	// Reset page to 0 when search query or perPage changes
 	useEffect(() => {

@@ -10,8 +10,9 @@
  * Data source: API /system/admin_events/:start/:end  (getSystemEvents)
  */
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
 import { explorer } from '@/lib/web3/chains';
+import { useApiQuery } from "@/hooks/useApiQuery";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -279,28 +280,16 @@ export default function SystemEventPage({ params }: PageProps) {
   const roundNum = Number(round);
   const startId = Number(start);
   const endId = Number(end);
-  const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState<AdminEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.getSystemEvents(startId, endId);
-        setEvents(Array.isArray(data) ? (data as unknown as AdminEvent[]) : []);
-      } catch (err) {
-        console.error("Failed to fetch system events:", err);
-        setError("Failed to load system events");
-        reportError(err, "system events fetch");
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchEvents();
-  }, [startId, endId]);
+  const { data: eventsData, isLoading: loading, error: fetchError } = useApiQuery<AdminEvent[]>(
+    `system-events-${startId}-${endId}`,
+    async () => {
+      const data = await api.getSystemEvents(startId, endId);
+      return Array.isArray(data) ? (data as unknown as AdminEvent[]) : [];
+    },
+  );
+  const events = eventsData ?? [];
+  const error = fetchError?.message ?? null;
 
   return (
     <div className="min-h-screen">

@@ -86,7 +86,7 @@ export default function Home() {
     : 100; // Fallback to 100 if not loaded yet
 
   const { data: mainPrizeTime } = useApiQuery<number>(
-    "home-prize-time",
+    "prize-time",
     () => api.getPrizeTime(),
     { refetchInterval: 10000 },
   );
