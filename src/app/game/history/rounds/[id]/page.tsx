@@ -13,109 +13,12 @@ import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
 import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
-import type { ApiCurRoundStats } from "@/services/apiTypes";
+import type { ApiCurRoundStats, ApiRaffleNFTWinner, ApiRaffleDepositResponse, ApiRoundDetail } from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
 
-interface RaffleNFTWinner {
-  RecordId: number;
-  EvtLogId: number;
-  BlockNum: number;
-  TxId: number;
-  TxHash: string;
-  TimeStamp: number;
-  DateTime: string;
-  WinnerAddr: string;
-  WinnerAid: number;
-  RoundNum: number;
-  TokenId: number;
-  CstAmount: string;
-  CstAmountEth: number;
-  WinnerIndex: number;
-  IsRWalk: boolean;
-  IsStaker: boolean;
-}
-
-interface RaffleETHDeposit {
-  RecordId: number;
-  EvtLogId: number;
-  BlockNum: number;
-  TxId: number;
-  TxHash: string;
-  TimeStamp: number;
-  DateTime: string;
-  RecordType: number;
-  WinnerAddr: string;
-  WinnerAid: number;
-  WinnerIndex: number;
-  RoundNum: number;
-  Amount: number;
-  Claimed: boolean;
-  ClaimTimeStamp: number;
-  ClaimDateTime: string;
-}
-
-interface RoundDetail {
-  RoundNum: number;
-  ClaimPrizeTx?: {
-    Tx: {
-      EvtLogId: number;
-      BlockNum: number;
-      TxId: number;
-      TxHash: string;
-      TimeStamp: number;
-      DateTime: string;
-    };
-  };
-  MainPrize: {
-    WinnerAid: number;
-    WinnerAddr: string;
-    TimeoutTs: number;
-    EthAmount: string;
-    EthAmountEth: number;
-    CstAmount: string;
-    CstAmountEth: number;
-    NftTokenId: number;
-    Seed: string;
-  };
-  CharityDeposit: {
-    CharityAddress: string;
-    CharityAmount: string;
-    CharityAmountETH: number;
-  };
-  StakingDeposit: {
-    StakingDepositId: number;
-    StakingDepositAmount: string;
-    StakingDepositAmountEth: number;
-    StakingPerToken: string;
-    StakingPerTokenEth: number;
-    StakingNumStakedTokens: number;
-  };
-  EnduranceChampion: {
-    WinnerAddr: string;
-    NftTokenId: number;
-    CstAmount: string;
-    CstAmountEth: number;
-  };
-  LastCstBidder: {
-    WinnerAddr: string;
-    NftTokenId: number;
-    CstAmount: string;
-    CstAmountEth: number;
-  };
-  ChronoWarrior: {
-    WinnerAddr: string;
-    EthAmount: string;
-    EthAmountEth: number;
-    CstAmount: string;
-    CstAmountEth: number;
-    NftTokenId: number;
-  };
-  RoundStats: ApiCurRoundStats;
-  RaffleNFTWinners: RaffleNFTWinner[];
-  StakingNFTWinners: RaffleNFTWinner[];
-  RaffleETHDeposits: RaffleETHDeposit[];
-  AllPrizes: unknown[];
-}
+type RaffleNFTWinner = ApiRaffleNFTWinner;
+type RaffleETHDeposit = ApiRaffleDepositResponse;
+type RoundDetail = ApiRoundDetail;
 
 export default function RoundDetailPage({
   params,
@@ -571,7 +474,7 @@ export default function RoundDetailPage({
                         To Charity:
                       </span>
                       <span className="font-mono text-status-error">
-                        {round.CharityDeposit.CharityAmountETH.toFixed(4)} ETH
+                        {(round.CharityDeposit?.CharityAmountETH ?? 0).toFixed(4)} ETH
                       </span>
                     </div>
                   </div>
@@ -692,7 +595,7 @@ export default function RoundDetailPage({
                     },
                     { label: "Raffle", value: round.RoundStats.TotalRaffleEthDepositsEth },
                     { label: "Staking", value: round.StakingDeposit.StakingDepositAmountEth },
-                    { label: "Charity", value: round.CharityDeposit.CharityAmountETH },
+                    { label: "Charity", value: round.CharityDeposit?.CharityAmountETH ?? 0 },
                   ].map((item, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">

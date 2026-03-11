@@ -23,22 +23,9 @@ import { CONTRACTS } from "@/lib/web3/contracts";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import type { ApiStakedCSTToken } from "@/services/apiTypes";
+import type { ApiCSTToken, ApiStakedCSTToken } from "@/services/apiTypes";
 
-interface NFTData {
-  TokenId: number;
-  Seed: string;
-  Tx?: {
-    TimeStamp?: number;
-    DateTime?: string;
-    TxHash?: string;
-    BlockNum?: number;
-  };
-  TokenName?: string;
-  RoundNum: number;
-  Staked: boolean;
-  WasUnstaked: boolean;
-}
+type NFTData = Pick<ApiCSTToken, 'TokenId' | 'Seed' | 'Tx' | 'TokenName' | 'RoundNum' | 'Staked' | 'WasUnstaked'>;
 
 type StakedToken = ApiStakedCSTToken;
 

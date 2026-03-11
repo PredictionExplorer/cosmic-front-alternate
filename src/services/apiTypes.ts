@@ -310,3 +310,262 @@ export interface ApiRaffleDepositResponse {
   ClaimTimeStamp?: number;
   ClaimDateTime?: string;
 }
+
+// ── ETH Donations ───────────────────────────────────────────────────────
+
+export interface ApiETHDonation {
+  RecordId?: number;
+  Tx?: Partial<ApiTxEnvelope>;
+  RoundNum: number;
+  DonorAid?: number;
+  DonorAddr: string;
+  Amount?: string;
+  AmountEth?: number;
+  InfoJSON?: string;
+  HasInfo?: boolean;
+}
+
+// ── NFT Donation Statistics ─────────────────────────────────────────────
+
+export interface ApiNFTDonationStats {
+  TotalDonated?: number;
+  TotalClaimed?: number;
+  TotalUnclaimed?: number;
+  NumDonations?: number;
+  NumClaimed?: number;
+  NumUnclaimed?: number;
+  [key: string]: number | string | undefined;
+}
+
+// ── User Winnings ───────────────────────────────────────────────────────
+
+export interface ApiUserWinnings {
+  DonatedERC20Tokens: Array<{
+    TokenAddress: string;
+    TokenSymbol: string;
+    Amount: string;
+  }>;
+  ETHRaffleToClaim: number;
+  ETHRaffleToClaimWei: string;
+  ETHChronoWarriorToClaim?: number;
+  ETHChronoWarriorToClaimWei?: string;
+  NumDonatedNFTToClaim: number;
+  UnclaimedStakingReward: number;
+}
+
+// ── Bid Info (detail view) ──────────────────────────────────────────────
+
+export interface ApiBidInfo {
+  Tx: ApiTxEnvelope;
+  BidderAid: number;
+  BidderAddr: string;
+  EthPrice: string;
+  EthPriceEth: number;
+  CstPrice: string;
+  CstPriceEth: number;
+  RWalkNFTId: number;
+  RoundNum: number;
+  BidType: number;
+  BidPosition: number;
+  PrizeTime: number;
+  PrizeTimeDate: string;
+  TimeUntilPrize: number;
+  CSTReward: string;
+  CSTRewardEth: number;
+  NFTDonationTokenId: number;
+  NFTDonationTokenAddr: string;
+  NFTTokenURI: string;
+  ImageURL: string;
+  Message: string;
+  DonatedERC20TokenAddr: string;
+  DonatedERC20TokenAmount: string;
+  DonatedERC20TokenAmountEth: number;
+}
+
+// ── Statistics (unique entities) ────────────────────────────────────────
+
+export interface ApiUniqueBidder {
+  BidderAddr: string;
+  NumBids: number;
+}
+
+export interface ApiUniqueWinner {
+  WinnerAid: number;
+  WinnerAddr: string;
+  PrizesCount: number;
+  MaxWinAmount: string;
+  MaxWinAmountEth: number;
+  PrizesSum: number;
+  WinnerStats: {
+    MaxWinAmount: string;
+    MaxWinAmountEth: number;
+    PrizesCount: number;
+    PrizesSum: string;
+    PrizesSumEth: number;
+    TokensCount: number;
+    ERC20Count: number;
+    ERC721Count: number;
+    UnclaimedNfts: number;
+    TotalSpent: string;
+    TotalSpentEth: number;
+  };
+  NumWins?: number;
+}
+
+export interface ApiUniqueDonor {
+  DonorAddr: string;
+  NumDonations: number;
+}
+
+export interface ApiUniqueStaker {
+  StakerAid: number;
+  StakerAddr: string;
+  TotalTokensStaked: number;
+  NumStakeActions: number;
+  NumUnstakeActions: number;
+  TotalReward: string;
+  TotalRewardEth: number;
+  UnclaimedReward: string;
+  UnclaimedRewardEth: number;
+}
+
+// ── Token distributions ─────────────────────────────────────────────────
+
+export interface ApiCSTDistribution {
+  OwnerAddr: string;
+  NumTokens: number;
+}
+
+export interface ApiCTBalanceDistribution {
+  OwnerAid: number;
+  OwnerAddr: string;
+  Balance: string;
+  BalanceFloat: number;
+  PercentOfSupply: number;
+}
+
+export interface ApiDonatedTokenDistribution {
+  NftAddr: string;
+  NumDonations: number;
+}
+
+export interface ApiCSTBidData {
+  CSTPrice: string;
+  SecondsElapsed: number;
+  AuctionDuration: number;
+}
+
+// ── Round detail / list ─────────────────────────────────────────────────
+
+export interface ApiMainPrize {
+  WinnerAid: number;
+  WinnerAddr: string;
+  TimeoutTs: number;
+  EthAmount: string;
+  EthAmountEth: number;
+  CstAmount: string;
+  CstAmountEth: number;
+  NftTokenId: number;
+  Seed: string;
+}
+
+export interface ApiStakingDeposit {
+  StakingDepositId: number;
+  StakingDepositAmount: string;
+  StakingDepositAmountEth: number;
+  StakingPerToken: string;
+  StakingPerTokenEth: number;
+  StakingNumStakedTokens: number;
+}
+
+export interface ApiEnduranceChampion {
+  WinnerAddr: string;
+  NftTokenId: number;
+  CstAmount: string;
+  CstAmountEth: number;
+}
+
+export interface ApiChronoWarrior {
+  WinnerAddr: string;
+  EthAmount: string;
+  EthAmountEth: number;
+  CstAmount: string;
+  CstAmountEth: number;
+  NftTokenId: number;
+}
+
+export interface ApiRaffleNFTWinner {
+  RecordId: number;
+  EvtLogId: number;
+  BlockNum: number;
+  TxId: number;
+  TxHash: string;
+  TimeStamp: number;
+  DateTime: string;
+  WinnerAddr: string;
+  WinnerAid: number;
+  RoundNum: number;
+  TokenId: number;
+  CstAmount: string;
+  CstAmountEth: number;
+  WinnerIndex: number;
+  IsRWalk: boolean;
+  IsStaker: boolean;
+}
+
+export interface ApiRoundDetail {
+  RoundNum: number;
+  ClaimPrizeTx?: { Tx: ApiTxEnvelope };
+  MainPrize: ApiMainPrize;
+  CharityDeposit?: {
+    CharityAddress: string;
+    CharityAmount: string;
+    CharityAmountETH: number;
+  };
+  StakingDeposit: ApiStakingDeposit;
+  EnduranceChampion: ApiEnduranceChampion;
+  LastCstBidder?: ApiEnduranceChampion;
+  ChronoWarrior: ApiChronoWarrior;
+  RoundStats: ApiCurRoundStats;
+  RaffleNFTWinners: ApiRaffleNFTWinner[];
+  StakingNFTWinners: ApiRaffleNFTWinner[];
+  RaffleETHDeposits: ApiRaffleDepositResponse[];
+  AllPrizes: unknown[];
+}
+
+export interface ApiRoundListItem {
+  RoundNum: number;
+  ClaimPrizeTx: { Tx: ApiTxEnvelope };
+  MainPrize: ApiMainPrize;
+  StakingDeposit: ApiStakingDeposit;
+  EnduranceChampion: ApiEnduranceChampion;
+  ChronoWarrior: ApiChronoWarrior;
+  RoundStats: ApiCurRoundStats;
+  RaffleNFTWinners: unknown;
+  StakingNFTWinners: unknown;
+  RaffleETHDeposits: unknown;
+  AllPrizes: unknown;
+}
+
+// ── Staking rewards (winnings detail) ───────────────────────────────────
+
+export interface ApiStakingRewardDeposit {
+  RecordId: number;
+  Tx?: Partial<ApiTxEnvelope>;
+  DepositId: number;
+  DepositTimeStamp: number;
+  DepositDate: string;
+  NumStakedNFTs: number;
+  DepositAmount: string;
+  DepositAmountEth: number;
+  YourTokensStaked: number;
+  YourRewardAmount: string;
+  YourRewardAmountEth: number;
+  YourCollectedAmount: string;
+  YourCollectedAmountEth: number;
+  PendingToClaim: string;
+  PendingToClaimEth: number;
+  NumUnclaimedTokens: number;
+  AmountPerToken: string;
+  AmountPerTokenEth: number;
+}

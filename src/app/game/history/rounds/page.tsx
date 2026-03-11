@@ -11,69 +11,22 @@ import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
 import { formatDate, formatDuration, safeTimestamp } from '@/lib/utils';
 import api from '@/services/api';
-import type { ApiCurRoundStats } from "@/services/apiTypes";
+import type {
+	ApiCurRoundStats,
+	ApiMainPrize,
+	ApiStakingDeposit,
+	ApiEnduranceChampion,
+	ApiChronoWarrior,
+	ApiTxEnvelope,
+	ApiRoundListItem,
+} from "@/services/apiTypes";
 
-interface MainPrize {
-	WinnerAid: number;
-	WinnerAddr: string;
-	TimeoutTs: number;
-	EthAmount: string;
-	EthAmountEth: number;
-	CstAmount: string;
-	CstAmountEth: number;
-	NftTokenId: number;
-	Seed: string;
-}
-
-interface StakingDeposit {
-	StakingDepositId: number;
-	StakingDepositAmount: string;
-	StakingDepositAmountEth: number;
-	StakingPerToken: string;
-	StakingPerTokenEth: number;
-	StakingNumStakedTokens: number;
-}
-
-interface EnduranceChampion {
-	WinnerAddr: string;
-	NftTokenId: number;
-	CstAmount: string;
-	CstAmountEth: number;
-}
-
-interface ChronoWarrior {
-	WinnerAddr: string;
-	EthAmount: string;
-	EthAmountEth: number;
-	CstAmount: string;
-	CstAmountEth: number;
-	NftTokenId: number;
-}
-
-interface ClaimPrizeTx {
-	Tx: {
-		EvtLogId: number;
-		BlockNum: number;
-		TxId: number;
-		TxHash: string;
-		TimeStamp: number;
-		DateTime: string;
-	};
-}
-
-interface ApiRoundData {
-	RoundNum: number;
-	ClaimPrizeTx: ClaimPrizeTx;
-	MainPrize: MainPrize;
-	StakingDeposit: StakingDeposit;
-	EnduranceChampion: EnduranceChampion;
-	ChronoWarrior: ChronoWarrior;
-	RoundStats: ApiCurRoundStats;
-	RaffleNFTWinners: unknown;
-	StakingNFTWinners: unknown;
-	RaffleETHDeposits: unknown;
-	AllPrizes: unknown;
-}
+type MainPrize = ApiMainPrize;
+type StakingDeposit = ApiStakingDeposit;
+type EnduranceChampion = ApiEnduranceChampion;
+type ChronoWarrior = ApiChronoWarrior;
+type ClaimPrizeTx = { Tx: ApiTxEnvelope };
+type ApiRoundData = ApiRoundListItem;
 
 export default function RoundsArchivePage() {
 	const [searchQuery, setSearchQuery] = useState('');

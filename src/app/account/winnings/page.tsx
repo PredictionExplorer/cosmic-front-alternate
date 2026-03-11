@@ -28,7 +28,7 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import type { ApiDonatedNFT, ApiDonatedERC20 } from "@/services/apiTypes";
+import type { ApiDonatedNFT, ApiDonatedERC20, ApiStakingRewardDeposit } from "@/services/apiTypes";
 import type { ComponentRaffleDepositData } from "@/lib/apiTransforms";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
@@ -37,60 +37,16 @@ import { useNotification } from "@/contexts/NotificationContext";
 
 type RaffleWinning = ComponentRaffleDepositData;
 
-interface DonatedNFT {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  Index: number;
-  TokenAddr: string;
-  NFTTokenId: number;
-  NFTTokenURI: string;
-  RoundNum: number;
-  DonorAid: number;
-  DonorAddr: string;
-  TokenAddressId?: number; // Only in unclaimed
-  WinnerIndex?: number; // Only in claimed
-  WinnerAid?: number; // Only in claimed
-  WinnerAddr?: string; // Only in claimed
-  // Transformed fields for UI (always set by transformation)
+type DonatedNFT = ApiDonatedNFT & {
   NftAddr: string;
   TokenId: number;
   TimeStamp: number;
   Claimed: boolean;
-}
+};
 
 type DonatedERC20 = ApiDonatedERC20;
 
-interface StakingReward {
-  RecordId: number;
-  Tx?: {
-    TimeStamp?: number;
-    DateTime?: string;
-    TxHash?: string;
-  };
-  DepositId: number;
-  DepositTimeStamp: number;
-  DepositDate: string;
-  NumStakedNFTs: number;
-  DepositAmount: string;
-  DepositAmountEth: number;
-  YourTokensStaked: number;
-  YourRewardAmount: string;
-  YourRewardAmountEth: number;
-  YourCollectedAmount: string;
-  YourCollectedAmountEth: number;
-  PendingToClaim: string;
-  PendingToClaimEth: number;
-  NumUnclaimedTokens: number;
-  AmountPerToken: string;
-  AmountPerTokenEth: number;
-}
+type StakingReward = ApiStakingRewardDeposit;
 
 interface StakedTokenAction {
   TokenId: number;

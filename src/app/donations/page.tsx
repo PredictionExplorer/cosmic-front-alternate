@@ -24,7 +24,7 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { formatDate } from "@/lib/utils";
 import api from "@/services/api";
-import type { ApiDonatedNFT, ApiDonatedERC20 } from "@/services/apiTypes";
+import type { ApiDonatedNFT, ApiDonatedERC20, ApiETHDonation, ApiNFTDonationStats } from "@/services/apiTypes";
 
 type DonatedNFT = ApiDonatedNFT & { ImageURL?: string };
 type DonatedERC20 = ApiDonatedERC20;
@@ -177,38 +177,9 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
   );
 }
 
-interface ETHDonation {
-  RecordId?: number;
-  Tx?: {
-    EvtLogId?: number;
-    BlockNum?: number;
-    TxHash?: string;
-    TimeStamp?: number;
-    DateTime?: string;
-  };
-  RoundNum: number;
-  DonorAid?: number;
-  DonorAddr: string;
-  /** Raw wei string or numeric ETH amount depending on endpoint */
-  Amount?: string;
-  AmountEth?: number;
-  /** Present only on "with_info" records */
-  InfoJSON?: string;
-  HasInfo?: boolean;
-}
+type ETHDonation = ApiETHDonation;
 
-// ─── Stats Interface ──────────────────────────────────────────────────────────
-
-interface NFTDonationStats {
-  TotalDonated?: number;
-  TotalClaimed?: number;
-  TotalUnclaimed?: number;
-  NumDonations?: number;
-  NumClaimed?: number;
-  NumUnclaimed?: number;
-  // catch-all for other numeric fields the API may return
-  [key: string]: number | string | undefined;
-}
+type NFTDonationStats = ApiNFTDonationStats;
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 

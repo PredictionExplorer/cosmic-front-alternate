@@ -14,6 +14,7 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { formatDate, formatEth } from "@/lib/utils";
 import api from "@/services/api";
+import type { ApiBidInfo } from "@/services/apiTypes";
 
 /** Convert ipfs:// and ipfs.io gateway URIs to a reliable HTTP gateway URL */
 function resolveIpfsUrl(uri: string): string {
@@ -24,39 +25,7 @@ function resolveIpfsUrl(uri: string): string {
   return uri;
 }
 
-interface BidInfo {
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  BidderAid: number;
-  BidderAddr: string;
-  EthPrice: string;
-  EthPriceEth: number;
-  CstPrice: string;
-  CstPriceEth: number;
-  RWalkNFTId: number;
-  RoundNum: number;
-  BidType: number;
-  BidPosition: number;
-  PrizeTime: number;
-  PrizeTimeDate: string;
-  TimeUntilPrize: number;
-  CSTReward: string;
-  CSTRewardEth: number;
-  NFTDonationTokenId: number;
-  NFTDonationTokenAddr: string;
-  NFTTokenURI: string;
-  ImageURL: string;
-  Message: string;
-  DonatedERC20TokenAddr: string;
-  DonatedERC20TokenAmount: string;
-  DonatedERC20TokenAmountEth: number;
-}
+type BidInfo = ApiBidInfo;
 
 export default function BidDetailPage({
   params,

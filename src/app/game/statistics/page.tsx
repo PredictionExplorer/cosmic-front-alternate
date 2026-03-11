@@ -17,7 +17,17 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { SystemModesTable } from "@/components/game/SystemModesTable";
 import { api } from "@/services/api";
-import type { ApiDashboardData } from "@/services/apiTypes";
+import type {
+  ApiDashboardData,
+  ApiUniqueBidder,
+  ApiUniqueWinner,
+  ApiUniqueDonor,
+  ApiUniqueStaker,
+  ApiCSTDistribution,
+  ApiCTBalanceDistribution,
+  ApiDonatedTokenDistribution,
+  ApiCSTBidData,
+} from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
 import type { SystemModeChange } from "@/contexts/SystemModeContext";
 
@@ -25,74 +35,14 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 type Bid = ComponentBidData;
 
-interface UniqueBidder {
-  BidderAddr: string;
-  NumBids: number;
-}
-
-interface UniqueWinner {
-  WinnerAid: number;
-  WinnerAddr: string;
-  PrizesCount: number;
-  MaxWinAmount: string;
-  MaxWinAmountEth: number;
-  PrizesSum: number;
-  WinnerStats: {
-    MaxWinAmount: string;
-    MaxWinAmountEth: number;
-    PrizesCount: number;
-    PrizesSum: string;
-    PrizesSumEth: number;
-    TokensCount: number;
-    ERC20Count: number;
-    ERC721Count: number;
-    UnclaimedNfts: number;
-    TotalSpent: string;
-    TotalSpentEth: number;
-  };
-  NumWins?: number; // For backward compatibility
-}
-
-interface UniqueDonor {
-  DonorAddr: string;
-  NumDonations: number;
-}
-
-interface UniqueStaker {
-  StakerAid: number;
-  StakerAddr: string;
-  TotalTokensStaked: number;
-  NumStakeActions: number;
-  NumUnstakeActions: number;
-  TotalReward: string;
-  TotalRewardEth: number;
-  UnclaimedReward: string;
-  UnclaimedRewardEth: number;
-}
-
-interface CSTDistribution {
-  OwnerAddr: string;
-  NumTokens: number;
-}
-
-interface CTBalanceDistribution {
-  OwnerAid: number;
-  OwnerAddr: string;
-  Balance: string;
-  BalanceFloat: number;
-  PercentOfSupply: number;
-}
-
-interface DonatedTokenDistribution {
-  NftAddr: string;
-  NumDonations: number;
-}
-
-interface CSTBidData {
-  CSTPrice: string;
-  SecondsElapsed: number;
-  AuctionDuration: number;
-}
+type UniqueBidder = ApiUniqueBidder;
+type UniqueWinner = ApiUniqueWinner;
+type UniqueDonor = ApiUniqueDonor;
+type UniqueStaker = ApiUniqueStaker;
+type CSTDistribution = ApiCSTDistribution;
+type CTBalanceDistribution = ApiCTBalanceDistribution;
+type DonatedTokenDistribution = ApiDonatedTokenDistribution;
+type CSTBidData = ApiCSTBidData;
 
 interface DashboardData extends ApiDashboardData {
   TsRoundStart: number;

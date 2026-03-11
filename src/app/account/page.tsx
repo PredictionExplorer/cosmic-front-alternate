@@ -14,25 +14,12 @@ import { StatCard } from "@/components/game/StatCard";
 import { AlertCard } from "@/components/features/AlertCard";
 import { formatEth } from "@/lib/utils";
 import { api } from "@/services/api";
-import type { ApiUserInfo } from "@/services/apiTypes";
+import type { ApiUserInfo, ApiUserWinnings } from "@/services/apiTypes";
 import { isAddress, formatEther } from "viem";
 
 type UserInfoAPI = ApiUserInfo;
 
-// User winnings API response interface
-interface UserWinningsAPI {
-  DonatedERC20Tokens: Array<{
-    TokenAddress: string;
-    TokenSymbol: string;
-    Amount: string;
-  }>;
-  ETHRaffleToClaim: number;
-  ETHRaffleToClaimWei: string;
-  ETHChronoWarriorToClaim?: number;
-  ETHChronoWarriorToClaimWei?: string;
-  NumDonatedNFTToClaim: number;
-  UnclaimedStakingReward: number;
-}
+type UserWinningsAPI = ApiUserWinnings;
 
 // Default user info
 const DEFAULT_USER_INFO: UserInfoAPI = {
