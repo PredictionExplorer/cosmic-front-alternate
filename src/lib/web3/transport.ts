@@ -1,44 +1,46 @@
 /**
- * Custom Web3 Transport with Proxy Support
- * 
- * Handles RPC requests through the Next.js proxy when running on HTTPS
- * to avoid mixed content errors with HTTP RPC endpoints.
+ * Web3 transport for viem/wagmi.
+ *
+ * JSON-RPC to **http://** nodes from an **https://** page is blocked (mixed content)
+ * and many self-hosted nodes omit CORS. The Next.js route `/api/rpc` proxies to
+ * NEXT_PUBLIC_RPC_URL server-side (same pattern as the blue frontend).
+ *
+ * **https://** RPC URLs (Infura, public Arbitrum, etc.) are used directly.
  */
 
-import { http, type Transport } from 'viem';
-import { type Chain } from 'viem/chains';
+import { http, type Transport } from "viem";
+import { type Chain } from "viem/chains";
 
 /**
- * Check if we need to proxy RPC requests
+ * True when the browser should call same-origin /api/rpc instead of the raw URL.
+ * HTTPS RPC endpoints are used directly; HTTP (e.g. LAN / self-hosted) uses the proxy.
  */
-function shouldUseRpcProxy(rpcUrl: string): boolean {
-  // Only check in browser
-  if (typeof window === 'undefined') return false;
-  
-  // Check if page is HTTPS
-  const isPageSecure = window.location.protocol === 'https:';
-  if (!isPageSecure) return false;
-  
-  // Check if RPC URL is HTTP
-  return rpcUrl.startsWith('http://');
+export function shouldUseRpcProxy(rpcUrl: string): boolean {
+  const u = rpcUrl.trim();
+  if (!u) return false;
+  if (u.startsWith("https://")) return false;
+  if (u.startsWith("http://")) return true;
+  return false;
+}
+
+function getEffectiveRpcUrl(rpcUrl: string): string {
+  if (typeof window === "undefined") {
+    // Server / SSR: no mixed-content; call node directly
+    return rpcUrl;
+  }
+  if (shouldUseRpcProxy(rpcUrl)) {
+    return `${window.location.origin}/api/rpc`;
+  }
+  return rpcUrl;
 }
 
 /**
- * Wrap RPC URL with proxy if needed
- */
-function wrapRpcWithProxy(rpcUrl: string): string {
-  if (!shouldUseRpcProxy(rpcUrl)) return rpcUrl;
-  return `/api/proxy?url=${encodeURIComponent(rpcUrl)}`;
-}
-
-/**
- * Create a transport with automatic proxy routing for HTTP RPCs
+ * Create a transport for a chain (proxy on browser for HTTP RPC URLs).
  */
 export function createProxyTransport(chain: Chain): Transport {
   const rpcUrl = chain.rpcUrls.default.http[0];
-  const proxiedUrl = wrapRpcWithProxy(rpcUrl);
-  
-  return http(proxiedUrl, {
+  const url = getEffectiveRpcUrl(rpcUrl);
+  return http(url, {
     timeout: 30_000,
     retryCount: 3,
     retryDelay: 1000,
@@ -46,15 +48,14 @@ export function createProxyTransport(chain: Chain): Transport {
 }
 
 /**
- * Create transports for all chains with proxy support
+ * Create transports for all chains.
  */
-export function createTransportsForChains(chains: readonly Chain[]): Record<number, Transport> {
+export function createTransportsForChains(
+  chains: readonly Chain[],
+): Record<number, Transport> {
   const transports: Record<number, Transport> = {};
-  
   for (const chain of chains) {
     transports[chain.id] = createProxyTransport(chain);
   }
-  
   return transports;
 }
-

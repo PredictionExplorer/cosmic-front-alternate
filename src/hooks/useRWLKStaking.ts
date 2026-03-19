@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { readContract, writeContract, waitForTransactionReceipt, estimateFeesPerGas } from "@wagmi/core";
+import { readContract, writeContract, waitForTransactionReceipt } from "@wagmi/core";
 import { useAccount } from "wagmi";
 import { api } from "@/services/api";
 import type { ApiRWLKToken, ApiStakedRWLKToken } from "@/services/apiTypes";
@@ -11,22 +11,13 @@ import { CONTRACTS } from "@/lib/web3/contracts";
 import { useNotification } from "@/contexts/NotificationContext";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { wagmiConfig } from "@/lib/web3/config";
+import { getBufferedEip1559Fees } from "@/lib/web3/transactionFees";
 import StakingWalletRWLKABI from "@/contracts/StakingWalletRandomWalkNft.json";
 import RandomWalkNFTABI from "@/contracts/RandomWalkNFT.json";
 
 async function getFeesWithBuffer() {
-  try {
-    const fees = await estimateFeesPerGas(wagmiConfig);
-    if (fees.maxFeePerGas != null && fees.maxPriorityFeePerGas != null) {
-      return {
-        maxFeePerGas: (fees.maxFeePerGas * 3n) / 2n,
-        maxPriorityFeePerGas: (fees.maxPriorityFeePerGas * 3n) / 2n,
-      };
-    }
-  } catch {
-    // Let wagmi use its default
-  }
-  return {};
+  const fees = await getBufferedEip1559Fees(wagmiConfig);
+  return fees ?? {};
 }
 
 function isUserRejection(error: unknown): boolean {

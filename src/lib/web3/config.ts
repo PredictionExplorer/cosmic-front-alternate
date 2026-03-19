@@ -37,9 +37,8 @@ if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
  * - Arbitrum Sepolia (testnet) - Chain ID: 421614
  * - Arbitrum One (mainnet) - Chain ID: 42161
  * - Local Network (development) - Chain ID: 31337
- * 
- * Uses custom transport with proxy support to avoid mixed content errors
- * when connecting to HTTP RPC endpoints from HTTPS pages.
+ *
+ * HTTP RPC URLs use the /api/rpc proxy in the browser (mixed content + CORS).
  */
 export const wagmiConfig = getDefaultConfig({
   appName: "Cosmic Signature",

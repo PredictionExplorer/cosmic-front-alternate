@@ -2,7 +2,8 @@
  * Blockchain Network Configurations
  *
  * Defines the Arbitrum network configurations for the application.
- * Supports both mainnet and testnet for development/testing.
+ * RPC for the chain selected by NEXT_PUBLIC_NETWORK uses NEXT_PUBLIC_RPC_URL
+ * (same env convention as the blue frontend).
  */
 
 import { arbitrum, arbitrumSepolia } from "wagmi/chains";
@@ -64,11 +65,6 @@ export const arbitrumSepoliaChain: Chain = {
 /**
  * Local Testnet - Custom Arbitrum test network
  * Chain ID: 31337 (0x7A69 in hex)
- *
- * This is a custom local testnet hosted at http://161.129.67.42:22945
- * Used for development and testing of Cosmic Signature
- *
- * RainbowKit will automatically prompt users to add this network if not present
  */
 export const localTestnet: Chain = {
   id: 31337,
@@ -96,36 +92,43 @@ export const localTestnet: Chain = {
 };
 
 /**
- * Supported chains for the application
+ * When NEXT_PUBLIC_RPC_URL is set, apply it to the chain that matches
+ * NEXT_PUBLIC_NETWORK (same pattern as blue: one RPC URL for the active network).
+ */
+function applyEnvRpcToChain(chain: Chain): Chain {
+  const rpcOverride = process.env.NEXT_PUBLIC_RPC_URL?.trim();
+  if (!rpcOverride) return chain;
+  if (chain.id !== getDefaultChainId()) return chain;
+  return {
+    ...chain,
+    rpcUrls: {
+      default: { http: [rpcOverride] },
+      public: { http: [rpcOverride] },
+    },
+  };
+}
+
+/**
+ * Supported chains for the application (env RPC applied to the default chain only).
  */
 export const supportedChains: Chain[] = [
-  localTestnet,
-  arbitrumSepoliaChain,
-  arbitrumOne,
+  applyEnvRpcToChain(localTestnet),
+  applyEnvRpcToChain(arbitrumSepoliaChain),
+  applyEnvRpcToChain(arbitrumOne),
 ];
 
 /**
- * Get the default chain based on environment configuration
- * Controlled by NEXT_PUBLIC_DEFAULT_NETWORK env var
+ * Get the default chain based on NEXT_PUBLIC_NETWORK
  */
 function getDefaultChainConfig(): Chain {
-  const defaultChainId = getDefaultChainId();
-  
-  switch (defaultChainId) {
-    case 31337:
-      return localTestnet;
-    case 421614:
-      return arbitrumSepoliaChain;
-    case 42161:
-      return arbitrumOne;
-    default:
-      return localTestnet;
-  }
+  const id = getDefaultChainId();
+  return (
+    supportedChains.find((c) => c.id === id) ?? supportedChains[0]
+  );
 }
 
 /**
  * Default chain for the application
- * Set via NEXT_PUBLIC_DEFAULT_NETWORK environment variable
  */
 export const defaultChain = getDefaultChainConfig();
 
@@ -163,17 +166,16 @@ export const chainConfig = {
 };
 
 // ─── Network-aware explorer helpers ──────────────────────────────────────────
-// These use defaultChain so every page automatically gets the right explorer.
 
 const explorerBase: string =
   defaultChain.blockExplorers?.default?.url ?? "https://arbiscan.io";
 
 export const explorer = {
-  tx:      (hash: string)                          => `${explorerBase}/tx/${hash}`,
-  address: (addr: string)                          => `${explorerBase}/address/${addr}`,
-  token:   (addr: string, tokenId?: number | string) =>
+  tx: (hash: string) => `${explorerBase}/tx/${hash}`,
+  address: (addr: string) => `${explorerBase}/address/${addr}`,
+  token: (addr: string, tokenId?: number | string) =>
     tokenId !== undefined
       ? `${explorerBase}/token/${addr}?a=${tokenId}`
       : `${explorerBase}/token/${addr}`,
-  block:   (blockNum: number | string)             => `${explorerBase}/block/${blockNum}`,
+  block: (blockNum: number | string) => `${explorerBase}/block/${blockNum}`,
 };

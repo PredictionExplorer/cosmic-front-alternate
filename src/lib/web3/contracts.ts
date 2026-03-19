@@ -164,7 +164,7 @@ export const CONTRACT_NAMES = {
 
 /**
  * Get default contracts based on environment configuration
- * Controlled by NEXT_PUBLIC_DEFAULT_NETWORK env var
+ * Controlled by NEXT_PUBLIC_NETWORK (same as blue frontend)
  */
 function getDefaultContracts() {
   const defaultChainId = getDefaultChainId();
@@ -172,6 +172,6 @@ function getDefaultContracts() {
 }
 
 /**
- * Export for convenience - defaults based on NEXT_PUBLIC_DEFAULT_NETWORK
+ * Export for convenience — defaults from NEXT_PUBLIC_NETWORK → chain id
  */
 export const CONTRACTS = getDefaultContracts();

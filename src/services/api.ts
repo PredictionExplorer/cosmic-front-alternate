@@ -8,7 +8,8 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from "axios";
-import { getDefaultChainId } from "@/lib/networkConfig";
+import { getCosmicApiBaseUrl, getDefaultChainId } from "@/lib/networkConfig";
+import { reportError } from "@/lib/errorReporter";
 import { transformBidList, transformRaffleDepositList } from "@/lib/apiTransforms";
 import type {
   ApiBidResponse,
@@ -103,39 +104,11 @@ function unwrapApiResponse<T = Record<string, unknown>>(
 }
 
 /**
- * API Base URLs by network
- * Configure based on chain ID
+ * Cosmic Game API base URL from NEXT_PUBLIC_API_URL (same convention as blue frontend).
+ * One URL per deployment; chain switching is handled by the wallet + backend.
  */
-const API_ENDPOINTS = {
-  // Local Testnet (Chain ID: 31337)
-  31337:
-    process.env.NEXT_PUBLIC_API_BASE_URL_LOCAL ||
-    "http://161.129.67.42:7070/api/cosmicgame/",
-  // Arbitrum Sepolia (Chain ID: 421614)
-  421614:
-    process.env.NEXT_PUBLIC_API_BASE_URL_SEPOLIA ||
-    "http://161.129.67.42:8353/api/cosmicgame/",
-  // Arbitrum One (Chain ID: 42161)
-  42161:
-    process.env.NEXT_PUBLIC_API_BASE_URL_MAINNET ||
-    "http://69.10.55.2:2121/api/cosmicgame/",
-} as const;
-
-/**
- * Get API base URL for a specific chain
- * Defaults to network specified in NEXT_PUBLIC_DEFAULT_NETWORK env var
- */
-function getApiBaseUrl(chainId?: number): string {
-  const defaultChainId = getDefaultChainId();
-  const id = chainId || defaultChainId;
-  
-  // Type-safe endpoint lookup
-  if (id === 31337) return API_ENDPOINTS[31337];
-  if (id === 421614) return API_ENDPOINTS[421614];
-  if (id === 42161) return API_ENDPOINTS[42161];
-  
-  // Fallback to default
-  return API_ENDPOINTS[defaultChainId as keyof typeof API_ENDPOINTS];
+function getApiBaseUrl(): string {
+  return getCosmicApiBaseUrl();
 }
 
 const ASSETS_BASE_URL =
@@ -153,28 +126,12 @@ const ASSETS_BASE_URL =
 let _currentChainId: number = getDefaultChainId();
 
 function getCurrentBaseUrl(): string {
-  return getApiBaseUrl(_currentChainId);
-}
-
-function shouldUseProxy(url: string): boolean {
-  if (typeof window === "undefined") return false;
-
-  const isDevelopment =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
-
-  const isPageSecure = window.location.protocol === "https:";
-
-  const baseUrl = getCurrentBaseUrl();
-  const targetUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
-  const isTargetHttp = targetUrl.startsWith("http://");
-
-  return isDevelopment || (isPageSecure && isTargetHttp);
+  return getApiBaseUrl();
 }
 
 /**
- * Axios instance.  The baseURL is intentionally left empty here — the
- * request interceptor resolves it per-request from the current chain.
+ * Axios instance. Base URL is resolved per-request from the current chain.
+ * All requests go directly to the API (no HTTP proxy); use HTTPS endpoints in env.
  */
 const apiClient: AxiosInstance = axios.create({
   timeout: 30000,
@@ -184,41 +141,27 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 /**
- * Request interceptor: resolves base URL from the current chain on every
- * request, then applies proxy rewriting if needed.
+ * Request interceptor: resolves base URL from the current chain on every request.
+ * Direct HTTPS only — no proxy.
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // Resolve base URL at request time (not module-load time)
-    const baseUrl = getCurrentBaseUrl();
-    config.baseURL = baseUrl;
-
-    if (config.url && shouldUseProxy(config.url)) {
-      const fullUrl = config.url.startsWith("http")
-        ? config.url
-        : `${baseUrl}${config.url}`;
-
-      config.url = `/api/proxy?url=${encodeURIComponent(fullUrl)}`;
-      config.baseURL = "";
-    }
-
+    config.baseURL = getCurrentBaseUrl();
     return config;
   },
   (error) => Promise.reject(error),
 );
 
 /**
- * Response interceptor for error handling
+ * Response interceptor: report non-client errors and reject with a consistent shape.
  */
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Log errors in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("API Error:", error.message);
+    const status = error.response?.status;
+    if (status !== 400 && status !== 403) {
+      reportError(error, "apiClient");
     }
-
-    // Transform error for better UX
     const customError = {
       message:
         error.response?.statusText ||
@@ -227,9 +170,8 @@ apiClient.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data,
     };
-
     return Promise.reject(customError);
-  }
+  },
 );
 
 /**
@@ -248,7 +190,7 @@ class CosmicSignatureAPI {
 
     if (process.env.NODE_ENV === "development") {
       console.log(
-        `API chain set to ${chainId} → ${getApiBaseUrl(chainId)}`,
+        `API chain set to ${chainId} → ${getApiBaseUrl()}`,
       );
     }
   }

@@ -2,12 +2,18 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { writeContract, waitForTransactionReceipt, estimateFeesPerGas } from '@wagmi/core';
+import { writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { wagmiConfig } from '@/lib/web3/config';
 import { CONTRACTS } from '@/lib/web3/contracts';
 import { useNotification } from '@/contexts/NotificationContext';
+import {
+  isUserRejection,
+  reportError,
+  getContractErrorMessage,
+} from '@/lib/errorReporter';
 import { parseContractError } from '@/lib/web3/errorHandling';
 import { estimateContractGas } from '@/lib/web3/gasEstimation';
+import { getBufferedEip1559Fees } from '@/lib/web3/transactionFees';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
 
 interface ClaimPrizeResult {
@@ -68,18 +74,7 @@ export function useClaimPrize(): ClaimPrizeResult {
         console.warn('[claimMainPrize] Simulation blocked by infra error, proceeding to wallet:', errorMsg);
       }
 
-      let feeParams: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint } = {};
-      try {
-        const fees = await estimateFeesPerGas(wagmiConfig);
-        if (fees.maxFeePerGas && fees.maxPriorityFeePerGas) {
-          feeParams = {
-            maxFeePerGas: (fees.maxFeePerGas * 3n) / 2n,
-            maxPriorityFeePerGas: (fees.maxPriorityFeePerGas * 3n) / 2n,
-          };
-        }
-      } catch {
-        // Fee estimation failed — fall back to wallet defaults
-      }
+      const feeParams = (await getBufferedEip1559Fees(wagmiConfig)) ?? {};
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeContract(wagmiConfig, {
@@ -94,8 +89,10 @@ export function useClaimPrize(): ClaimPrizeResult {
       showSuccess('Main Prize claimed successfully! Congratulations!');
       return true;
     } catch (err) {
-      console.error('[claimMainPrize] Error:', err);
-      const friendlyError = parseContractError(err);
+      if (isUserRejection(err)) return false;
+      reportError(err, 'claimMainPrize');
+      const friendlyError =
+        getContractErrorMessage(err) || parseContractError(err);
       if (friendlyError && !friendlyError.includes('Transaction was rejected')) {
         setError(friendlyError);
         showError(friendlyError);

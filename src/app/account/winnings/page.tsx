@@ -27,7 +27,12 @@ import { EmptyState } from "@/components/data/EmptyState";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { Badge } from "@/components/ui/Badge";
 import { api } from "@/services/api";
-import { reportError } from "@/lib/errorReporter";
+import {
+  reportError,
+  isUserRejection,
+  getEthErrorMessage,
+  getContractErrorMessage,
+} from "@/lib/errorReporter";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import type { ApiDonatedNFT, ApiDonatedERC20, ApiStakingRewardDeposit } from "@/services/apiTypes";
 import type { ComponentRaffleDepositData } from "@/lib/apiTransforms";
@@ -56,35 +61,33 @@ interface StakedTokenAction {
 }
 
 /**
- * Extract user-friendly error message from Web3 error
+ * Fallback: extract user-friendly error message from Web3 error when
+ * getContractErrorMessage / getEthErrorMessage don't apply.
  */
-function getErrorMessage(error: unknown): string {
-  if (typeof error === 'string') return error;
-  
-  // Type guard for error objects
-  if (error && typeof error === 'object') {
+function getErrorMessageFallback(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
     const err = error as Record<string, unknown>;
-    
-    // Check various error message locations
-    if (err.shortMessage && typeof err.shortMessage === 'string') {
+    if (err.shortMessage && typeof err.shortMessage === "string")
       return err.shortMessage;
-    }
-    if (err.message && typeof err.message === 'string') {
-      // Remove technical prefixes
-      return err.message.replace(/^.*?Error:\s*/i, '');
-    }
-    if (err.data && typeof err.data === 'object') {
+    if (err.message && typeof err.message === "string")
+      return err.message.replace(/^.*?Error:\s*/i, "");
+    if (err.data && typeof err.data === "object") {
       const data = err.data as Record<string, unknown>;
-      if (data.message && typeof data.message === 'string') {
+      if (data.message && typeof data.message === "string")
         return data.message;
-      }
     }
-    if (err.reason && typeof err.reason === 'string') {
-      return err.reason;
-    }
+    if (err.reason && typeof err.reason === "string") return err.reason;
   }
-  
-  return 'Transaction failed. Please try again.';
+  return "Transaction failed. Please try again.";
+}
+
+function getErrorMessage(error: unknown): string {
+  return (
+    getContractErrorMessage(error) ||
+    getEthErrorMessage(error, "Transaction failed. Please try again.") ||
+    getErrorMessageFallback(error)
+  );
 }
 
 export default function MyWinningsPage() {
@@ -405,9 +408,12 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'eth', data: { amount: totalEthToClaim } });
     } catch (error) {
-      console.error("Error claiming ETH:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) {
+        setClaiming((prev) => ({ ...prev, eth: false }));
+        return;
+      }
+      reportError(error, "handleClaimETH");
+      showError(getErrorMessage(error));
       setClaiming((prev) => ({ ...prev, eth: false }));
     }
   };
@@ -437,9 +443,12 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'nft', data: { nftIndex } });
     } catch (error) {
-      console.error("Error claiming NFT:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) {
+        setClaiming((prev) => ({ ...prev, nft: null }));
+        return;
+      }
+      reportError(error, "handleClaimNFT");
+      showError(getErrorMessage(error));
       setClaiming((prev) => ({ ...prev, nft: null }));
     }
   };
@@ -472,9 +481,9 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'nft-all', data: { count: unclaimedNFTs.length } });
     } catch (error) {
-      console.error("Error claiming all NFTs:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) return;
+      reportError(error, "handleClaimAllNFTs");
+      showError(getErrorMessage(error));
     }
   };
 
@@ -511,9 +520,12 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'erc20', data: { symbol: token.TokenAddr } });
     } catch (error) {
-      console.error("Error claiming ERC20:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) {
+        setClaiming((prev) => ({ ...prev, erc20: null }));
+        return;
+      }
+      reportError(error, "handleClaimERC20");
+      showError(getErrorMessage(error));
       setClaiming((prev) => ({ ...prev, erc20: null }));
     }
   };
@@ -550,9 +562,9 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'erc20-all', data: { count: unclaimedTokens.length } });
     } catch (error) {
-      console.error("Error claiming all ERC20:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) return;
+      reportError(error, "handleClaimAllERC20");
+      showError(getErrorMessage(error));
     }
   };
 
@@ -599,9 +611,9 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'staking-all', data: { count: allActionIds.length } });
     } catch (error) {
-      console.error("Error claiming all staking rewards:", error);
-      const errorMessage = getErrorMessage(error);
-      showError(errorMessage);
+      if (isUserRejection(error)) return;
+      reportError(error, "handleClaimAllStaking");
+      showError(getErrorMessage(error));
     }
   };
 

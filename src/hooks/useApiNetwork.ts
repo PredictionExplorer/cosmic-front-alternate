@@ -1,8 +1,8 @@
 /**
  * API Network Hook
  *
- * Sets the API service endpoint based on NEXT_PUBLIC_DEFAULT_NETWORK environment variable.
- * The API endpoint is controlled by ENV configuration, not by MetaMask network.
+ * Sets the API client chain id from NEXT_PUBLIC_NETWORK (same convention as blue).
+ * Base URL comes from NEXT_PUBLIC_API_URL (see networkConfig / api service).
  */
 
 "use client";
@@ -12,39 +12,27 @@ import { api } from "@/services/api";
 import { getNetworkName, getDefaultChainId } from "@/lib/networkConfig";
 
 /**
- * Hook to set API endpoint from environment configuration
+ * Hook to align API client with the env-selected network.
  *
- * ALWAYS uses the network specified in NEXT_PUBLIC_DEFAULT_NETWORK,
- * regardless of MetaMask connection or selected network.
- *
- * - Local Testnet (31337): Port 7070
- * - Arbitrum Sepolia (421614): Port 8353
- * - Arbitrum One (42161): Port 8383
- *
- * Configuration:
- * - Set NEXT_PUBLIC_DEFAULT_NETWORK in .env.local
- * - Options: "local" | "sepolia" | "mainnet"
- * - Falls back to "local" if not configured
+ * Uses NEXT_PUBLIC_NETWORK → chain id; API base is NEXT_PUBLIC_API_URL.
  *
  * @example
  * ```tsx
  * function MyComponent() {
- *   useApiNetwork(); // Sets API endpoint from ENV
- *   
- *   // Your component code...
+ *   useApiNetwork();
  * }
  * ```
  */
 export function useApiNetwork() {
   useEffect(() => {
-    // Always use the default network from environment variable
     const envChainId = getDefaultChainId();
     const networkName = getNetworkName(envChainId);
-    
-    console.log(`[useApiNetwork] Using network from ENV: ${networkName} (Chain ID: ${envChainId})`);
+
+    console.log(
+      `[useApiNetwork] Using network from ENV: ${networkName} (Chain ID: ${envChainId})`,
+    );
     api.setChainId(envChainId);
-  }, []); // Empty deps - only run once on mount
+  }, []);
 
   return { chainId: getDefaultChainId() };
 }
-

@@ -2,15 +2,40 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
-import { parseEther, parseUnits, erc20Abi, erc721Abi } from 'viem';
+import { type Abi, formatEther, parseEther, parseUnits, erc20Abi, erc721Abi } from 'viem';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { wagmiConfig } from '@/lib/web3/config';
 import { CONTRACTS, isDeployedAddress } from '@/lib/web3/contracts';
 import { useNotification } from '@/contexts/NotificationContext';
+import {
+  isUserRejection,
+  reportError,
+  getContractErrorMessage,
+} from '@/lib/errorReporter';
 import { parseContractError } from '@/lib/web3/errorHandling';
 import { estimateContractGas } from '@/lib/web3/gasEstimation';
 import { validateBidMessageLength } from '@/lib/web3/errorDecoder';
+import { getBufferedEip1559Fees } from '@/lib/web3/transactionFees';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
+
+/** EIP-1559 fees with +10% buffer vs floating Arbitrum base fee */
+async function writeWithBufferedFees(args: {
+  address: `0x${string}`;
+  abi: Abi | unknown;
+  functionName: string;
+  args?: readonly unknown[];
+  value?: bigint;
+}) {
+  const fees = await getBufferedEip1559Fees(wagmiConfig);
+  return writeContract(wagmiConfig, {
+    address: args.address,
+    abi: args.abi as Abi,
+    functionName: args.functionName,
+    args: args.args,
+    value: args.value,
+    ...(fees ?? {}),
+  });
+}
 
 interface DonationNft {
   type: 'nft';
@@ -84,7 +109,7 @@ async function checkAndApproveERC20(
 
     if (allowance > BigInt(0)) {
       notifications.showInfo('Step 1/2: Resetting token allowance... Please confirm the transaction in your wallet.');
-      const resetHash = await writeContract(wagmiConfig, {
+      const resetHash = await writeWithBufferedFees({
         address: tokenAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'approve',
@@ -99,7 +124,7 @@ async function checkAndApproveERC20(
     const stepText = allowance > BigInt(0) ? 'Step 2/2: Setting' : 'Requesting';
     notifications.showInfo(`${stepText} token approval... Please confirm the transaction in your wallet.`);
 
-    const hash = await writeContract(wagmiConfig, {
+    const hash = await writeWithBufferedFees({
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'approve',
@@ -149,7 +174,7 @@ async function checkAndApproveNFT(
     }
 
     notifications.showInfo('Requesting NFT approval... Please confirm the transaction in your wallet.');
-    const hash = await writeContract(wagmiConfig, {
+    const hash = await writeWithBufferedFees({
       address: nftAddress as `0x${string}`,
       abi: erc721Abi,
       functionName: 'approve',
@@ -253,7 +278,7 @@ export function usePlaceBid(): PlaceBidResult {
         }
 
         showInfo('Please confirm the transaction in your wallet...');
-        const hash = await writeContract(wagmiConfig, {
+        const hash = await writeWithBufferedFees({
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateNft',
@@ -288,7 +313,7 @@ export function usePlaceBid(): PlaceBidResult {
         }
 
         showInfo('Please confirm the transaction in your wallet...');
-        const hash = await writeContract(wagmiConfig, {
+        const hash = await writeWithBufferedFees({
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateToken',
@@ -316,7 +341,7 @@ export function usePlaceBid(): PlaceBidResult {
       }
 
       showInfo('Please confirm the transaction in your wallet...');
-      const hash = await writeContract(wagmiConfig, {
+      const hash = await writeWithBufferedFees({
         address: CONTRACTS.COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithEth',
@@ -328,8 +353,17 @@ export function usePlaceBid(): PlaceBidResult {
       showSuccess('Bid placed successfully!');
       return true;
     } catch (err) {
-      console.error('ETH Bid error:', err);
-      const friendlyError = parseContractError(err);
+      if (isUserRejection(err)) {
+        return false;
+      }
+      reportError(err, 'placeEthBid');
+      const valueWei =
+        params.ethBidPrice +
+        (params.ethBidPrice * BigInt(params.priceBuffer || 0)) / 100n;
+      const displayedEthPrice = parseFloat(formatEther(valueWei));
+      const friendlyError =
+        getContractErrorMessage(err, displayedEthPrice) ||
+        parseContractError(err);
       setError(friendlyError);
       showError(friendlyError);
       return false;
@@ -391,7 +425,7 @@ export function usePlaceBid(): PlaceBidResult {
         }
 
         showInfo('Please confirm the transaction in your wallet...');
-        const hash = await writeContract(wagmiConfig, {
+        const hash = await writeWithBufferedFees({
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateNft',
@@ -424,7 +458,7 @@ export function usePlaceBid(): PlaceBidResult {
         }
 
         showInfo('Please confirm the transaction in your wallet...');
-        const hash = await writeContract(wagmiConfig, {
+        const hash = await writeWithBufferedFees({
           address: CONTRACTS.COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateToken',
@@ -450,7 +484,7 @@ export function usePlaceBid(): PlaceBidResult {
       }
 
       showInfo('Please confirm the transaction in your wallet...');
-      const hash = await writeContract(wagmiConfig, {
+      const hash = await writeWithBufferedFees({
         address: CONTRACTS.COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithCst',
@@ -461,8 +495,10 @@ export function usePlaceBid(): PlaceBidResult {
       showSuccess('Bid placed successfully!');
       return true;
     } catch (err) {
-      console.error('CST Bid error:', err);
-      const friendlyError = parseContractError(err);
+      if (isUserRejection(err)) return false;
+      reportError(err, 'placeCstBid');
+      const friendlyError =
+        getContractErrorMessage(err) || parseContractError(err);
       setError(friendlyError);
       showError(friendlyError);
       return false;
