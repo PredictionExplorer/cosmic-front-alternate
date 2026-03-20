@@ -1,15 +1,16 @@
 /**
  * EIP-1559 fee buffers for Arbitrum / L2 floating base fees.
  *
- * Adds ~10% headroom on estimated fees and enforces maxFeePerGas ≥ buffered
- * base fee so txs are not rejected when base fee ticks up between estimate and send.
+ * L2s often return maxPriorityFeePerGas = 0; we must NOT bail out in that case or
+ * viem/MetaMask falls back to a stale maxFeePerGas (e.g. 20_000_000 wei) below the
+ * next block's base fee.
  */
 
 import type { Config } from "@wagmi/core";
 import { estimateFeesPerGas, getBlock } from "@wagmi/core";
 
-/** Multiply by 110 / 100 (10% increase), round up */
-const BUFFER_NUM = 110n;
+/** +25% headroom (ceil) — Arbitrum base fee can move between estimate and send */
+const BUFFER_NUM = 125n;
 const BUFFER_DEN = 100n;
 
 export function bumpFeeWei(wei: bigint): bigint {
@@ -17,14 +18,14 @@ export function bumpFeeWei(wei: bigint): bigint {
   return (wei * BUFFER_NUM + BUFFER_DEN - 1n) / BUFFER_DEN;
 }
 
-/** Apply 10% buffer to an explicit gas limit (ceil). */
+/** Apply same buffer to gas limit (ceil). */
 export function bumpGasLimit(gas: bigint): bigint {
   return bumpFeeWei(gas);
 }
 
 /**
- * Returns maxFeePerGas / maxPriorityFeePerGas with +10% buffer vs `estimateFeesPerGas`,
- * and ensures maxFeePerGas is above the latest block base fee (also +10%) plus priority.
+ * Returns maxFeePerGas / maxPriorityFeePerGas with +25% buffer and a floor from
+ * latest block base fee + priority (so maxFeePerGas is always above base fee).
  */
 export async function getBufferedEip1559Fees(
   config: Config,
@@ -37,21 +38,30 @@ export async function getBufferedEip1559Fees(
 
     const baseFee = block.baseFeePerGas ?? 0n;
 
-    let maxFee =
-      fees.maxFeePerGas != null ? bumpFeeWei(fees.maxFeePerGas) : 0n;
+    const estMax = fees.maxFeePerGas ?? 0n;
+    const estPriorityRaw = fees.maxPriorityFeePerGas ?? 0n;
+
+    // L2s often report 0 priority; use 1 wei so we never drop fee params entirely
     const maxPriority =
-      fees.maxPriorityFeePerGas != null
-        ? bumpFeeWei(fees.maxPriorityFeePerGas)
-        : 0n;
+      estPriorityRaw > 0n ? bumpFeeWei(estPriorityRaw) : 1n;
+
+    let maxFee = estMax > 0n ? bumpFeeWei(estMax) : 0n;
 
     if (baseFee > 0n) {
-      const minMaxFee = bumpFeeWei(baseFee) + maxPriority;
-      if (maxFee < minMaxFee) {
-        maxFee = minMaxFee;
+      // Must satisfy maxFeePerGas >= baseFee + priority (post-buffer)
+      const minFromBaseAndTip = bumpFeeWei(baseFee) + maxPriority;
+      if (maxFee < minFromBaseAndTip) {
+        maxFee = minFromBaseAndTip;
+      }
+      // Extra safety: bump combined (base + raw tip) once
+      const combined = baseFee + (estPriorityRaw > 0n ? estPriorityRaw : 0n);
+      const minFromCombined = bumpFeeWei(combined);
+      if (maxFee < minFromCombined) {
+        maxFee = minFromCombined;
       }
     }
 
-    if (maxFee === 0n || maxPriority === 0n) {
+    if (maxFee === 0n) {
       return undefined;
     }
 

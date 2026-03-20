@@ -18,7 +18,7 @@ import { validateBidMessageLength } from '@/lib/web3/errorDecoder';
 import { getBufferedEip1559Fees } from '@/lib/web3/transactionFees';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
 
-/** EIP-1559 fees with +10% buffer vs floating Arbitrum base fee */
+/** EIP-1559 fees with +25% buffer vs floating Arbitrum base fee */
 async function writeWithBufferedFees(args: {
   address: `0x${string}`;
   abi: Abi | unknown;

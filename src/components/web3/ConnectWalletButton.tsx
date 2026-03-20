@@ -21,6 +21,7 @@ import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image
 import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
 import { useBalance, useAccount } from "wagmi";
+import { useResolvedChainId } from "@/hooks/useResolvedChainId";
 import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import Link from "next/link";
@@ -68,6 +69,8 @@ export function ConnectWalletButton({
   // Get CST token balance (polls every 15 s + on each new block)
   const { formattedBalance: cstBalance, isLoading: cstLoading } = useCosmicTokenBalance();
   const pathname = usePathname();
+  /** RainbowKit’s `chain.unsupported` can stay true when MetaMask SDK is stale; trust merged id. */
+  const { isOnAppChain } = useResolvedChainId();
 
   // ETH balance with block-level polling so it updates after bids/claims
   const { address: connectedAddress } = useAccount();
@@ -166,8 +169,8 @@ export function ConnectWalletButton({
                 );
               }
 
-              if (chain.unsupported) {
-                // Wrong network - show switch button
+              if (chain.unsupported && !isOnAppChain) {
+                // RainbowKit thinks unsupported; only show if our merged chain id disagrees
                 return (
                   <Button
                     size={size}

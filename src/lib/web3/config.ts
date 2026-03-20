@@ -33,10 +33,8 @@ if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
  * - WalletConnect
  * - And many more popular wallets
  *
- * Supports:
- * - Arbitrum Sepolia (testnet) - Chain ID: 421614
- * - Arbitrum One (mainnet) - Chain ID: 42161
- * - Local Network (development) - Chain ID: 31337
+ * Chains: one per NEXT_PUBLIC_NETWORK (local | sepolia | mainnet) — see chains.ts.
+ * Multi-chain in one build caused MetaMask SDK / RainbowKit to revert to 421614 after 31337.
  *
  * HTTP RPC URLs use the /api/rpc proxy in the browser (mixed content + CORS).
  */

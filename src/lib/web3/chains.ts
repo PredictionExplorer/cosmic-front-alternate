@@ -8,7 +8,7 @@
 
 import { arbitrum, arbitrumSepolia } from "wagmi/chains";
 import { Chain } from "viem";
-import { getDefaultChainId } from "@/lib/networkConfig";
+import { getDefaultChainId, getDefaultNetwork } from "@/lib/networkConfig";
 
 /**
  * Arbitrum One - Layer 2 Ethereum mainnet
@@ -109,13 +109,31 @@ function applyEnvRpcToChain(chain: Chain): Chain {
 }
 
 /**
- * Supported chains for the application (env RPC applied to the default chain only).
+ * Chains registered with wagmi / RainbowKit.
+ *
+ * **One chain per deployment (from NEXT_PUBLIC_NETWORK).** If we register multiple
+ * chains (e.g. local + Arbitrum Sepolia), RainbowKit + MetaMask SDK can keep or
+ * revert internal state to a non-local chain (421614) after you switch to 31337,
+ * which reopens the “Switch network” modal. Local dev should only expose 31337.
  */
-export const supportedChains: Chain[] = [
-  applyEnvRpcToChain(localTestnet),
-  applyEnvRpcToChain(arbitrumSepoliaChain),
-  applyEnvRpcToChain(arbitrumOne),
-];
+function buildSupportedChainsForEnv(): Chain[] {
+  const local = applyEnvRpcToChain(localTestnet);
+  const sepolia = applyEnvRpcToChain(arbitrumSepoliaChain);
+  const main = applyEnvRpcToChain(arbitrumOne);
+
+  switch (getDefaultNetwork()) {
+    case "local":
+      return [local];
+    case "sepolia":
+      return [sepolia];
+    case "mainnet":
+      return [main];
+    default:
+      return [local];
+  }
+}
+
+export const supportedChains: Chain[] = buildSupportedChainsForEnv();
 
 /**
  * Get the default chain based on NEXT_PUBLIC_NETWORK

@@ -107,6 +107,12 @@ export function ApiDataProvider({ children, refreshInterval = 15000, autoRefresh
 	const lastFetchTimeRef = useRef(0);
 
 	/**
+	 * After we have dashboard data once, background polls should not flip `isLoading` — otherwise
+	 * pages like /contracts (which gate the whole UI on `isLoading`) flash every refreshInterval.
+	 */
+	const hasDashboardDataRef = useRef(false);
+
+	/**
 	 * Fetch dashboard data
 	 */
 	const fetchData = useCallback(async () => {
@@ -119,12 +125,16 @@ export function ApiDataProvider({ children, refreshInterval = 15000, autoRefresh
 
 		try {
 			lastFetchTimeRef.current = now;
-			setIsLoading(true);
+			// Only show global loading before the first successful dashboard load
+			if (!hasDashboardDataRef.current) {
+				setIsLoading(true);
+			}
 			setError(null);
 
 			const raw = await api.getDashboardInfo();
 			const normalized = normalizeDashboard(raw as unknown as Record<string, unknown>);
 			setDashboardData(normalized);
+			hasDashboardDataRef.current = true;
 			setLastUpdated(Date.now());
 		} catch (err) {
 			reportError(err, 'ApiDataContext.fetchData');

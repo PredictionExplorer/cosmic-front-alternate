@@ -18,6 +18,9 @@ const RPC_URL =
   DEFAULT_RPC[NETWORK] ||
   DEFAULT_RPC.sepolia;
 
+/** Upstream RPC can be slow; avoid aborting before the node responds */
+const UPSTREAM_TIMEOUT_MS = 60_000;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -31,18 +34,59 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const res = await fetch(RPC_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
+    let res: Response;
+    try {
+      res = await fetch(RPC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const text = await res.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      console.error(
+        "[api/rpc] Upstream returned non-JSON:",
+        res.status,
+        text.slice(0, 500),
+      );
+      return NextResponse.json(
+        {
+          error: "RPC upstream returned non-JSON",
+          status: res.status,
+          preview: text.slice(0, 200),
+        },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error("[api/rpc]", err);
+    const message = err instanceof Error ? err.message : String(err);
+    const name = err instanceof Error ? err.name : "Error";
+
+    console.error("[api/rpc] Failed:", name, message, "| target:", RPC_URL);
+
+    const isAbort = name === "AbortError" || message.includes("aborted");
     return NextResponse.json(
-      { error: "RPC proxy request failed" },
-      { status: 500 },
+      {
+        error: isAbort
+          ? "RPC upstream timed out (check node reachability from this machine)"
+          : "RPC proxy request failed",
+        detail: message,
+        target: RPC_URL,
+      },
+      { status: 502 },
     );
   }
 }
