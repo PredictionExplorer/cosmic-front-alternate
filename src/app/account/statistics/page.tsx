@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -20,175 +20,27 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { api } from "@/services/api";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { useApiData } from "@/contexts/ApiDataContext";
+import type {
+  ApiClaimHistory as ClaimHistory,
+  ApiMarketingReward as MarketingReward,
+  ApiStakingAction as StakingAction,
+  ApiStakingReward as StakingReward,
+  ApiCollectedStakingReward as CollectedStakingReward,
+  ApiRWLKMint as RWLKMint,
+  ApiDonatedNFT as DonatedNFT,
+  ApiDonatedERC20 as DonatedERC20,
+  ApiUserInfo as UserInfo,
+  ApiCSTToken,
+} from "@/services/apiTypes";
+import type { ComponentBidData as Bid } from "@/lib/apiTransforms";
 import { usePrizesWallet } from "@/hooks/usePrizesWallet";
+import { useNotification } from "@/contexts/NotificationContext";
 import { formatEther } from "viem";
 import { safeTimestamp } from "@/lib/utils";
 
-interface Bid {
-  EvtLogId: number;
-  BidderAddr: string;
-  BidType: number;
-  BidPriceEth: number;
-  RoundNum: number;
-  TimeStamp: number;
-  TxHash: string;
-}
-
-interface ClaimHistory {
-  EvtLogId: number;
-  TimeStamp: number;
-  RoundNum: number;
-  Description: string;
-  PrizeAmount: number;
-}
-
-interface MarketingReward {
-  EvtLogId: number;
-  TimeStamp: number;
-  RoundNum: number;
-  AmountEth: number;
-}
-
-interface CSTToken {
-  TokenId: number;
-  TokenName: string;
-}
-
-interface StakingAction {
-  ActionType: number; // 0 = stake, 1 = unstake
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  UnstakeDate: string;
-  UnstakeTimeStamp: number;
-  ActionId: number;
-  TokenId: number;
-  NumStakedNFTs: number;
-  Modulo: string;
-  ModuloF64: number;
-  Claimed: boolean;
-}
-
-interface StakingReward {
-  TokenId: number;
-  RewardCollectedEth: number;
-  RewardToCollectEth: number;
-  UserAid: number;
-  UserAddr: string;
-}
-
-interface CollectedStakingReward {
-  RecordId: number;
-  DepositId: number;
-  RoundNum: number;
-  YourTokensStaked: number;
-  YourCollectedAmountEth: number;
-  DepositTimeStamp: number;
-  DepositDate: string;
-  NumStakedNFTs: number;
-  TotalDepositAmountEth: number;
-  DepositAmountPerTokenEth: number;
-  NumTokensCollected: number;
-  FullyClaimed: boolean;
-}
-
-interface RWLKMint {
-  TokenId: number;
-  RoundNum: number;
-  TimeStamp: number;
-}
-
-interface DonatedNFT {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  Index: number;
-  TokenAddr: string;
-  NFTTokenId: number;
-  NFTTokenURI: string;
-  RoundNum: number;
-  DonorAid: number;
-  DonorAddr: string;
-  TokenAddressId?: number; // Only in unclaimed
-  WinnerIndex?: number; // Only in claimed
-  WinnerAid?: number; // Only in claimed
-  WinnerAddr?: string; // Only in claimed
-  // Transformed fields for UI (always set by transformation)
-  NftAddr: string;
-  TokenId: number;
-  TimeStamp: number;
-  Claimed: boolean;
-}
-
-interface DonatedERC20 {
-  RecordId: number;
-  Tx: {
-    EvtLogId: number;
-    BlockNum: number;
-    TxId: number;
-    TxHash: string;
-    TimeStamp: number;
-    DateTime: string;
-  };
-  RoundNum: number;
-  TokenAid: number;
-  TokenAddr: string;
-  AmountDonated: string;
-  AmountDonatedEth: number;
-  AmountClaimed: string;
-  AmountClaimedEth: number;
-  DonateClaimDiff: string;
-  DonateClaimDiffEth: number;
-  WinnerAid: number;
-  WinnerAddr: string;
-  Claimed: boolean;
-}
-
-interface DashboardData {
-  CurRoundNum: number;
-  TsRoundStart: number;
-  NumRaffleEthWinnersBidding?: number;
-  NumRaffleNFTWinnersBidding?: number;
-}
-
-interface UserInfo {
-  AddressId?: number;
-  Address: string;
-  NumBids: number;
-  CosmicSignatureNumTransfers: number;
-  CosmicTokenNumTransfers?: number;
-  MaxBidAmount: number;
-  NumPrizes: number;
-  MaxWinAmount: number;
-  SumRaffleEthWinnings: number;
-  SumRaffleEthWithdrawal: number;
-  UnclaimedNFTs: number;
-  NumRaffleEthWinnings: number;
-  RaffleNFTsCount: number;
-  RewardNFTsCount: number;
-  TotalCSTokensWon: number;
-  TotalDonatedCount?: number;
-  TotalDonatedAmountEth?: number;
-  StakingStatisticsRWalk?: {
-    NumActiveStakers: number;
-    TotalNumStakeActions: number;
-    TotalNumUnstakeActions: number;
-    TotalTokensMinted: number;
-    TotalTokensStaked: number;
-  };
-}
+type CSTToken = Pick<ApiCSTToken, 'TokenId' | 'TokenName'>;
 
 interface StatItemProps {
   title: string;
@@ -248,31 +100,6 @@ const Pagination = ({ currentPage, totalItems, itemsPerPage, onPageChange }: Pag
 
 export default function UserStatisticsPage() {
   const { address, isConnected } = useAccount();
-  const [loading, setLoading] = useState(true);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [balance, setBalance] = useState({ CosmicToken: 0, ETH: 0 });
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [raffleETHProbability, setRaffleETHProbability] = useState(0);
-  const [raffleNFTProbability, setRaffleNFTProbability] = useState(0);
-  
-  // Bid and claim history
-  const [bidHistory, setBidHistory] = useState<Bid[]>([]);
-  const [claimHistory, setClaimHistory] = useState<ClaimHistory[]>([]);
-  const [marketingRewards, setMarketingRewards] = useState<MarketingReward[]>([]);
-  
-  // CST tokens owned
-  const [cstList, setCSTList] = useState<CSTToken[]>([]);
-  
-  // Staking data
-  const [stakingCSTActions, setStakingCSTActions] = useState<StakingAction[]>([]);
-  const [stakingRWLKActions, setStakingRWLKActions] = useState<StakingAction[]>([]);
-  const [cstStakingRewards, setCstStakingRewards] = useState<StakingReward[]>([]);
-  const [collectedCstStakingRewards, setCollectedCstStakingRewards] = useState<CollectedStakingReward[]>([]);
-  const [rwlkMints, setRWLKMints] = useState<RWLKMint[]>([]);
-  
-  // Donated prizes
-  const [donatedNFTs, setDonatedNFTs] = useState<DonatedNFT[]>([]);
-  const [donatedERC20, setDonatedERC20] = useState<DonatedERC20[]>([]);
   
   // UI state
   const [stakingTab, setStakingTab] = useState<"cst" | "rwlk">("cst");
@@ -291,19 +118,12 @@ export default function UserStatisticsPage() {
   const itemsPerPage = 10;
   
   const prizesWallet = usePrizesWallet();
+  const { showError } = useNotification();
+  const { dashboardData: ctxDashboard } = useApiData();
 
-  // Refresh data without showing loading screen (for background updates)
-  const refreshData = useCallback(async (showLoading = false) => {
-    if (!address || !isConnected) {
-      return;
-    }
-
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-
-      // Fetch all user data in parallel
+  const { data: statsData, isLoading: loading, refetch } = useApiQuery(
+    "account-statistics-" + address + "-" + (ctxDashboard?.CurRoundNum ?? ""),
+    async () => {
       const [
         claimHist,
         userInfoResponse,
@@ -318,147 +138,108 @@ export default function UserStatisticsPage() {
         unclaimedNFTs,
         claimedNFTs,
         erc20Tokens,
-        dashData,
       ] = await Promise.all([
-        api.getClaimHistoryByUser(address),
-        api.getUserInfo(address),
-        api.getUserBalance(address),
-        api.getStakingCSTActionsByUser(address),
-        api.getStakingRWLKActionsByUser(address),
-        api.getMarketingRewardsByUser(address),
-        api.getCSTTokensByUser(address),
-        api.getStakingRewardsByUser(address),
-        api.getStakingCSTRewardsCollected(address),
-        api.getStakingRWLKMintsByUser(address),
-        api.getUnclaimedDonatedNFTsByUser(address),
-        api.getClaimedDonatedNFTsByUser(address),
-        api.getERC20DonationsByUser(address),
-        api.getDashboardInfo(),
+        api.getClaimHistoryByUser(address!),
+        api.getUserInfo(address!),
+        api.getUserBalance(address!),
+        api.getStakingCSTActionsByUser(address!),
+        api.getStakingRWLKActionsByUser(address!),
+        api.getMarketingRewardsByUser(address!),
+        api.getCSTTokensByUser(address!),
+        api.getStakingRewardsByUser(address!),
+        api.getStakingCSTRewardsCollected(address!),
+        api.getStakingRWLKMintsByUser(address!),
+        api.getUnclaimedDonatedNFTsByUser(address!),
+        api.getClaimedDonatedNFTsByUser(address!),
+        api.getERC20DonationsByUser(address!),
       ]);
 
-      // Set user info
-      if (userInfoResponse && userInfoResponse.UserInfo) {
-        setUserInfo(userInfoResponse.UserInfo);
-        setBidHistory(userInfoResponse.Bids || []);
-      }
+      const userInfo = userInfoResponse?.UserInfo
+        ? (userInfoResponse.UserInfo as UserInfo)
+        : null;
+      const bidHistory = (userInfoResponse?.Bids || []) as Bid[];
 
-      // Set balances
-      if (balanceResponse) {
-        setBalance({
-          CosmicToken: Number(formatEther(BigInt(balanceResponse.CosmicTokenBalance || "0"))),
-          ETH: Number(formatEther(BigInt(balanceResponse.ETH_Balance || "0"))),
-        });
-      }
+      const balance = balanceResponse
+        ? {
+            CosmicToken: Number(formatEther(BigInt((balanceResponse.CosmicTokenBalance || "0") as string))),
+            ETH: Number(formatEther(BigInt((balanceResponse.ETH_Balance || "0") as string))),
+          }
+        : { CosmicToken: 0, ETH: 0 };
 
-      // Set all other data
-      setClaimHistory(claimHist);
-      setStakingCSTActions(cstActions);
-      setStakingRWLKActions(rwalkActions);
-      // Transform donated NFTs from API response
-      const transformNFT = (nft: Record<string, unknown>, claimed: boolean): DonatedNFT => {
-        const tx = nft.Tx as Record<string, unknown>;
-        return {
-          RecordId: nft.RecordId as number,
-          Tx: {
-            EvtLogId: tx?.EvtLogId as number || 0,
-            BlockNum: tx?.BlockNum as number || 0,
-            TxId: tx?.TxId as number || 0,
-            TxHash: tx?.TxHash as string || '',
-            TimeStamp: tx?.TimeStamp as number || 0,
-            DateTime: tx?.DateTime as string || '',
-          },
-          Index: nft.Index as number,
-          TokenAddr: nft.TokenAddr as string,
-          NFTTokenId: nft.NFTTokenId as number,
-          NFTTokenURI: nft.NFTTokenURI as string || '',
-          RoundNum: nft.RoundNum as number,
-          DonorAid: nft.DonorAid as number,
-          DonorAddr: nft.DonorAddr as string,
-          TokenAddressId: nft.TokenAddressId as number | undefined,
-          WinnerIndex: nft.WinnerIndex as number | undefined,
-          WinnerAid: nft.WinnerAid as number | undefined,
-          WinnerAddr: nft.WinnerAddr as string | undefined,
-          // Add transformed fields for backward compatibility
-          NftAddr: nft.TokenAddr as string,
-          TokenId: nft.NFTTokenId as number,
-          TimeStamp: tx?.TimeStamp as number || 0,
-          Claimed: claimed,
-        };
-      };
+      const transformNFT = (nft: DonatedNFT, claimed: boolean): DonatedNFT => ({
+        ...nft,
+        NftAddr: nft.TokenAddr,
+        TokenId: nft.NFTTokenId,
+        TimeStamp: nft.Tx?.TimeStamp || 0,
+        Claimed: claimed,
+      });
+      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft) => transformNFT(nft, false));
+      const transformedClaimedNFTs = claimedNFTs.map((nft) => transformNFT(nft, true));
+      const erc20List = erc20Tokens || [];
 
-      const transformedUnclaimedNFTs = unclaimedNFTs.map((nft: Record<string, unknown>) => 
-        transformNFT(nft, false)
-      );
-      const transformedClaimedNFTs = claimedNFTs.map((nft: Record<string, unknown>) => 
-        transformNFT(nft, true)
-      );
-
-      setMarketingRewards(mRewards);
-      setCSTList(userCstList);
-      setCstStakingRewards(stakingRewards);
-      setCollectedCstStakingRewards(collectedRewards);
-      setRWLKMints(rwalkMinted);
-      setDonatedNFTs([...transformedUnclaimedNFTs, ...transformedClaimedNFTs]);
-      
-      // Extract and sort ERC20 tokens from API response
-      const erc20List = erc20Tokens?.DonatedPrizesERC20ByWinner || [];
-      setDonatedERC20(erc20List.sort((a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp));
-      
-      setDashboardData(dashData);
-
-      // Calculate raffle probabilities
-      if (dashData && dashData.CurRoundNum > 0) {
-        const bidList = await api.getBidListByRound(dashData.CurRoundNum, "desc");
+      let raffleETHProbability = 0;
+      let raffleNFTProbability = 0;
+      if (ctxDashboard && ctxDashboard.CurRoundNum > 0) {
+        const bidList = await api.getBidListByRound(ctxDashboard.CurRoundNum, "desc");
         const totalBids = bidList.length;
         const userBids = bidList.filter((bid: Bid) => bid.BidderAddr === address).length;
-
         if (totalBids > 0) {
-          const ethProb =
-            1 -
-            Math.pow(
-              (totalBids - userBids) / totalBids,
-              dashData.NumRaffleEthWinnersBidding || 3
-            );
-          const nftProb =
-            1 -
-            Math.pow(
-              (totalBids - userBids) / totalBids,
-              dashData.NumRaffleNFTWinnersBidding || 5
-            );
-          setRaffleETHProbability(ethProb);
-          setRaffleNFTProbability(nftProb);
+          raffleETHProbability =
+            1 - Math.pow((totalBids - userBids) / totalBids, ctxDashboard.NumRaffleEthWinnersBidding || 3);
+          raffleNFTProbability =
+            1 - Math.pow((totalBids - userBids) / totalBids, ctxDashboard.NumRaffleNFTWinnersBidding || 5);
         }
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  }, [address, isConnected]);
 
-  // Initial data fetch with loading screen
-  const fetchUserData = useCallback(() => {
-    return refreshData(true);
-  }, [refreshData]);
+      return {
+        userInfo,
+        bidHistory,
+        balance,
+        claimHistory: claimHist,
+        stakingCSTActions: cstActions,
+        stakingRWLKActions: rwalkActions as unknown as StakingAction[],
+        marketingRewards: mRewards,
+        cstList: userCstList as CSTToken[],
+        cstStakingRewards: stakingRewards,
+        collectedCstStakingRewards: collectedRewards,
+        rwlkMints: rwalkMinted,
+        donatedNFTs: [...transformedUnclaimedNFTs, ...transformedClaimedNFTs],
+        donatedERC20: erc20List.sort((a: DonatedERC20, b: DonatedERC20) => b.Tx.TimeStamp - a.Tx.TimeStamp),
+        raffleETHProbability,
+        raffleNFTProbability,
+      };
+    },
+    { enabled: !!address }
+  );
 
-  useEffect(() => {
-    fetchUserData();
-  }, [fetchUserData]);
+  const userInfo = statsData?.userInfo ?? null;
+  const bidHistory = statsData?.bidHistory ?? [];
+  const balance = statsData?.balance ?? { CosmicToken: 0, ETH: 0 };
+  const claimHistory = statsData?.claimHistory ?? [];
+  const stakingCSTActions = statsData?.stakingCSTActions ?? [];
+  const stakingRWLKActions = statsData?.stakingRWLKActions ?? [];
+  const marketingRewards = statsData?.marketingRewards ?? [];
+  const cstList = statsData?.cstList ?? [];
+  const cstStakingRewards = statsData?.cstStakingRewards ?? [];
+  const collectedCstStakingRewards = statsData?.collectedCstStakingRewards ?? [];
+  const rwlkMints = statsData?.rwlkMints ?? [];
+  const donatedNFTs = statsData?.donatedNFTs ?? [];
+  const donatedERC20 = statsData?.donatedERC20 ?? [];
+  const raffleETHProbability = statsData?.raffleETHProbability ?? 0;
+  const raffleNFTProbability = statsData?.raffleNFTProbability ?? 0;
 
   // Claim donated NFT
   const handleClaimNFT = async (nftIndex: number) => {
     try {
       setClaimingNFT(nftIndex);
       await prizesWallet.write.claimDonatedNft(BigInt(nftIndex));
-      // Refresh data after transaction without triggering full page loading
       setTimeout(() => {
-        refreshData(false);
+        refetch();
         setClaimingNFT(null);
       }, 3000);
     } catch (error) {
       console.error("Error claiming NFT:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingNFT(null);
     }
   };
@@ -473,11 +254,12 @@ export default function UserStatisticsPage() {
       const indexes = unclaimed.map(nft => BigInt(nft.Index));
       await prizesWallet.write.claimManyDonatedNfts(indexes);
       setTimeout(() => {
-        refreshData(false);
+        refetch();
         setClaimingNFT(null);
       }, 3000);
     } catch (error) {
       console.error("Error claiming all NFTs:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingNFT(null);
     }
   };
@@ -491,13 +273,13 @@ export default function UserStatisticsPage() {
         token.TokenAddr as `0x${string}`,
         BigInt(token.DonateClaimDiff)
       );
-      // Refresh data after transaction without triggering full page loading
       setTimeout(() => {
-        refreshData(false);
+        refetch();
         setClaimingERC20(null);
       }, 3000);
     } catch (error) {
       console.error("Error claiming ERC20:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingERC20(null);
     }
   };
@@ -517,11 +299,12 @@ export default function UserStatisticsPage() {
       
       await prizesWallet.write.claimManyDonatedTokens(tokens);
       setTimeout(() => {
-        refreshData(false);
+        refetch();
         setClaimingERC20(null);
       }, 3000);
     } catch (error) {
       console.error("Error claiming all ERC20:", error);
+      showError(error instanceof Error ? error.message : "Claim failed");
       setClaimingERC20(null);
     }
   };
@@ -711,7 +494,7 @@ export default function UserStatisticsPage() {
               />
               
               {/* Raffle Probabilities */}
-              {dashboardData && !(dashboardData.CurRoundNum > 0 && dashboardData.TsRoundStart === 0) && (
+              {ctxDashboard && !(ctxDashboard.CurRoundNum > 0 && ctxDashboard.TsRoundStart === 0) && (
                 <>
                   <StatItem
                     title="Probability of Winning ETH"

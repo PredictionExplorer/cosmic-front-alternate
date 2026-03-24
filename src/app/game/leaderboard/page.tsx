@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { motion } from "framer-motion";
 import { Trophy, Medal } from "lucide-react";
 import Link from "next/link";
@@ -8,6 +9,8 @@ import { Container } from "@/components/ui/Container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { formatEth, shortenAddress } from "@/lib/utils";
 import api from "@/services/api";
+import { useApiData } from "@/contexts/ApiDataContext";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,213 +27,142 @@ interface PrizeHistoryItem {
   Address?: string;
 }
 
-interface BidItem {
-  BidderAddr?: string;
-  BidPriceEth?: number;
-}
+type BidItem = Pick<ComponentBidData, 'BidderAddr' | 'BidPriceEth'>;
 
 export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<"all-time" | "current">("all-time");
   const [category, setCategory] = useState<"prizes" | "bids" | "spending">(
     "prizes"
   );
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
-    []
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentRound, setCurrentRound] = useState<number>(0);
+  // Current round number from global context
+  const { dashboardData } = useApiData();
+  const currentRound = dashboardData?.CurRoundNum ?? 0;
 
-  // Fetch current round number
-  useEffect(() => {
-    async function fetchCurrentRound() {
-      try {
-        const dashboardData = await api.getDashboardInfo();
-        setCurrentRound(dashboardData?.CurRoundNum || 0);
-      } catch (error) {
-        console.error("Failed to fetch current round:", error);
-      }
-    }
-    fetchCurrentRound();
-  }, []);
+  // Fetch leaderboard data (key includes category, timeframe, and round for proper cache separation)
+  const { data: leaderboardDataRaw, isLoading } = useApiQuery<LeaderboardEntry[]>(
+    `leaderboard-${category}-${timeframe}-${currentRound}`,
+    async () => {
+      let result: LeaderboardEntry[] = [];
 
-  // Fetch leaderboard data
-  useEffect(() => {
-    async function fetchLeaderboard() {
-      // Wait for current round to be loaded if we're in current mode
-      if (timeframe === "current" && currentRound === 0) {
-        return; // Wait for currentRound to be fetched
-      }
+      const bids = timeframe === "current" && currentRound > 0
+        ? await api.getBidListByRound(currentRound)
+        : await api.getBidList();
 
-      try {
-        setIsLoading(true);
-        setLeaderboardData([]); // Clear previous data
+      if (category === "prizes") {
+        const winners = await api.getUniqueWinners();
 
-        let data: LeaderboardEntry[] = [];
+        if (timeframe === "current" && currentRound > 0) {
+          const prizeHistory = await api.getClaimHistory();
+          const currentRoundWinners = prizeHistory.filter(
+            (prize: PrizeHistoryItem) => prize.RoundNum === currentRound
+          );
 
-        // Fetch bids based on timeframe
-        const bids = timeframe === "current" && currentRound > 0
-          ? await api.getBidListByRound(currentRound)
-          : await api.getBidList();
-
-        console.log(`Fetched ${bids.length} bids for ${timeframe === "current" ? `round ${currentRound}` : 'all-time'}`);
-        if (bids.length > 0) {
-          console.log('Sample bid:', bids[0]);
-        }
-
-        if (category === "prizes") {
-          // Get winners from all-time data
-          const winners = await api.getUniqueWinners();
-          
-          if (timeframe === "current" && currentRound > 0) {
-            // Filter winners by current round from prize history
-            const prizeHistory = await api.getClaimHistory();
-            const currentRoundWinners = prizeHistory.filter(
-              (prize: PrizeHistoryItem) => prize.RoundNum === currentRound
-            );
-            
-            // Count prizes per winner in current round
-            const winnerCounts = currentRoundWinners.reduce((acc: Record<string, number>, prize: PrizeHistoryItem) => {
-              const addr = prize.WinnerAddr || prize.BeneficiaryAddr || prize.Address;
-              if (addr) {
-                acc[addr] = (acc[addr] || 0) + 1;
-              }
-              return acc;
-            }, {});
-            
-            // Convert to leaderboard format
-            data = Object.entries(winnerCounts)
-              .map(([address, count]) => ({
-                rank: 0,
-                address,
-                value: count as number,
-                nftsWon: count as number,
-              }))
-              .sort((a, b) => b.value - a.value)
-              .slice(0, 50)
-              .map((entry, index) => ({
-                ...entry,
-                rank: index + 1,
-              }));
-          } else {
-            // All-time winners
-            const sorted = [...winners].sort(
-              (a: Record<string, unknown>, b: Record<string, unknown>) =>
-                ((b.PrizesCount as number) || 0) - ((a.PrizesCount as number) || 0)
-            );
-            
-            data = sorted
-              .slice(0, 50)
-              .map((winner: Record<string, unknown>, index: number) => ({
-                rank: index + 1,
-                address: (winner.WinnerAddr as string) || "0x0",
-                value: (winner.PrizesCount as number) || 0,
-                nftsWon: (winner.PrizesCount as number) || 0,
-              }));
-          }
-        } else if (category === "bids") {
-          // Count bids per bidder
-          const bidderCounts = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
-            const addr = bid.BidderAddr;
+          const winnerCounts = currentRoundWinners.reduce((acc: Record<string, number>, prize: PrizeHistoryItem) => {
+            const addr = prize.WinnerAddr || prize.BeneficiaryAddr || prize.Address;
             if (addr) {
               acc[addr] = (acc[addr] || 0) + 1;
             }
             return acc;
           }, {});
-          
-          console.log('Bidder counts:', Object.keys(bidderCounts).length, 'unique bidders');
-          
-          // Convert to leaderboard format
-          data = Object.entries(bidderCounts)
+
+          result = Object.entries(winnerCounts)
             .map(([address, count]) => ({
               rank: 0,
               address,
               value: count as number,
+              nftsWon: count as number,
+            }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 50)
+            .map((entry, index) => ({ ...entry, rank: index + 1 }));
+        } else {
+          const sorted = [...winners].sort(
+            (a: Record<string, unknown>, b: Record<string, unknown>) =>
+              ((b.PrizesCount as number) || 0) - ((a.PrizesCount as number) || 0)
+          );
+
+          result = sorted
+            .slice(0, 50)
+            .map((winner: Record<string, unknown>, index: number) => ({
+              rank: index + 1,
+              address: (winner.WinnerAddr as string) || "0x0",
+              value: (winner.PrizesCount as number) || 0,
+              nftsWon: (winner.PrizesCount as number) || 0,
+            }));
+        }
+      } else if (category === "bids") {
+        const bidderCounts = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
+          const addr = bid.BidderAddr;
+          if (addr) {
+            acc[addr] = (acc[addr] || 0) + 1;
+          }
+          return acc;
+        }, {});
+
+        result = Object.entries(bidderCounts)
+          .map(([address, count]) => ({
+            rank: 0,
+            address,
+            value: count as number,
+            nftsWon: 0,
+          }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 50)
+          .map((entry, index) => ({ ...entry, rank: index + 1 }));
+      } else {
+        if (timeframe === "current" && currentRound > 0) {
+          const bidderSpending = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
+            const addr = bid.BidderAddr;
+            const amount = bid.BidPriceEth || 0;
+            if (addr) {
+              acc[addr] = (acc[addr] || 0) + amount;
+            }
+            return acc;
+          }, {});
+
+          result = Object.entries(bidderSpending)
+            .map(([address, total]) => ({
+              rank: 0,
+              address,
+              value: total as number,
               nftsWon: 0,
             }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 50)
-            .map((entry, index) => ({
-              ...entry,
-              rank: index + 1,
-            }));
+            .map((entry, index) => ({ ...entry, rank: index + 1 }));
         } else {
-          // Total Spending category
-          if (timeframe === "current" && currentRound > 0) {
-            // For current round, calculate from bids
-            const bidderSpending = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
-              const addr = bid.BidderAddr;
-              const amount = bid.BidPriceEth || 0;
-              if (addr) {
-                acc[addr] = (acc[addr] || 0) + amount;
-              }
-              return acc;
-            }, {});
-            
-            console.log('Current round spending:', Object.keys(bidderSpending).length, 'unique spenders');
-            
-            // Convert to leaderboard format
-            data = Object.entries(bidderSpending)
-              .map(([address, total]) => ({
-                rank: 0,
-                address,
-                value: total as number,
-                nftsWon: 0,
-              }))
-              .sort((a, b) => b.value - a.value)
-              .slice(0, 50)
-              .map((entry, index) => ({
-                ...entry,
+          const winners = await api.getUniqueWinners();
+
+          const sorted = winners
+            .filter((winner: Record<string, unknown>) => {
+              const stats = winner.WinnerStats as Record<string, unknown> | undefined;
+              return stats && (stats.TotalSpentEth as number) > 0;
+            })
+            .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+              const aStats = a.WinnerStats as Record<string, unknown>;
+              const bStats = b.WinnerStats as Record<string, unknown>;
+              return ((bStats.TotalSpentEth as number) || 0) - ((aStats.TotalSpentEth as number) || 0);
+            });
+
+          result = sorted
+            .slice(0, 50)
+            .map((winner: Record<string, unknown>, index: number) => {
+              const stats = winner.WinnerStats as Record<string, unknown>;
+              return {
                 rank: index + 1,
-              }));
-          } else {
-            // All-time spending - use WinnerStats.TotalSpentEth from winners data
-            const winners = await api.getUniqueWinners();
-            
-            // Filter winners with spending data and sort by TotalSpentEth
-            const sorted = winners
-              .filter((winner: Record<string, unknown>) => {
-                const stats = winner.WinnerStats as Record<string, unknown> | undefined;
-                return stats && (stats.TotalSpentEth as number) > 0;
-              })
-              .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
-                const aStats = a.WinnerStats as Record<string, unknown>;
-                const bStats = b.WinnerStats as Record<string, unknown>;
-                return ((bStats.TotalSpentEth as number) || 0) - ((aStats.TotalSpentEth as number) || 0);
-              });
-            
-            console.log('All-time spenders:', sorted.length, 'total');
-            if (sorted.length > 0) {
-              const topSpender = sorted[0];
-              const topStats = topSpender.WinnerStats as Record<string, unknown>;
-              console.log('Top spender:', topSpender.WinnerAddr, 'spent:', topStats.TotalSpentEth);
-            }
-            
-            data = sorted
-              .slice(0, 50)
-              .map((winner: Record<string, unknown>, index: number) => {
-                const stats = winner.WinnerStats as Record<string, unknown>;
-                return {
-                  rank: index + 1,
-                  address: (winner.WinnerAddr as string) || "0x0",
-                  value: (stats.TotalSpentEth as number) || 0,
-                  nftsWon: 0,
-                };
-              });
-          }
+                address: (winner.WinnerAddr as string) || "0x0",
+                value: (stats.TotalSpentEth as number) || 0,
+                nftsWon: 0,
+              };
+            });
         }
-
-        console.log('Final leaderboard data:', data.length, data.slice(0, 3));
-        setLeaderboardData(data);
-      } catch (error) {
-        console.error("Failed to fetch leaderboard:", error);
-        setLeaderboardData([]);
-      } finally {
-        setIsLoading(false);
       }
-    }
 
-    fetchLeaderboard();
-  }, [category, timeframe, currentRound]);
+      return result;
+    },
+    { enabled: timeframe !== "current" || currentRound > 0 },
+  );
+  const leaderboardData = leaderboardDataRaw ?? [];
 
   const getMedalColor = (rank: number) => {
     if (rank === 1) return "text-primary";

@@ -26,6 +26,7 @@ import {
   ReactNode,
 } from 'react';
 import api from '@/services/api';
+import { reportError } from '@/lib/errorReporter';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,7 +77,7 @@ export function SystemModeProvider({
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const list: SystemModeChange[] = await api.getSystemModeList();
+      const list = (await api.getSystemModeList()) as unknown as SystemModeChange[];
       setModeList(Array.isArray(list) ? list : []);
 
       // Future: derive currentMode from contract read.
@@ -90,7 +91,7 @@ export function SystemModeProvider({
       // });
       // setCurrentMode(Number(result));
     } catch (err) {
-      console.error('[SystemMode] Failed to fetch system mode list:', err);
+      reportError(err, 'SystemMode.fetchData');
     } finally {
       setIsLoading(false);
     }

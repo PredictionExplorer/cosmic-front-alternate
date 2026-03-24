@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { motion } from "framer-motion";
 import { Grid3x3, List, Search } from "lucide-react";
 import Image from "next/image";
@@ -16,53 +17,28 @@ export default function GalleryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "id">("id");
   const [currentPage, setCurrentPage] = useState(1);
-  const [allNFTs, setAllNFTs] = useState<
-    Array<{
-      id: number;
-      tokenId: number;
-      name: string;
-      customName?: string;
-      seed: string;
-      imageUrl: string;
-      owner: string;
-      round: number;
-      mintedAt: string;
-      attributes: unknown[];
-    }>
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const itemsPerPage = viewMode === "grid" ? 20 : 10; // 20 for grid view, 10 for list view
+  const itemsPerPage = viewMode === "grid" ? 20 : 10;
 
   // Fetch all NFTs from API
-  useEffect(() => {
-    async function fetchNFTs() {
-      try {
-        setIsLoading(true);
-        const nfts = await api.getCSTList();        
-
-        // Transform API data to component format
-        const transformed = nfts.map((nft: Record<string, unknown>) => ({
-          id: (nft.TokenId as number) || 0,
-          tokenId: (nft.TokenId as number) || 0,
-          name: `Cosmic Signature #${nft.TokenId}`,
-          customName: (nft.TokenName as string | null) || undefined,
-          seed: `0x${nft.Seed}`,
-          imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
-          owner: (nft.CurOwnerAddr as string) || "0x0",
-          round: (nft.RoundNum as number) || 0,
-          mintedAt: safeTimestamp(nft),
-          attributes: [],
-        }));
-
-        setAllNFTs(transformed);
-      } catch (error) {
-        console.error("Failed to fetch NFTs:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchNFTs();
-  }, []);
+  const { data: allNFTsRaw, isLoading } = useApiQuery(
+    "gallery-nfts",
+    async () => {
+      const nfts = await api.getCSTList();
+      return nfts.map((nft) => ({
+        id: nft.TokenId || 0,
+        tokenId: nft.TokenId || 0,
+        name: `Cosmic Signature #${nft.TokenId}`,
+        customName: nft.TokenName || undefined,
+        seed: `0x${nft.Seed}`,
+        imageUrl: getAssetsUrl(`images/new/cosmicsignature/0x${nft.Seed}.png`),
+        owner: nft.CurOwnerAddr || "0x0",
+        round: nft.RoundNum || 0,
+        mintedAt: safeTimestamp(nft as unknown as Record<string, unknown>),
+        attributes: [] as unknown[],
+      }));
+    },
+  );
+  const allNFTs = allNFTsRaw ?? [];
 
   // Reset to page 1 when filters change
   useEffect(() => {

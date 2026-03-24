@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { useApiData } from "@/contexts/ApiDataContext";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -15,98 +17,36 @@ import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { SystemModesTable } from "@/components/game/SystemModesTable";
 import { api } from "@/services/api";
+import type {
+  ApiDashboardData,
+  ApiUniqueBidder,
+  ApiUniqueWinner,
+  ApiUniqueDonor,
+  ApiUniqueStaker,
+  ApiCSTDistribution,
+  ApiCTBalanceDistribution,
+  ApiDonatedTokenDistribution,
+  ApiCSTBidData,
+} from "@/services/apiTypes";
+import type { ComponentBidData } from "@/lib/apiTransforms";
 import type { SystemModeChange } from "@/contexts/SystemModeContext";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-interface Bid {
-  EvtLogId: number;
-  BidderAddr: string;
-  BidType: number;
-  BidPriceEth: number;
-  CstPriceEth?: number;
-  RoundNum: number;
-  TimeStamp: number;
-  TxHash: string;
-}
+type Bid = ComponentBidData;
 
-interface UniqueBidder {
-  BidderAddr: string;
-  NumBids: number;
-}
+type UniqueBidder = ApiUniqueBidder;
+type UniqueWinner = ApiUniqueWinner;
+type UniqueDonor = ApiUniqueDonor;
+type UniqueStaker = ApiUniqueStaker;
+type CSTDistribution = ApiCSTDistribution;
+type CTBalanceDistribution = ApiCTBalanceDistribution;
+type DonatedTokenDistribution = ApiDonatedTokenDistribution;
+type CSTBidData = ApiCSTBidData;
 
-interface UniqueWinner {
-  WinnerAid: number;
-  WinnerAddr: string;
-  PrizesCount: number;
-  MaxWinAmount: string;
-  MaxWinAmountEth: number;
-  PrizesSum: number;
-  WinnerStats: {
-    MaxWinAmount: string;
-    MaxWinAmountEth: number;
-    PrizesCount: number;
-    PrizesSum: string;
-    PrizesSumEth: number;
-    TokensCount: number;
-    ERC20Count: number;
-    ERC721Count: number;
-    UnclaimedNfts: number;
-    TotalSpent: string;
-    TotalSpentEth: number;
-  };
-  NumWins?: number; // For backward compatibility
-}
-
-interface UniqueDonor {
-  DonorAddr: string;
-  NumDonations: number;
-}
-
-interface UniqueStaker {
-  StakerAid: number;
-  StakerAddr: string;
-  TotalTokensStaked: number;
-  NumStakeActions: number;
-  NumUnstakeActions: number;
-  TotalReward: string;
-  TotalRewardEth: number;
-  UnclaimedReward: string;
-  UnclaimedRewardEth: number;
-}
-
-interface CSTDistribution {
-  OwnerAddr: string;
-  NumTokens: number;
-}
-
-interface CTBalanceDistribution {
-  OwnerAid: number;
-  OwnerAddr: string;
-  Balance: string;
-  BalanceFloat: number;
-  PercentOfSupply: number;
-}
-
-interface DonatedTokenDistribution {
-  NftAddr: string;
-  NumDonations: number;
-}
-
-interface CSTBidData {
-  CSTPrice: string;
-  SecondsElapsed: number;
-  AuctionDuration: number;
-}
-
-interface DashboardData {
-  CurRoundNum: number;
+interface DashboardData extends ApiDashboardData {
   TsRoundStart: number;
-  BidPriceEth: number;
-  CurNumBids: number;
-  PrizeAmountEth: number;
   PrizeClaimTs: number;
-  LastBidderAddr: string;
   CosmicGameBalanceEth: number;
   TotalPrizes: number;
   TotalPrizesPaidAmountEth: number;
@@ -115,10 +55,6 @@ interface DashboardData {
   NumDonatedNFTs: number;
   NumVoluntaryDonations: number;
   SumVoluntaryDonationsEth: number;
-  CurRoundStats: {
-    TotalDonatedNFTs: number;
-    TotalDonatedAmountEth: number;
-  };
   MainStats: {
     NumCSTokenMints: number;
     TotalRaffleEthDeposits: number;
@@ -219,103 +155,112 @@ const StatItem = ({ title, value }: StatItemProps) => (
 );
 
 export default function StatisticsPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"cst" | "rwlk">("cst");
-  
-  // Additional data states
-  const [currentRoundBids, setCurrentRoundBids] = useState<Bid[]>([]);
-  const [uniqueBidders, setUniqueBidders] = useState<UniqueBidder[]>([]);
-  const [uniqueWinners, setUniqueWinners] = useState<UniqueWinner[]>([]);
-  const [uniqueCSTStakers, setUniqueCSTStakers] = useState<UniqueStaker[]>([]);
-  const [uniqueRWLKStakers, setUniqueRWLKStakers] = useState<UniqueStaker[]>([]);
-  const [uniqueDonors, setUniqueDonors] = useState<UniqueDonor[]>([]);
-  const [cstDistribution, setCSTDistribution] = useState<CSTDistribution[]>([]);
-  const [ctBalanceDistribution, setCTBalanceDistribution] = useState<CTBalanceDistribution[]>([]);
-  const [systemModeChanges, setSystemModeChanges] = useState<SystemModeChange[] | null>(null);
-  
+
   // Pagination for bid history
   const [bidHistoryPage, setBidHistoryPage] = useState(1);
   const bidsPerPage = 20;
-  
-  // CST bid data (live updating)
-  const [cstBidData, setCstBidData] = useState<CSTBidData>({
-    CSTPrice: "0",
-    SecondsElapsed: 0,
-    AuctionDuration: 0,
-  });
 
-  // Fetch main dashboard data
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const dashboardData = await api.getDashboardInfo();
-        setData(dashboardData);
+  // Dashboard data from global context
+  const { dashboardData, isLoading: loading } = useApiData();
+  const data = dashboardData as unknown as DashboardData | null;
 
-        // Fetch additional parallel data
-        const [
-          currentBids,
-          bidders,
-          winners,
-          cstStakers,
-          rwlkStakers,
-          donors,
-          cstDist,
-          ctBalance,
-          sysModeList,
-        ] = await Promise.all([
-          api.getBidListByRound(dashboardData.CurRoundNum, "desc"),
-          api.getUniqueBidders(),
-          api.getUniqueWinners(),
-          api.getUniqueStakersCST(),
-          api.getUniqueStakersRWLK(),
-          api.getUniqueDonors(),
-          api.getCSTDistribution(),
-          api.getCTBalanceDistribution(),
-          api.getSystemModeList(),
-        ]);
+  // Fetch current round bids (depends on dashboard data)
+  const { data: currentRoundBidsRaw } = useApiQuery(
+    "stats-current-bids-" + (data?.CurRoundNum ?? ""),
+    () => api.getBidListByRound(data!.CurRoundNum, "desc"),
+    { enabled: data != null },
+  );
+  const currentRoundBids = (currentRoundBidsRaw ?? []) as Bid[];
 
-        setCurrentRoundBids(currentBids);
-        setUniqueBidders(bidders.sort((a: UniqueBidder, b: UniqueBidder) => b.NumBids - a.NumBids));
-        setUniqueWinners(winners.sort((a: UniqueWinner, b: UniqueWinner) => b.PrizesCount - a.PrizesCount));
-        setUniqueCSTStakers(cstStakers.sort((a: UniqueStaker, b: UniqueStaker) => b.TotalRewardEth - a.TotalRewardEth));
-        setUniqueRWLKStakers(rwlkStakers.sort((a: UniqueStaker, b: UniqueStaker) => b.TotalRewardEth - a.TotalRewardEth));
-        setUniqueDonors(donors);
-        setCSTDistribution(cstDist);
-        setCTBalanceDistribution(ctBalance);
-        setSystemModeChanges(Array.isArray(sysModeList) ? sysModeList : []);
-      } catch (error) {
-        console.error("Error fetching statistics:", error);
-      } finally {
-        setLoading(false);
+  const { data: uniqueBiddersRaw } = useApiQuery(
+    "stats-unique-bidders",
+    async () => {
+      const bidders = await api.getUniqueBidders();
+      return (bidders as unknown as UniqueBidder[]).sort((a, b) => b.NumBids - a.NumBids);
+    },
+  );
+  const uniqueBidders = uniqueBiddersRaw ?? [];
+
+  const { data: uniqueWinnersRaw } = useApiQuery(
+    "stats-unique-winners",
+    async () => {
+      const winners = await api.getUniqueWinners();
+      return (winners as unknown as UniqueWinner[]).sort((a, b) => b.PrizesCount - a.PrizesCount);
+    },
+  );
+  const uniqueWinners = uniqueWinnersRaw ?? [];
+
+  const { data: uniqueCSTStakersRaw } = useApiQuery(
+    "stats-unique-cst-stakers",
+    async () => {
+      const stakers = await api.getUniqueStakersCST();
+      return (stakers as unknown as UniqueStaker[]).sort((a, b) => b.TotalRewardEth - a.TotalRewardEth);
+    },
+  );
+  const uniqueCSTStakers = uniqueCSTStakersRaw ?? [];
+
+  const { data: uniqueRWLKStakersRaw } = useApiQuery(
+    "stats-unique-rwlk-stakers",
+    async () => {
+      const stakers = await api.getUniqueStakersRWLK();
+      return (stakers as unknown as UniqueStaker[]).sort((a, b) => b.TotalRewardEth - a.TotalRewardEth);
+    },
+  );
+  const uniqueRWLKStakers = uniqueRWLKStakersRaw ?? [];
+
+  const { data: uniqueDonorsRaw } = useApiQuery(
+    "stats-unique-donors",
+    async () => {
+      const donors = await api.getUniqueDonors();
+      return donors as unknown as UniqueDonor[];
+    },
+  );
+  const uniqueDonors = uniqueDonorsRaw ?? [];
+
+  const { data: cstDistributionRaw } = useApiQuery(
+    "stats-cst-distribution",
+    async () => {
+      const dist = await api.getCSTDistribution();
+      return dist as unknown as CSTDistribution[];
+    },
+  );
+  const cstDistribution = cstDistributionRaw ?? [];
+
+  const { data: ctBalanceDistributionRaw } = useApiQuery(
+    "stats-ct-balance-distribution",
+    async () => {
+      const dist = await api.getCTBalanceDistribution();
+      return dist as unknown as CTBalanceDistribution[];
+    },
+  );
+  const ctBalanceDistribution = ctBalanceDistributionRaw ?? [];
+
+  const { data: systemModeChanges } = useApiQuery(
+    "stats-system-modes",
+    async () => {
+      const list = await api.getSystemModeList();
+      return Array.isArray(list) ? (list as unknown as SystemModeChange[]) : [];
+    },
+  );
+
+  // CST bid data (live updating, refreshes every 5 seconds)
+  const { data: cstBidDataRaw } = useApiQuery<CSTBidData>(
+    "stats-cst-price",
+    async () => {
+      const ctData = await api.getCSTPrice();
+      if (ctData) {
+        return {
+          CSTPrice: (ctData.CSTPrice as string) || "0",
+          SecondsElapsed: parseInt((ctData.SecondsElapsed as string) || "0", 10),
+          AuctionDuration: parseInt((ctData.AuctionDuration as string) || "0", 10),
+        };
       }
-    }
-
-    fetchData();
-  }, []);
-
-  // Fetch CST bid price (updates every 5 seconds)
-  useEffect(() => {
-    async function fetchCSTPrice() {
-      try {
-        const ctData = await api.getCSTPrice();
-        if (ctData) {
-          setCstBidData({
-            CSTPrice: ctData.CSTPrice || "0",
-            SecondsElapsed: parseInt(ctData.SecondsElapsed || "0", 10),
-            AuctionDuration: parseInt(ctData.AuctionDuration || "0", 10),
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching CST price:", error);
-      }
-    }
-
-    fetchCSTPrice();
-    const interval = setInterval(fetchCSTPrice, 5000);
-    return () => clearInterval(interval);
-  }, []);
+      return { CSTPrice: "0", SecondsElapsed: 0, AuctionDuration: 0 };
+    },
+    { refetchInterval: 5000 },
+  );
+  const cstBidData = cstBidDataRaw ?? { CSTPrice: "0", SecondsElapsed: 0, AuctionDuration: 0 };
 
   if (loading || !data) {
     return (

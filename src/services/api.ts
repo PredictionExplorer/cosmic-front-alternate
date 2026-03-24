@@ -2,130 +2,166 @@
  * API Service
  *
  * Comprehensive service for fetching data from the Cosmic Signature backend.
- * Provides 80+ API endpoints for dashboard, bidding, prizes, staking, and more.
- *
- * Architecture:
- * - Axios-based with automatic retries
- * - Type-safe responses
- * - Error handling with user-friendly messages
- * - Request caching where appropriate
+ * All methods throw {@link ApiError} on API-level failure (status !== 1 or
+ * non-empty error field) and propagate network/axios errors as-is.
+ * Callers must handle errors explicitly; no method silently swallows failures.
  */
 
 import axios, { AxiosInstance, AxiosError } from "axios";
-import { getDefaultChainId } from "@/lib/networkConfig";
+import { getCosmicApiBaseUrl, getDefaultChainId } from "@/lib/networkConfig";
+import { reportError } from "@/lib/errorReporter";
 import { transformBidList, transformRaffleDepositList } from "@/lib/apiTransforms";
+import type {
+  ApiBidResponse,
+  ApiCSTToken,
+  ApiStakedCSTToken,
+  ApiStakedRWLKToken,
+  ApiDashboardData,
+  ApiStakingAction,
+  ApiStakingReward,
+  ApiCollectedStakingReward,
+  ApiClaimHistory,
+  ApiMarketingReward,
+  ApiRWLKMint,
+  ApiDonatedNFT,
+  ApiDonatedERC20,
+  ApiRaffleDepositResponse,
+} from "@/services/apiTypes";
+
+// ── API response contract ──────────────────────────────────────────────
 
 /**
- * API Base URLs by network
- * Configure based on chain ID
+ * Thrown when the backend returns a response with status !== 1 or a non-empty
+ * error string. Carries the backend's own message so callers can surface it.
  */
-const API_ENDPOINTS = {
-  // Local Testnet (Chain ID: 31337)
-  31337:
-    process.env.NEXT_PUBLIC_API_BASE_URL_LOCAL ||
-    "http://161.129.67.42:7070/api/cosmicgame/",
-  // Arbitrum Sepolia (Chain ID: 421614)
-  421614:
-    process.env.NEXT_PUBLIC_API_BASE_URL_SEPOLIA ||
-    "http://161.129.67.42:8353/api/cosmicgame/",
-  // Arbitrum One (Chain ID: 42161)
-  42161:
-    process.env.NEXT_PUBLIC_API_BASE_URL_MAINNET ||
-    "http://69.10.55.2:2121/api/cosmicgame/",
-} as const;
-
-/**
- * Get API base URL for a specific chain
- * Defaults to network specified in NEXT_PUBLIC_DEFAULT_NETWORK env var
- */
-function getApiBaseUrl(chainId?: number): string {
-  const defaultChainId = getDefaultChainId();
-  const id = chainId || defaultChainId;
-  
-  // Type-safe endpoint lookup
-  if (id === 31337) return API_ENDPOINTS[31337];
-  if (id === 421614) return API_ENDPOINTS[421614];
-  if (id === 42161) return API_ENDPOINTS[42161];
-  
-  // Fallback to default
-  return API_ENDPOINTS[defaultChainId as keyof typeof API_ENDPOINTS];
+export class ApiError extends Error {
+  constructor(
+    public readonly apiMessage: string,
+    public readonly apiStatus: number,
+  ) {
+    super(apiMessage);
+    this.name = "ApiError";
+  }
 }
 
-// Default API base URL (from environment config)
-const API_BASE_URL = getApiBaseUrl();
+/**
+ * Backend sometimes ships the same logical payload under different keys
+ * depending on version. We map known aliases to a single canonical key so
+ * the rest of the app only ever sees one name.
+ */
+const KEY_ALIASES: Record<string, string> = {
+  EthDonations: "DirectCGDonations",
+  EthDonationsWithInfo: "DirectCGDonations",
+  nfDonations: "NFTDonations",
+  DonationsERC20: "ERC20Donations",
+  DonatedPrizesERC20: "ERC20Donations",
+  GlobalERC20Donations: "ERC20Donations",
+};
+
+/**
+ * Validate the API envelope ({@code status}/{@code error}) and extract the
+ * payload living under {@code payloadKey}.
+ *
+ * If {@code payloadKey} is omitted the entire data object (minus envelope
+ * fields) is returned — useful for endpoints whose payload *is* the
+ * top-level object (e.g. dashboard, user info).
+ */
+function unwrapApiResponse<T = Record<string, unknown>>(
+  data: Record<string, unknown>,
+  payloadKey?: string,
+): T {
+  const status = data?.status ?? data?.Status;
+  const error = data?.error ?? data?.Error;
+
+  if (status !== undefined && status !== 1) {
+    throw new ApiError(
+      typeof error === "string" && error
+        ? error
+        : `API returned status ${status}`,
+      typeof status === "number" ? status : 0,
+    );
+  }
+  if (typeof error === "string" && error.length > 0) {
+    throw new ApiError(error, 0);
+  }
+
+  if (!payloadKey) {
+    return data as unknown as T;
+  }
+
+  // Try canonical key first, then check aliases that map to it
+  if (data[payloadKey] !== undefined) {
+    return data[payloadKey] as T;
+  }
+
+  for (const [alias, canonical] of Object.entries(KEY_ALIASES)) {
+    if (canonical === payloadKey && data[alias] !== undefined) {
+      return data[alias] as T;
+    }
+  }
+
+  return undefined as unknown as T;
+}
+
+/**
+ * Cosmic Game API base URL from NEXT_PUBLIC_API_URL (same convention as blue frontend).
+ * One URL per deployment; chain switching is handled by the wallet + backend.
+ */
+function getApiBaseUrl(): string {
+  return getCosmicApiBaseUrl();
+}
+
 const ASSETS_BASE_URL =
   process.env.NEXT_PUBLIC_ASSETS_BASE_URL ||
   "https://nfts.cosmicsignature.com/";
 
-/**
- * Check if we need to use proxy
- * Returns true if:
- * 1. We're on HTTPS and trying to access HTTP (mixed content)
- * 2. We're in development mode (localhost) to avoid CORS issues
- */
-function shouldUseProxy(url: string): boolean {
-  // Only apply in browser
-  if (typeof window === "undefined") return false;
+// ── Per-request chain resolution ────────────────────────────────────────
+//
+// The active chain ID lives at module scope so the request interceptor can
+// read it at request time.  This avoids the old design where the base URL
+// was baked into the axios instance at module load and mutated later via
+// `setChainId` — a race that could send the first request to the wrong
+// backend.
 
-  // Use proxy in development (localhost) to avoid CORS issues
-  const isDevelopment =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+let _currentChainId: number = getDefaultChainId();
 
-  // Check if page is HTTPS
-  const isPageSecure = window.location.protocol === "https:";
-
-  // Check if target URL is HTTP
-  const targetUrl = url.startsWith("http") ? url : `${API_BASE_URL}${url}`;
-  const isTargetHttp = targetUrl.startsWith("http://");
-
-  // Use proxy if in development OR if mixed content (HTTPS page + HTTP API)
-  return isDevelopment || (isPageSecure && isTargetHttp);
+function getCurrentBaseUrl(): string {
+  return getApiBaseUrl();
 }
 
 /**
- * Axios instance with default configuration
+ * Axios instance. Base URL is resolved per-request from the current chain.
+ * All requests go directly to the API (no HTTP proxy); use HTTPS endpoints in env.
  */
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // 30 second timeout
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 /**
- * Request interceptor for proxy routing and auth
+ * Request interceptor: resolves base URL from the current chain on every request.
+ * Direct HTTPS only — no proxy.
  */
 apiClient.interceptors.request.use(
   (config) => {
-    // If we need proxy, rewrite the URL
-    if (config.url && shouldUseProxy(config.url)) {
-      const fullUrl = config.url.startsWith("http")
-        ? config.url
-        : `${config.baseURL || API_BASE_URL}${config.url}`;
-
-      config.url = `/api/proxy?url=${encodeURIComponent(fullUrl)}`;
-      config.baseURL = ""; // Clear baseURL since we're using absolute proxy path
-    }
-
+    config.baseURL = getCurrentBaseUrl();
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 /**
- * Response interceptor for error handling
+ * Response interceptor: report non-client errors and reject with a consistent shape.
  */
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Log errors in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("API Error:", error.message);
+    const status = error.response?.status;
+    if (status !== 400 && status !== 403) {
+      reportError(error, "apiClient");
     }
-
-    // Transform error for better UX
     const customError = {
       message:
         error.response?.statusText ||
@@ -134,9 +170,8 @@ apiClient.interceptors.response.use(
       status: error.response?.status,
       data: error.response?.data,
     };
-
     return Promise.reject(customError);
-  }
+  },
 );
 
 /**
@@ -146,791 +181,523 @@ apiClient.interceptors.response.use(
  */
 class CosmicSignatureAPI {
   /**
-   * Current chain ID
-   * Used to determine which API endpoint to use
-   */
-  private currentChainId: number = getDefaultChainId(); // Default from environment config
-
-  /**
-   * Set the current chain ID and update API base URL
-   * Should be called when the user switches networks
+   * Update the active chain.  The request interceptor will resolve the
+   * correct base URL on every subsequent request — no mutable
+   * `apiClient.defaults.baseURL` involved.
    */
   setChainId(chainId: number) {
-    this.currentChainId = chainId;
-    const newBaseUrl = getApiBaseUrl(chainId);
-    apiClient.defaults.baseURL = newBaseUrl;
+    _currentChainId = chainId;
 
     if (process.env.NODE_ENV === "development") {
       console.log(
-        `API endpoint switched to ${newBaseUrl} for chain ${chainId}`
+        `API chain set to ${chainId} → ${getApiBaseUrl()}`,
       );
     }
   }
 
-  /**
-   * Get the current chain ID
-   */
   getChainId(): number {
-    return this.currentChainId;
+    return _currentChainId;
   }
 
   // ==================== DASHBOARD & STATISTICS ====================
 
-  /**
-   * Get main dashboard information
-   * Returns overview of current round and global statistics
-   */
-  async getDashboardInfo() {
+  async getDashboardInfo(): Promise<ApiDashboardData> {
     const { data } = await apiClient.get("statistics/dashboard");
-    return data;
+    return unwrapApiResponse<ApiDashboardData>(data);
   }
 
-  /**
-   * Get list of unique bidders
-   */
-  async getUniqueBidders() {
+  async getUniqueBidders(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("statistics/unique/bidders");
-    return data.UniqueBidders || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UniqueBidders") ?? [];
   }
 
-  /**
-   * Get list of unique winners
-   */
-  async getUniqueWinners() {
+  async getUniqueWinners(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("statistics/unique/winners");
-    return data.UniqueWinners || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UniqueWinners") ?? [];
   }
 
-  /**
-   * Get list of unique ETH donors
-   */
-  async getUniqueDonors() {
+  async getUniqueDonors(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("statistics/unique/donors");
-    return data.UniqueDonors || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UniqueDonors") ?? [];
   }
 
-  /**
-   * Get unique CST stakers
-   */
-  async getUniqueStakersCST() {
+  async getUniqueStakersCST(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("statistics/unique/stakers/cst");
-    return data.UniqueStakersCST || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UniqueStakersCST") ?? [];
   }
 
-  /**
-   * Get unique RandomWalk stakers
-   */
-  async getUniqueStakersRWLK() {
+  async getUniqueStakersRWLK(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("statistics/unique/stakers/rwalk");
-    return data.UniqueStakersRWalk || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UniqueStakersRWalk") ?? [];
   }
 
   // ==================== ROUNDS & PRIZES ====================
 
-  /**
-   * Get list of all completed rounds
-   */
-  async getRoundList() {
+  async getRoundList(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("rounds/list/0/1000000");
-    return data.Rounds || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "Rounds") ?? [];
   }
 
-  /**
-   * Get detailed information for a specific round
-   */
   async getRoundInfo(roundNum: number) {
     const { data } = await apiClient.get(`rounds/info/${roundNum}`);
-    return data.RoundInfo;
+    return unwrapApiResponse<Record<string, unknown>>(data, "RoundInfo");
   }
 
-  /**
-   * Get current round prize time
-   */
   async getPrizeTime() {
     const { data } = await apiClient.get("rounds/current/time");
-    return data.CurRoundPrizeTime;
+    return unwrapApiResponse<number>(data, "CurRoundPrizeTime");
   }
 
-  /**
-   * Get global prize claim history
-   */
-  async getClaimHistory() {
+  async getClaimHistory(): Promise<ApiClaimHistory[]> {
     const { data } = await apiClient.get("prizes/history/global/0/1000000");
-    return data.GlobalPrizeHistory || [];
+    return unwrapApiResponse<ApiClaimHistory[]>(data, "GlobalPrizeHistory") ?? [];
   }
 
-  /**
-   * Get prize claim history for specific user
-   */
-  async getClaimHistoryByUser(address: string) {
+  async getClaimHistoryByUser(address: string): Promise<ApiClaimHistory[]> {
     const { data } = await apiClient.get(
-      `prizes/history/by_user/${address}/0/1000000`
+      `prizes/history/by_user/${address}/0/1000000`,
     );
-    return data.UserPrizeHistory || [];
+    return unwrapApiResponse<ApiClaimHistory[]>(data, "UserPrizeHistory") ?? [];
   }
 
-  /**
-   * Get unclaimed raffle deposits for user
-   */
   async getUnclaimedRaffleDeposits(address: string) {
     const { data } = await apiClient.get(
-      `prizes/deposits/unclaimed/by_user/${address}/0/1000000`
+      `prizes/deposits/unclaimed/by_user/${address}/0/1000000`,
     );
-    const deposits = data.UnclaimedDeposits || [];
+    const deposits = unwrapApiResponse<ApiRaffleDepositResponse[]>(data, "UnclaimedDeposits") ?? [];
     return transformRaffleDepositList(deposits);
   }
 
-  /**
-   * Get raffle deposits by user
-   */
-  async getRaffleDepositsByUser(address: string) {
+  async getRaffleDepositsByUser(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `prizes/deposits/raffle/by_user/${address}`
+      `prizes/deposits/raffle/by_user/${address}`,
     );
-    return data.UserRaffleDeposits || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UserRaffleDeposits") ?? [];
   }
 
   // ==================== BIDDING ====================
 
-  /**
-   * Get all bids (global)
-   * @returns Transformed bid list with flattened structure
-   */
   async getBidList() {
     const { data } = await apiClient.get("bid/list/all/0/1000000");
-    const bids = data.Bids || [];
+    const bids = unwrapApiResponse<ApiBidResponse[]>(data, "Bids") ?? [];
     return transformBidList(bids);
   }
 
-  /**
-   * Get bid information by event log ID
-   */
   async getBidInfo(evtLogId: number) {
     const { data } = await apiClient.get(`bid/info/${evtLogId}`);
-    return data.BidInfo;
+    return unwrapApiResponse<Record<string, unknown>>(data, "BidInfo");
   }
 
-  /**
-   * Get bids for a specific round
-   *
-   * @param roundNum - Round number
-   * @param sortDir - 'asc' or 'desc'
-   * @returns Transformed bid list with flattened structure
-   */
   async getBidListByRound(roundNum: number, sortDir: "asc" | "desc" = "desc") {
     const dir = sortDir === "asc" ? 0 : 1;
     const { data } = await apiClient.get(
-      `bid/list/by_round/${roundNum}/${dir}/0/1000000`
+      `bid/list/by_round/${roundNum}/${dir}/0/1000000`,
     );
-    const bids = data.BidsByRound || [];
+    const bids = unwrapApiResponse<ApiBidResponse[]>(data, "BidsByRound") ?? [];
     return transformBidList(bids);
   }
 
-  /**
-   * Get used RandomWalk NFTs
-   */
-  async getUsedRWLKNfts() {
+  async getUsedRWLKNfts(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("bid/used_rwalk_nfts");
-    return data.UsedRwalkNFTs || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UsedRwalkNFTs") ?? [];
   }
 
-  /**
-   * Get current CST bid price
-   */
-  async getCSTPrice() {
+  async getCSTPrice(): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get("bid/cst_price");
-    return data;
+    return unwrapApiResponse<Record<string, unknown>>(data);
   }
 
-  /**
-   * Get current ETH bid price
-   */
-  async getETHBidPrice() {
+  async getETHBidPrice(): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get("bid/eth_price");
-    return data;
+    return unwrapApiResponse<Record<string, unknown>>(data);
   }
 
-  /**
-   * Get current special winners (Endurance Champion, Chrono-Warrior)
-   */
-  async getCurrentSpecialWinners() {
+  async getCurrentSpecialWinners(): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get("bid/current_special_winners");
-    return data;
+    return unwrapApiResponse<Record<string, unknown>>(data);
   }
 
   // ==================== NFTs (ERC-721) ====================
 
-  /**
-   * Get all Cosmic Signature NFTs
-   */
-  async getCSTList() {
+  async getCSTList(): Promise<ApiCSTToken[]> {
     const { data } = await apiClient.get("cst/list/all/0/1000000");
-    return data.CosmicSignatureTokenList || [];
+    return unwrapApiResponse<ApiCSTToken[]>(data, "CosmicSignatureTokenList") ?? [];
   }
 
-  /**
-   * Get user's Cosmic Signature NFTs
-   */
-  async getCSTTokensByUser(address: string) {
+  async getCSTTokensByUser(address: string): Promise<ApiCSTToken[]> {
     const { data } = await apiClient.get(
-      `cst/list/by_user/${address}/0/1000000`
+      `cst/list/by_user/${address}/0/1000000`,
     );
-    return data.UserTokens || [];
+    return unwrapApiResponse<ApiCSTToken[]>(data, "UserTokens") ?? [];
   }
 
-  /**
-   * Get NFT information
-   */
-  async getCSTInfo(tokenId: number) {
+  async getCSTInfo(tokenId: number): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get(`cst/info/${tokenId}`);
-    return data.TokenInfo;
+    return unwrapApiResponse<Record<string, unknown>>(data, "TokenInfo");
   }
 
-  /**
-   * Get NFT name change history
-   */
-  async getNameHistory(tokenId: number) {
+  async getNameHistory(tokenId: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(`cst/names/history/${tokenId}`);
-    return data.TokenNameHistory || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "TokenNameHistory") ?? [];
   }
 
-  /**
-   * Search NFTs by name
-   */
-  async searchTokenByName(name: string) {
+  async searchTokenByName(name: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `cst/names/search/${encodeURIComponent(name)}`
+      `cst/names/search/${encodeURIComponent(name)}`,
     );
-    return data.TokenNameSearchResults || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "TokenNameSearchResults") ?? [];
   }
 
-  /**
-   * Get all NFTs with custom names
-   */
-  async getNamedNFTs() {
+  async getNamedNFTs(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("cst/names/named_only");
-    return data.NamedTokens || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "NamedTokens") ?? [];
   }
 
-  /**
-   * Get CS NFT distribution
-   */
-  async getCSTDistribution() {
+  async getCSTDistribution(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("cst/distribution");
-    return data.CosmicSignatureTokenDistribution || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicSignatureTokenDistribution") ?? [];
   }
 
-  /**
-   * Get NFT transfer history for user
-   */
-  async getCSTTransfers(address: string) {
+  async getCSTTransfers(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `cst/transfers/by_user/${address}/0/1000000`
+      `cst/transfers/by_user/${address}/0/1000000`,
     );
-    return data.CosmicSignatureTransfers || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicSignatureTransfers") ?? [];
   }
 
-  /**
-   * Get all transfers for a specific token
-   */
-  async getTokenOwnershipTransfers(tokenId: number) {
+  async getTokenOwnershipTransfers(tokenId: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `cst/transfers/all/${tokenId}/0/1000000`
+      `cst/transfers/all/${tokenId}/0/1000000`,
     );
-    return data.TokenTransfers || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "TokenTransfers") ?? [];
   }
 
   /**
-   * Trigger NFT image/video generation
-   * Called after prize claim to generate NFT assets
+   * Trigger NFT image/video generation.
+   * Unlike other methods this hits the assets server, not the game API.
+   * Throws on failure (callers must handle).
    */
   async createNFTAssets(tokenId: number, count: number) {
-    try {
-      const { data } = await axios.post(`${ASSETS_BASE_URL}cosmicgame_tokens`, {
-        token_id: tokenId,
-        count,
-      });
-      return data?.task_id || -1;
-    } catch (err) {
-      console.error("Failed to trigger NFT generation:", err);
-      return -1;
-    }
+    const { data } = await axios.post(`${ASSETS_BASE_URL}cosmicgame_tokens`, {
+      token_id: tokenId,
+      count,
+    });
+    return data?.task_id ?? -1;
   }
 
   // ==================== TOKENS (ERC-20) ====================
 
-  /**
-   * Get CST token balance distribution
-   */
-  async getCTBalanceDistribution() {
+  async getCTBalanceDistribution(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("ct/balances");
-    return data.CosmicTokenBalances || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicTokenBalances") ?? [];
   }
 
-  /**
-   * Get CST token transfer history for user
-   */
-  async getCTTransfers(address: string) {
+  async getCTTransfers(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `ct/transfers/by_user/${address}/0/1000000`
+      `ct/transfers/by_user/${address}/0/1000000`,
     );
-    return data.CosmicTokenTransfers || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicTokenTransfers") ?? [];
   }
 
   // ==================== USER INFO ====================
 
-  /**
-   * Get comprehensive user information
-   * Returns user stats, bid history, and more
-   */
-  async getUserInfo(address: string) {
+  async getUserInfo(address: string): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get(`user/info/${address}`);
-    
-    // Transform bid history if present
-    if (data && data.Bids && Array.isArray(data.Bids)) {
-      data.Bids = transformBidList(data.Bids);
+    const payload = unwrapApiResponse<Record<string, unknown>>(data);
+
+    if (payload && Array.isArray(payload.Bids)) {
+      payload.Bids = transformBidList(payload.Bids);
     }
-    
-    return data;
+
+    return payload;
   }
 
-  /**
-   * Get user balances (ETH and CST)
-   */
-  async getUserBalance(address: string) {
+  async getUserBalance(address: string): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get(`user/balances/${address}`);
-    return data;
+    return unwrapApiResponse<Record<string, unknown>>(data);
   }
 
-  /**
-   * Get user's unclaimed winnings summary
-   */
   async getUserWinnings(address: string) {
     const { data } = await apiClient.get(`user/notif_red_box/${address}`);
-    return data.Winnings;
+    return unwrapApiResponse<Record<string, unknown>>(data, "Winnings");
   }
 
   // ==================== DONATIONS ====================
 
-  /**
-   * Get ETH donations (simple)
-   */
-  async getETHDonationsSimple() {
+  async getETHDonationsSimple(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/eth/simple/list/0/1000000");
-    return data.DirectCGDonations || data.EthDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "DirectCGDonations") ?? [];
   }
 
-  /**
-   * Get ETH donations (with info/JSON data)
-   */
-  async getETHDonationsWithInfo() {
+  async getETHDonationsWithInfo(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      "donations/eth/with_info/list/0/1000000"
+      "donations/eth/with_info/list/0/1000000",
     );
-    return data.DirectCGDonations || data.EthDonationsWithInfo || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "DirectCGDonations") ?? [];
   }
 
-  /**
-   * Get ETH donations by round
-   */
-  async getETHDonationsByRound(roundNum: number) {
+  async getETHDonationsByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `donations/eth/both/by_round/${roundNum}`
+      `donations/eth/both/by_round/${roundNum}`,
     );
-    return data.CosmicGameDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicGameDonations") ?? [];
   }
 
-  /**
-   * Get all ETH donations (both types)
-   */
-  async getAllETHDonations() {
+  async getAllETHDonations(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/eth/both/all");
-    return data.CosmicGameDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CosmicGameDonations") ?? [];
   }
 
-  /**
-   * Get NFT donations list (global)
-   */
-  async getNFTDonationsList() {
+  async getNFTDonationsList(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/nft/list/0/1000000");
-    return data.NFTDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "NFTDonations") ?? [];
   }
 
-  /**
-   * Get NFT donation statistics (total donated, claimed, unclaimed counts)
-   */
-  async getNFTDonationStatistics() {
+  async getNFTDonationStatistics(): Promise<Record<string, unknown>> {
     const { data } = await apiClient.get("donations/nft/statistics");
-    return data;
+    return unwrapApiResponse<Record<string, unknown>>(data);
   }
 
-  /**
-   * Get NFT donations by round
-   */
-  async getNFTDonationsByRound(roundNum: number) {
+  async getNFTDonationsByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(`donations/nft/by_round/${roundNum}`);
-    return data.NFTDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "NFTDonations") ?? [];
   }
 
-  /**
-   * Get unclaimed donated NFTs by round
-   */
-  async getUnclaimedDonatedNFTsByRound(roundNum: number) {
+  async getUnclaimedDonatedNFTsByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `donations/nft/unclaimed/by_round/${roundNum}`
+      `donations/nft/unclaimed/by_round/${roundNum}`,
     );
-    // API returns either NFTDonations or nfDonations depending on version
-    return data.NFTDonations || data.nfDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "NFTDonations") ?? [];
   }
 
-  /**
-   * Get unclaimed donated NFTs by user
-   */
-  async getUnclaimedDonatedNFTsByUser(address: string) {
+  async getUnclaimedDonatedNFTsByUser(address: string): Promise<ApiDonatedNFT[]> {
     const { data } = await apiClient.get(
-      `donations/nft/unclaimed/by_user/${address}`
+      `donations/nft/unclaimed/by_user/${address}`,
     );
-    return data.UnclaimedDonatedNFTs || [];
+    return unwrapApiResponse<ApiDonatedNFT[]>(data, "UnclaimedDonatedNFTs") ?? [];
   }
 
-  /**
-   * Get claimed donated NFTs by user
-   */
-  async getClaimedDonatedNFTsByUser(address: string) {
+  async getClaimedDonatedNFTsByUser(address: string): Promise<ApiDonatedNFT[]> {
     const { data } = await apiClient.get(
-      `donations/nft/claims/by_user/${address}`
+      `donations/nft/claims/by_user/${address}`,
     );
-    return data.DonatedNFTClaims || [];
+    return unwrapApiResponse<ApiDonatedNFT[]>(data, "DonatedNFTClaims") ?? [];
   }
 
-  /**
-   * Get ERC-20 token donations by round
-   */
-  async getERC20DonationsByRound(roundNum: number) {
+  async getERC20DonationsByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `donations/erc20/by_round/detailed/${roundNum}`
+      `donations/erc20/by_round/detailed/${roundNum}`,
     );
-    return data.DonationsERC20ByRoundDetailed || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "DonationsERC20ByRoundDetailed") ?? [];
   }
 
-  /**
-   * Get all ERC-20 donations (global list)
-   */
-  async getERC20DonationsList() {
+  async getERC20DonationsList(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/erc20/global/0/1000000");
-    return (
-      data.ERC20Donations ||
-      data.DonationsERC20 ||
-      data.DonatedPrizesERC20 ||
-      data.GlobalERC20Donations ||
-      []
-    );
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "ERC20Donations") ?? [];
   }
 
-  /**
-   * Get ERC-20 donations by user
-   */
-  async getERC20DonationsByUser(address: string) {
+  async getERC20DonationsByUser(address: string): Promise<ApiDonatedERC20[]> {
     const { data } = await apiClient.get(`donations/erc20/by_user/${address}`);
-    return data.DonatedPrizesERC20ByWinner || [];
+    return unwrapApiResponse<ApiDonatedERC20[]>(data, "DonatedPrizesERC20ByWinner") ?? [];
   }
 
   // ==================== STAKING ====================
 
-  /**
-   * Get user's CST staking actions
-   */
-  async getStakingCSTActionsByUser(address: string) {
+  async getStakingCSTActionsByUser(address: string): Promise<ApiStakingAction[]> {
     const { data } = await apiClient.get(
-      `staking/cst/actions/by_user/${address}/0/1000000`
+      `staking/cst/actions/by_user/${address}/0/1000000`,
     );
-    return data.StakingCSTActions || [];
+    return unwrapApiResponse<ApiStakingAction[]>(data, "StakingCSTActions") ?? [];
   }
 
-  /**
-   * Get global CST staking actions
-   */
-  async getStakingCSTActions() {
+  async getStakingCSTActions(): Promise<ApiStakingAction[]> {
     const { data } = await apiClient.get(
-      "staking/cst/actions/global/0/1000000"
+      "staking/cst/actions/global/0/1000000",
     );
-    return data.StakingCSTActions || [];
+    return unwrapApiResponse<ApiStakingAction[]>(data, "StakingCSTActions") ?? [];
   }
 
-  /**
-   * Get staked CST tokens by user
-   */
-  async getStakedCSTTokensByUser(address: string) {
+  async getStakedCSTTokensByUser(address: string): Promise<ApiStakedCSTToken[]> {
     const { data } = await apiClient.get(
-      `staking/cst/staked_tokens/by_user/${address}`
+      `staking/cst/staked_tokens/by_user/${address}`,
     );
-    return data.StakedTokensCST || [];
+    return unwrapApiResponse<ApiStakedCSTToken[]>(data, "StakedTokensCST") ?? [];
   }
 
-  /**
-   * Get all staked CST tokens (global)
-   */
-  async getStakedCSTTokens() {
+  async getStakedCSTTokens(): Promise<ApiStakedCSTToken[]> {
     const { data } = await apiClient.get("staking/cst/staked_tokens/all");
-    return data.StakedTokensCST || [];
+    return unwrapApiResponse<ApiStakedCSTToken[]>(data, "StakedTokensCST") ?? [];
   }
 
-  /**
-   * Get CST staking rewards by user
-   */
-  async getStakingRewardsByUser(address: string) {
+  async getStakingRewardsByUser(address: string): Promise<ApiStakingReward[]> {
     const { data } = await apiClient.get(
-      `staking/cst/rewards/by_user/by_token/summary/${address}`
+      `staking/cst/rewards/by_user/by_token/summary/${address}`,
     );
-    return data.RewardsByToken || [];
+    return unwrapApiResponse<ApiStakingReward[]>(data, "RewardsByToken") ?? [];
   }
 
-  /**
-   * Get uncollected CST staking rewards
-   */
-  async getStakingCSTRewardsToClaim(address: string) {
+  async getStakingCSTRewardsToClaim(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `staking/cst/rewards/to_claim/by_user/${address}`
+      `staking/cst/rewards/to_claim/by_user/${address}`,
     );
-    return data.UnclaimedEthDeposits || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UnclaimedEthDeposits") ?? [];
   }
 
-  /**
-   * Get collected CST staking rewards
-   */
-  async getStakingCSTRewardsCollected(address: string) {
+  async getStakingCSTRewardsCollected(address: string): Promise<ApiCollectedStakingReward[]> {
     const { data } = await apiClient.get(
-      `staking/cst/rewards/collected/by_user/${address}/0/1000000`
+      `staking/cst/rewards/collected/by_user/${address}/0/1000000`,
     );
-    return data.CollectedStakingCSTRewards || [];
+    return unwrapApiResponse<ApiCollectedStakingReward[]>(data, "CollectedStakingCSTRewards") ?? [];
   }
 
-  /**
-   * Get global CST staking rewards
-   */
-  async getStakingCSTRewards() {
+  async getStakingCSTRewards(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("staking/cst/rewards/global");
-    return data.StakingCSTRewards || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "StakingCSTRewards") ?? [];
   }
 
-  /**
-   * Get CST staking rewards by round
-   */
-  async getStakingCSTRewardsByRound(roundNum: number) {
+  async getStakingCSTRewardsByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `staking/cst/rewards/by_round/${roundNum}`
+      `staking/cst/rewards/by_round/${roundNum}`,
     );
-    return data.Rewards || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "Rewards") ?? [];
   }
 
-  /**
-   * Get RandomWalk staking actions by user (all history including unstaked)
-   */
-  async getStakingRWLKActionsByUser(address: string) {
+  async getStakingRWLKActionsByUser(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      `staking/rwalk/actions/by_user/${address}/0/1000000`
+      `staking/rwalk/actions/by_user/${address}/0/1000000`,
     );
-    return data.UserStakingActionsRWalk || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UserStakingActionsRWalk") ?? [];
   }
 
   /**
    * Get all RWLK NFT token IDs that were ever staked by this user.
-   * RWLK NFTs can only be staked once, so any token in this list
-   * is permanently used and must not appear in the "available to stake" list.
+   * Throws on failure — callers must handle.
    */
   async getEverStakedRWLKTokenIdsByUser(address: string): Promise<number[]> {
-    try {
-      const actions = await this.getStakingRWLKActionsByUser(address);
-      const ids = (actions as Array<Record<string, unknown>>)
-        .map(a => Number(a['TokenId'] ?? a['StakedTokenId'] ?? a['NftTokenId'] ?? -1))
-        .filter(id => id >= 0);
-      return [...new Set(ids)]; // deduplicate
-    } catch {
-      return [];
-    }
+    const actions = await this.getStakingRWLKActionsByUser(address);
+    const ids = actions
+      .map((a) =>
+        Number(a["TokenId"] ?? a["StakedTokenId"] ?? a["NftTokenId"] ?? -1),
+      )
+      .filter((id) => id >= 0);
+    return [...new Set(ids)];
   }
 
-  /**
-   * Get global RandomWalk staking actions
-   */
-  async getStakingRWLKActions() {
+  async getStakingRWLKActions(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      "staking/rwalk/actions/global/0/1000000"
+      "staking/rwalk/actions/global/0/1000000",
     );
-    return data.GlobalStakingActionsRWalk || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "GlobalStakingActionsRWalk") ?? [];
   }
 
-  /**
-   * Get staked RandomWalk tokens by user
-   */
-  async getStakedRWLKTokensByUser(address: string) {
+  async getStakedRWLKTokensByUser(address: string): Promise<ApiStakedRWLKToken[]> {
     const { data } = await apiClient.get(
-      `staking/rwalk/staked_tokens/by_user/${address}`
+      `staking/rwalk/staked_tokens/by_user/${address}`,
     );
-    return data.StakedTokensRWalk || [];
+    return unwrapApiResponse<ApiStakedRWLKToken[]>(data, "StakedTokensRWalk") ?? [];
   }
 
-  /**
-   * Get all staked RandomWalk tokens
-   */
-  async getStakedRWLKTokens() {
+  async getStakedRWLKTokens(): Promise<ApiStakedRWLKToken[]> {
     const { data } = await apiClient.get("staking/rwalk/staked_tokens/all");
-    return data.StakedTokensRWalk || [];
+    return unwrapApiResponse<ApiStakedRWLKToken[]>(data, "StakedTokensRWalk") ?? [];
   }
 
-  /**
-   * Get RandomWalk staking reward mints (CS NFTs won from staking)
-   */
-  async getStakingRWLKMintsByUser(address: string) {
+  async getStakingRWLKMintsByUser(address: string): Promise<ApiRWLKMint[]> {
     const { data } = await apiClient.get(
-      `staking/rwalk/mints/by_user/${address}`
+      `staking/rwalk/mints/by_user/${address}`,
     );
-    return data.RWalkStakingRewardMints || [];
+    return unwrapApiResponse<ApiRWLKMint[]>(data, "RWalkStakingRewardMints") ?? [];
   }
 
-  /**
-   * Get global RandomWalk staking rewards
-   */
-  async getStakingRWLKMintsGlobal() {
+  async getStakingRWLKMintsGlobal(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(
-      "staking/rwalk/mints/global/0/1000000"
+      "staking/rwalk/mints/global/0/1000000",
     );
-    return data.StakingRWalkRewardsMints || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "StakingRWalkRewardsMints") ?? [];
   }
 
   // ==================== RAFFLE ====================
 
-  /**
-   * Get raffle NFT winners (global)
-   */
-  async getRaffleNFTWinners() {
+  async getRaffleNFTWinners(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("raffle/nft/all/list/0/1000000");
-    return data.RaffleNFTWinners || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "RaffleNFTWinners") ?? [];
   }
 
-  /**
-   * Get raffle NFT winners by round
-   */
-  async getRaffleNFTWinnersByRound(roundNum: number) {
+  async getRaffleNFTWinnersByRound(roundNum: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(`raffle/nft/by_round/${roundNum}`);
-    return data.RaffleNFTWinners || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "RaffleNFTWinners") ?? [];
   }
 
-  /**
-   * Get raffle NFT winnings by user
-   */
-  async getRaffleNFTWinningsByUser(address: string) {
+  async getRaffleNFTWinningsByUser(address: string): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(`raffle/nft/by_user/${address}`);
-    return data.UserRaffleNFTWinnings || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "UserRaffleNFTWinnings") ?? [];
   }
 
   // ==================== MARKETING ====================
 
-  /**
-   * Get global marketing rewards
-   */
-  async getMarketingRewards() {
+  async getMarketingRewards(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("marketing/rewards/global/0/1000000");
-    return data.MarketingRewards || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "MarketingRewards") ?? [];
   }
 
-  /**
-   * Get marketing rewards by user
-   */
-  async getMarketingRewardsByUser(address: string) {
+  async getMarketingRewardsByUser(address: string): Promise<ApiMarketingReward[]> {
     const { data } = await apiClient.get(
-      `marketing/rewards/by_user/${address}/0/1000000`
+      `marketing/rewards/by_user/${address}/0/1000000`,
     );
-    return data.UserMarketingRewards || [];
+    return unwrapApiResponse<ApiMarketingReward[]>(data, "UserMarketingRewards") ?? [];
   }
 
   // ==================== CHARITY ====================
 
-  /**
-   * Get charity deposits
-   */
-  async getCharityDeposits() {
+  async getCharityDeposits(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/charity/deposits");
-    return data.CharityDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CharityDonations") ?? [];
   }
 
-  /**
-   * Get charity deposits from Cosmic Game
-   */
-  async getCharityCGDeposits() {
+  async getCharityCGDeposits(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/charity/cg_deposits");
-    return data.CharityDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CharityDonations") ?? [];
   }
 
-  /**
-   * Get voluntary charity donations
-   */
-  async getCharityVoluntary() {
+  async getCharityVoluntary(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/charity/voluntary");
-    return data.CharityDonations || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CharityDonations") ?? [];
   }
 
-  /**
-   * Get charity withdrawals
-   */
-  async getCharityWithdrawals() {
+  async getCharityWithdrawals(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("donations/charity/withdrawals");
-    return data.CharityWithdrawals || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "CharityWithdrawals") ?? [];
   }
 
   // ==================== SYSTEM ====================
 
-  /**
-   * Get current server time
-   */
   async getCurrentTime() {
     const { data } = await apiClient.get("time/current");
-    return data.CurrentTimeStamp;
+    return unwrapApiResponse<number>(data, "CurrentTimeStamp");
   }
 
-  /**
-   * Get time until prize can be claimed
-   */
   async getTimeUntilPrize() {
     const { data } = await apiClient.get("time/until_prize");
-    return data.TimeUntilPrize;
+    return unwrapApiResponse<number>(data, "TimeUntilPrize");
   }
 
-  /**
-   * Get system mode changes (round activations)
-   */
-  async getSystemModeList() {
+  async getSystemModeList(): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get("system/modelist/-1/1000000");
-    return data.SystemModeChanges || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "SystemModeChanges") ?? [];
   }
 
-  /**
-   * Get system events (admin actions)
-   */
-  async getSystemEvents(start: number, end: number) {
+  async getSystemEvents(start: number, end: number): Promise<Record<string, unknown>[]> {
     const { data } = await apiClient.get(`system/admin_events/${start}/${end}`);
-    return data.AdminEvents || [];
+    return unwrapApiResponse<Record<string, unknown>[]>(data, "AdminEvents") ?? [];
   }
 
-  // ==================== ADMIN (if needed) ====================
+  // ==================== ADMIN / ASSETS SERVER ====================
 
-  /**
-   * Get banned bids
-   */
   async getBannedBids() {
-    try {
-      const { data } = await axios.get(`${ASSETS_BASE_URL}get_banned_bids`);
-      return data || [];
-    } catch (err) {
-      const error = err as AxiosError;
-      if (error.response?.status === 400) return [];
-      throw err;
-    }
+    const { data } = await axios.get(`${ASSETS_BASE_URL}get_banned_bids`);
+    return data || [];
   }
 
-  /**
-   * Ban a bid
-   */
   async banBid(bidId: number, userAddr: string) {
     const { data } = await axios.post(`${ASSETS_BASE_URL}ban_bid`, {
       bid_id: bidId,
@@ -939,9 +706,6 @@ class CosmicSignatureAPI {
     return data;
   }
 
-  /**
-   * Unban a bid
-   */
   async unbanBid(bidId: number) {
     const { data } = await axios.post(`${ASSETS_BASE_URL}unban_bid`, {
       bid_id: bidId,

@@ -1,91 +1,39 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Gem, TrendingUp, AlertCircle, Award, Zap, ChevronDown, X, HelpCircle } from "lucide-react";
 import Image from "next/image";
 import { useAccount } from "wagmi";
-import { readContract, writeContract, waitForTransactionReceipt, estimateFeesPerGas } from "@wagmi/core";
+import { readContract } from "@wagmi/core";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { StatCard } from "@/components/game/StatCard";
 import { formatEth } from "@/lib/utils";
-import { api } from "@/services/api";
-import type {
-  CSTToken,
-  StakedCSTToken,
-  RWLKToken,
-  StakedRWLKToken,
-} from "@/types";
-import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
-import {
-  useStakingWalletCST,
-  useStakingWalletRWLK,
-} from "@/hooks/useStakingWallet";
-import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { CONTRACTS } from "@/lib/web3/contracts";
-import { useNotification } from "@/contexts/NotificationContext";
 import { useApiData } from "@/contexts/ApiDataContext";
-import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { wagmiConfig } from "@/lib/web3/config";
-import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
-import StakingWalletRWLKABI from "@/contracts/StakingWalletRandomWalkNft.json";
-import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
-import RandomWalkNFTABI from "@/contracts/RandomWalkNFT.json";
+import { useCSTStaking } from "@/hooks/useCSTStaking";
+import { useRWLKStaking } from "@/hooks/useRWLKStaking";
+import { useStakingRewards } from "@/hooks/useStakingRewards";
+import { useEffect } from "react";
 
-/**
- * Type for staking rewards from API
- */
-interface StakingReward {
-  TokenId: number;
-  RewardToCollectEth?: number;
-  TotalReward?: number;
-}
+const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
 
-/**
- * Get user's available (unstaked) Cosmic Signature NFTs
- * Filters tokens where Staked === false
- */
-async function getAvailableCSTTokensByUser(
-  address: string
-): Promise<CSTToken[]> {
-  const tokens = await api.getCSTTokensByUser(address);
-  return tokens.filter(
-    (token: CSTToken) => !token.Staked && !token.WasUnstaked
-  );
-}
-
-/**
- * Build Cosmic Signature NFT image URL from its seed.
- * Pattern: https://nfts.cosmicsignature.com/images/new/cosmicsignature/0x{seed}.png
- */
 function getCSTImageUrl(seed: string): string {
   if (!seed) return PLACEHOLDER_IMAGE;
   const hex = seed.startsWith("0x") ? seed : `0x${seed}`;
   return `https://nfts.cosmicsignature.com/images/new/cosmicsignature/${hex}.png`;
 }
 
-/**
- * Placeholder image for failed loads
- */
-const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
-
-/**
- * Build the RandomWalk NFT image URL.
- * Pattern: https://nfts.cosmicsignature.com/images/randomwalk/000066_black_thumb.jpg
- * Token ID is zero-padded to 6 digits.
- */
 function getRWLKImageUrl(tokenId: number, thumb = true): string {
   const padded = tokenId.toString().padStart(6, "0");
   const suffix = thumb ? "_black_thumb.jpg" : "_black.jpg";
   return `https://nfts.cosmicsignature.com/images/randomwalk/${padded}${suffix}`;
 }
 
-/**
- * RandomWalk NFT image — loads directly from the known CDN pattern.
- */
 function RWLKNFTImage({ tokenId, alt, className }: { tokenId: number; alt: string; className?: string }) {
   const [errored, setErrored] = useState(false);
   return (
@@ -100,62 +48,50 @@ function RWLKNFTImage({ tokenId, alt, className }: { tokenId: number; alt: strin
   );
 }
 
-/**
- * Fetch current EIP-1559 fee data and add a 50% buffer so writeContract calls
- * don't fail when baseFee ticks up between estimation and submission.
- */
-async function getFeesWithBuffer() {
-  try {
-    const fees = await estimateFeesPerGas(wagmiConfig);
-    if (fees.maxFeePerGas != null && fees.maxPriorityFeePerGas != null) {
-      return {
-        maxFeePerGas: (fees.maxFeePerGas * 3n) / 2n,
-        maxPriorityFeePerGas: (fees.maxPriorityFeePerGas * 3n) / 2n,
-      };
-    }
-  } catch {
-    // If fee estimation fails, let wagmi use its default — better than blocking
-  }
-  return {};
-}
-
 export default function StakePage() {
   const { address, isConnected } = useAccount();
-  const { dashboardData: apiDashboardData } = useApiData();
+  const { dashboardData } = useApiData();
+
+  // ── Tabs & UI state ──────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<"cosmic" | "randomwalk">("cosmic");
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
-  const [availableTokens, setAvailableTokens] = useState<CSTToken[]>([]);
-  const [stakedTokens, setStakedTokens] = useState<StakedCSTToken[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
-  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [isStakingMultiple, setIsStakingMultiple] = useState(false);
-  const [unstakingActionId, setUnstakingActionId] = useState<number | null>(
-    null
-  );
-  const [stakingRewards, setStakingRewards] = useState<StakingReward[]>([]);
-  const [loadingRewards, setLoadingRewards] = useState(false);
-  const [selectedStakedIds, setSelectedStakedIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [stakedCurrentPage, setStakedCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Show 8 NFTs per page (2 rows of 4)
-  const stakedItemsPerPage = 5; // Show 5 staked NFTs per page
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showRWalkHowItWorks, setShowRWalkHowItWorks] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
 
-  // Staking percentage: try contract first (most accurate), fall back to API
+  // ── CST Staking Hook ────────────────────────────────────────────────
+  const cst = useCSTStaking();
+
+  // ── RWLK Staking Hook ──────────────────────────────────────────────
+  const rwlk = useRWLKStaking();
+
+  // ── Staking Rewards ─────────────────────────────────────────────────
+  const stakingRewards = useStakingRewards(cst.stakedTokens.length);
+
+  // ── CST Pagination & Selection ──────────────────────────────────────
+  const itemsPerPage = 8;
+  const stakedItemsPerPage = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [stakedCurrentPage, setStakedCurrentPage] = useState(1);
+  const [selectedTokenIds, setSelectedTokenIds] = useState<Set<number>>(new Set());
+  const [selectedStakedIds, setSelectedStakedIds] = useState<Set<number>>(new Set());
+
+  // ── RWLK Pagination & Selection ─────────────────────────────────────
+  const [rwlkCurrentPage, setRwlkCurrentPage] = useState(1);
+  const [stakedRwlkCurrentPage, setStakedRwlkCurrentPage] = useState(1);
+  const [selectedRWLKTokenIds, setSelectedRWLKTokenIds] = useState<Set<number>>(new Set());
+  const [selectedStakedRWLKIds, setSelectedStakedRWLKIds] = useState<Set<number>>(new Set());
+
+  // ── Staking percentage ──────────────────────────────────────────────
   const [stakingPercentage, setStakingPercentage] = useState<number>(
-    // API may return it under StakingPercentage or the full contract field name
     Number(
-      apiDashboardData?.StakingPercentage ||
-      (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+      dashboardData?.StakingPercentage ||
+      (dashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
       0
     )
   );
+
   useEffect(() => {
-    // Prefer fresh on-chain value
     async function fetchStakingPercent() {
       try {
         const raw = await readContract(wagmiConfig, {
@@ -165,10 +101,9 @@ export default function StakePage() {
         });
         if (raw != null) setStakingPercentage(Number(raw));
       } catch {
-        // Fall back to API value — already set in state initialiser
         const fromApi = Number(
-          apiDashboardData?.StakingPercentage ||
-          (apiDashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
+          dashboardData?.StakingPercentage ||
+          (dashboardData as Record<string, unknown>)?.CosmicSignatureNftStakingTotalEthRewardAmountPercentage ||
           0
         );
         if (fromApi > 0) setStakingPercentage(fromApi);
@@ -178,1232 +113,115 @@ export default function StakePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Random Walk NFT state
-  const [availableRWLKTokens, setAvailableRWLKTokens] = useState<RWLKToken[]>(
-    []
-  );
-  const [stakedRWLKTokens, setStakedRWLKTokens] = useState<StakedRWLKToken[]>(
-    []
-  );
-  // Tracks token IDs the contract confirmed can never be staked again.
-  // Persists across re-fetches so confirmed-used tokens don't reappear.
-  const confirmedUsedRwlkIds = useRef<Set<number>>(new Set());
-  const [rwlkLoading, setRwlkLoading] = useState(false);
-  const [rwlkCurrentPage, setRwlkCurrentPage] = useState(1);
-  const [stakedRwlkCurrentPage, setStakedRwlkCurrentPage] = useState(1);
-  const [selectedRWLKTokenIds, setSelectedRWLKTokenIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [selectedStakedRWLKIds, setSelectedStakedRWLKIds] = useState<
-    Set<number>
-  >(new Set());
-  const [stakingRWLKTokenId, setStakingRWLKTokenId] = useState<number | null>(
-    null
-  );
-  const [isStakingRWLKMultiple, setIsStakingRWLKMultiple] = useState(false);
-  const [unstakingRWLKActionId, setUnstakingRWLKActionId] = useState<
-    number | null
-  >(null);
+  // Reset pages when data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [cst.availableTokens.length]);
 
-  // Help sections visibility
-  const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const [showRWalkHowItWorks, setShowRWalkHowItWorks] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
+  useEffect(() => {
+    setRwlkCurrentPage(1);
+  }, [rwlk.availableTokens.length]);
 
-  // Dashboard data state
-  const [dashboardData, setDashboardData] = useState<{
-    CosmicSignatureTokenStakingTotalSupply?: number;
-    RandomWalkNFTStakingTotalSupply?: number;
-    MainStats?: {
-      StakeStatisticsCST?: {
-        TotalTokensStaked?: number;
-        TotalRewardEth?: number;
-      };
-      StakeStatisticsRWalk?: {
-        TotalTokensStaked?: number;
-        NumActiveStakers?: number;
-        TotalNumStakeActions?: number;
-        TotalNumUnstakeActions?: number;
-      };
-    };
-  } | null>(null);
-
-  // Hooks
-  const { showSuccess, showError, showInfo } = useNotification();
-
-  // Helper: show a friendly error, suppressing wallet-rejection noise
-  const handleTxError = useCallback((error: unknown, fallback: string) => {
-    const msg = (error as Error)?.message || "";
-    if (
-      msg.includes("User denied") ||
-      msg.includes("User rejected") ||
-      msg.includes("user rejected") ||
-      msg.includes("rejected the request")
-    ) {
-      // User cancelled — no error toast needed
-      return;
-    }
-    showError(msg || fallback);
-  }, [showError]);
-  const nftContract = useCosmicSignatureNFT();
-  const rwlkNftContract = useRandomWalkNFT();
-  const stakingContract = useStakingWalletCST();
-  const rwlkStakingContract = useStakingWalletRWLK();
-
-  // Handle image load errors
+  // ── Image helpers ───────────────────────────────────────────────────
   const handleImageError = (tokenId: number) => {
     setFailedImages((prev) => new Set(prev).add(tokenId));
   };
 
-  // Get CST NFT image URL from seed, fallback to placeholder on error
   const getImageUrl = (tokenId: number, seed: string) => {
     return failedImages.has(tokenId) ? PLACEHOLDER_IMAGE : getCSTImageUrl(seed);
   };
 
-  // Fetch dashboard data for global staking stats
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const data = await api.getDashboardInfo();
-        setDashboardData(data);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
-
-  // Fetch user's CST tokens
-  useEffect(() => {
-    if (!address || !isConnected) {
-      setAvailableTokens([]);
-      setStakedTokens([]);
-      setCurrentPage(1);
-      return;
-    }
-
-    const fetchTokens = async () => {
-      setLoading(true);
-      try {
-        // Fetch staked and available tokens separately using dedicated API methods
-        const [staked, available] = await Promise.all([
-          api.getStakedCSTTokensByUser(address),
-          getAvailableCSTTokensByUser(address),
-        ]);
-        setStakedTokens(staked);
-        setAvailableTokens(available);
-        setCurrentPage(1); // Reset to first page when data changes
-      } catch (error) {
-        console.error("Failed to fetch CST tokens:", error);
-        // Fall back to empty arrays on error
-        setAvailableTokens([]);
-        setStakedTokens([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTokens();
-  }, [address, isConnected]);
-
-  // Check if NFT contracts are approved for staking
-  const { data: isApprovedForAll, refetch: refetchCSTApproval } = nftContract.read.useIsApprovedForAll(
-    (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
-    CONTRACTS.STAKING_WALLET_CST
-  );
-
-  const { data: isRWLKApprovedForAll, refetch: refetchRWLKApproval } =
-    rwlkNftContract.read.useIsApprovedForAll(
-      (address as `0x${string}`) ||
-        "0x0000000000000000000000000000000000000000",
-      CONTRACTS.STAKING_WALLET_RWLK
-    );
-
-  // Get user's Random Walk NFT token IDs
-  const { data: rwlkTokenIds, refetch: refetchRWLKWallet, error: rwlkWalletError } = rwlkNftContract.read.useWalletOfOwner(
-    address as `0x${string}` | undefined
-  );
-
-  const effectiveRwlkTokenIds = rwlkTokenIds as bigint[] | undefined;
-
-  // Refresh token data
-  const refreshTokenData = useCallback(async () => {
-    if (!address || !isConnected) return;
-
-    try {
-      // Small delay to give API/blockchain time to sync
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Fetch staked and available tokens separately using dedicated API methods
-      const [staked, available] = await Promise.all([
-        api.getStakedCSTTokensByUser(address),
-        getAvailableCSTTokensByUser(address),
-      ]);
-
-      console.log(`[CST Stake] Refreshed: ${available.length} available, ${staked.length} staked`);
-
-      setStakedTokens(staked);
-      setAvailableTokens(available);
-      // Clear selections after refresh
-      setSelectedTokenIds(new Set());
-      setSelectedStakedIds(new Set());
-    } catch (error) {
-      console.error("Failed to refresh token data:", error);
-    }
-  }, [address, isConnected]);
-
-  // Refresh Random Walk NFT data
-  const refreshRWLKTokenData = useCallback(async () => {
-    if (!address || !isConnected) return;
-
-    try {
-      // Fetch staked tokens, history, and wallet in parallel.
-      // Staked tokens come from the API — always refresh them regardless of contract state.
-      const walletResultPromise = refetchRWLKWallet();
-      const [stakedTokensRaw, stakingHistory, walletResult] = await Promise.all([
-        api.getStakedRWLKTokensByUser(address),
-        api.getEverStakedRWLKTokenIdsByUser(address).catch(() => []),
-        walletResultPromise,
-      ]);
-
-      const freshRwlkTokenIds = walletResult?.data;
-
-      // Transform API response to match StakedRWLKToken interface
-      const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
-        TokenId: token.StakedTokenId ?? token.TokenId,
-        TokenName: token.TokenName,
-        StakeActionId: token.StakeActionId,
-        StakeTimeStamp: token.StakeTimeStamp,
-        StakeDateTime: token.StakeDateTime,
-        UserAddr: token.UserAddr,
-        UserAid: token.UserAid,
-      }));
-
-      // Always update staked tokens from API (independent of contract state)
-      setStakedRWLKTokens(stakedTokens);
-
-      // stakingHistory is already number[] from getEverStakedRWLKTokenIdsByUser
-      const everStakedIds = new Set<number>(stakingHistory as number[]);
-      everStakedIds.forEach(id => confirmedUsedRwlkIds.current.add(id));
-
-      // If walletOfOwner failed we can still show staked tokens — just skip available
-      if (!freshRwlkTokenIds) {
-        setAvailableRWLKTokens([]);
-        return;
-      }
-
-      // Convert BigInt array to number array and sort
-      const ownedTokenIds = (freshRwlkTokenIds as bigint[])
-        .map((id) => Number(id))
-        .sort((a, b) => a - b);
-
-      // Create set of currently staked token IDs
-      const stakedTokenIdsSet = new Set(
-        stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
-      );
-
-      // Try wasNftUsed contract call as secondary check (may not exist on older deployments)
-      const contractUsedIds = new Set<number>();
-      await Promise.all(
-        ownedTokenIds
-          .filter(id => !everStakedIds.has(id)) // skip already-known used tokens
-          .map(async (tokenId) => {
-            try {
-              const result = await readContract(wagmiConfig, {
-                address: CONTRACTS.STAKING_WALLET_RWLK,
-                abi: StakingWalletRWLKABI,
-                functionName: "wasNftUsed",
-                args: [BigInt(tokenId)],
-              });
-              if ((result as bigint) !== 0n) contractUsedIds.add(tokenId);
-            } catch {
-              // Function may not exist on this contract version — ignore silently
-            }
-          })
-      );
-
-      // Filter: owned, not currently staked, not in history, not confirmed by contract
-      const available: RWLKToken[] = ownedTokenIds
-        .filter(id =>
-          !stakedTokenIdsSet.has(id) &&
-          !everStakedIds.has(id) &&
-          !contractUsedIds.has(id) &&
-          !confirmedUsedRwlkIds.current.has(id)
-        )
-        .map((tokenId) => ({
-          TokenId: tokenId,
-          IsUsed: false,
-          IsStaked: false,
-        }));
-
-      console.log(`[RWLK Stake] Refreshed: ${available.length} available, ${stakedTokens.length} staked`);
-
-      setAvailableRWLKTokens(available);
-      setSelectedRWLKTokenIds(new Set());
-      setSelectedStakedRWLKIds(new Set());
-    } catch (error) {
-      console.error("Failed to refresh Random Walk token data:", error);
-    }
-  }, [address, isConnected, refetchRWLKWallet]);
-
-  // Fetch user's Random Walk NFTs
-  useEffect(() => {
-    if (!address || !isConnected || !effectiveRwlkTokenIds) {
-      setAvailableRWLKTokens([]);
-      setStakedRWLKTokens([]);
-      setRwlkCurrentPage(1);
-      return;
-    }
-
-    const fetchRWLKTokens = async () => {
-      setRwlkLoading(true);
-      try {
-        // Fetch staked tokens + full staking history in parallel
-        const [stakedTokensRaw, stakingHistory] = await Promise.all([
-          api.getStakedRWLKTokensByUser(address),
-          api.getEverStakedRWLKTokenIdsByUser(address).catch(() => []),
-        ]);
-
-        const stakedTokens: StakedRWLKToken[] = stakedTokensRaw.map((token: StakedRWLKToken & { StakedTokenId?: number }) => ({
-          TokenId: token.StakedTokenId ?? token.TokenId,
-          TokenName: token.TokenName,
-          StakeActionId: token.StakeActionId,
-          StakeTimeStamp: token.StakeTimeStamp,
-          StakeDateTime: token.StakeDateTime,
-          UserAddr: token.UserAddr,
-          UserAid: token.UserAid,
-        }));
-
-        // stakingHistory is already number[] from getEverStakedRWLKTokenIdsByUser
-        const everStakedIds = new Set<number>(stakingHistory as number[]);
-        everStakedIds.forEach(id => confirmedUsedRwlkIds.current.add(id));
-
-        const ownedTokenIds = (effectiveRwlkTokenIds as bigint[])
-          .map((id) => Number(id))
-          .sort((a, b) => a - b);
-
-        const stakedTokenIdsSet = new Set(
-          stakedTokens.map((token: StakedRWLKToken) => token.TokenId)
-        );
-
-        // wasNftUsed contract check as secondary (may not exist on older deployments)
-        const contractUsedIds = new Set<number>();
-        await Promise.all(
-          ownedTokenIds
-            .filter(id => !everStakedIds.has(id))
-            .map(async (tokenId) => {
-              try {
-                const result = await readContract(wagmiConfig, {
-                  address: CONTRACTS.STAKING_WALLET_RWLK,
-                  abi: StakingWalletRWLKABI,
-                  functionName: "wasNftUsed",
-                  args: [BigInt(tokenId)],
-                });
-                if ((result as bigint) !== 0n) contractUsedIds.add(tokenId);
-              } catch {
-                // Function may not exist on this contract version — ignore silently
-              }
-            })
-        );
-
-        const available: RWLKToken[] = ownedTokenIds
-          .filter(id =>
-            !stakedTokenIdsSet.has(id) &&
-            !everStakedIds.has(id) &&
-            !contractUsedIds.has(id) &&
-            !confirmedUsedRwlkIds.current.has(id)
-          )
-          .map((tokenId) => ({
-            TokenId: tokenId,
-            IsUsed: false,
-            IsStaked: false,
-          }));
-
-        setStakedRWLKTokens(stakedTokens);
-        setAvailableRWLKTokens(available);
-        setRwlkCurrentPage(1);
-      } catch (error) {
-        console.error("Failed to fetch Random Walk tokens:", error);
-        setAvailableRWLKTokens([]);
-        setStakedRWLKTokens([]);
-      } finally {
-        setRwlkLoading(false);
-      }
-    };
-
-    fetchRWLKTokens();
-  }, [address, isConnected, effectiveRwlkTokenIds]);
-
-  // Fetch staking rewards
-  const fetchStakingRewards = useCallback(async () => {
-    if (!address || !isConnected) return;
-
-    try {
-      setLoadingRewards(true);
-      const rewards = await api.getStakingRewardsByUser(address);
-      setStakingRewards(rewards);
-    } catch (error) {
-      console.error("Failed to fetch staking rewards:", error);
-      setStakingRewards([]);
-    } finally {
-      setLoadingRewards(false);
-    }
-  }, [address, isConnected]);
-
-  // Fetch rewards when staked tokens change
-  useEffect(() => {
-    if (stakedTokens.length > 0) {
-      fetchStakingRewards();
-    }
-  }, [stakedTokens.length, fetchStakingRewards]);
-
-  // Track processed transactions to prevent duplicate handling
-  const processedCSTTxRef = useRef<string | null | undefined>(null);
-  const processedRWLKTxRef = useRef<string | null | undefined>(null);
-
-  // Clear processed CST transaction when new transaction starts
-  useEffect(() => {
-    if (stakingContract.status.isPending) {
-      processedCSTTxRef.current = null;
-    }
-  }, [stakingContract.status.isPending]);
-
-  // Watch for transaction success and refresh data
-  useEffect(() => {
-    const txHash = stakingContract.status.hash;
-    
-    if (
-      stakingContract.status.isSuccess &&
-      !stakingContract.status.isPending &&
-      !stakingContract.status.isConfirming &&
-      address &&
-      txHash &&
-      processedCSTTxRef.current !== txHash &&
-      (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
-    ) {
-      // Mark transaction as processed
-      processedCSTTxRef.current = txHash;
-      
-      // Transaction is fully confirmed, refresh data and show success
-      const handleSuccess = async () => {
-        await refreshTokenData();
-
-        // Handle success messages based on what operation was performed
-        if (isStakingMultiple && selectedTokenIds.size > 0) {
-          // Staking multiple NFTs
-          showSuccess(
-            `Successfully staked ${selectedTokenIds.size} NFT${
-              selectedTokenIds.size > 1 ? "s" : ""
-            }!`
-          );
-          setSelectedTokenIds(new Set());
-        } else if (isStakingMultiple && selectedStakedIds.size > 0) {
-          // Unstaking multiple NFTs
-          showSuccess(
-            `Successfully unstaked ${selectedStakedIds.size} NFT${
-              selectedStakedIds.size > 1 ? "s" : ""
-            } and claimed rewards!`
-          );
-          setSelectedStakedIds(new Set());
-        } else if (stakingTokenId) {
-          // Staking single NFT
-          showSuccess(`Successfully staked token #${stakingTokenId}!`);
-        } else if (unstakingActionId) {
-          // Unstaking single NFT
-          showSuccess(`Successfully unstaked NFT and claimed rewards!`);
-        }
-
-        // Clear staking/unstaking states
-        setStakingTokenId(null);
-        setIsStakingMultiple(false);
-        setUnstakingActionId(null);
-      };
-
-      handleSuccess();
-    }
-  }, [
-    stakingContract.status.isSuccess,
-    stakingContract.status.isPending,
-    stakingContract.status.isConfirming,
-    stakingContract.status.hash,
-    address,
-    stakingTokenId,
-    isStakingMultiple,
-    unstakingActionId,
-    refreshTokenData,
-    selectedTokenIds.size,
-    selectedStakedIds.size,
-    showSuccess,
-  ]);
-
-  // Watch for CST transaction failures
-  useEffect(() => {
-    if (
-      stakingContract.status.error &&
-      !stakingContract.status.isPending &&
-      !stakingContract.status.isConfirming &&
-      (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
-    ) {
-      // Transaction failed, show error and reset states (silences wallet rejections)
-      handleTxError(stakingContract.status.error, "Transaction failed");
-      
-      // Clear processed transaction
-      processedCSTTxRef.current = null;
-      
-      setStakingTokenId(null);
-      setIsStakingMultiple(false);
-      setUnstakingActionId(null);
-    }
-  }, [
-    stakingContract.status.error,
-    stakingContract.status.isPending,
-    stakingContract.status.isConfirming,
-    stakingTokenId,
-    isStakingMultiple,
-    unstakingActionId,
-    handleTxError,
-  ]);
-
-  // Get reward for a specific token
-  const getTokenReward = (tokenId: number) => {
-    const reward = stakingRewards.find((r) => r.TokenId === tokenId);
-    return reward?.RewardToCollectEth || reward?.TotalReward || 0;
-  };
-
-  // Calculate total rewards
-  const totalRewards = stakingRewards.reduce(
-    (sum, reward) =>
-      sum + (reward.RewardToCollectEth || reward?.TotalReward || 0),
-    0
-  );
-
-  // Toggle staked token selection
-  const toggleStakedTokenSelection = (stakeActionId: number) => {
-    console.log("Toggling StakeActionId:", stakeActionId);
-    console.log("Current selections:", Array.from(selectedStakedIds));
-    
-    setSelectedStakedIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(stakeActionId)) {
-        console.log("Removing:", stakeActionId);
-        newSet.delete(stakeActionId);
-      } else {
-        console.log("Adding:", stakeActionId);
-        newSet.add(stakeActionId);
-      }
-      console.log("New selections:", Array.from(newSet));
-      return newSet;
-    });
-  };
-
-  // Select all staked tokens
-  const selectAllStakedTokens = () => {
-    console.log("Select all called");
-    console.log("Staked tokens:", stakedTokens);
-    const allStakeActionIds = new Set(
-      stakedTokens.map((stakedToken) =>
-        stakedToken.StakeActionId ?? stakedToken.TokenInfo.StakeActionId
-      )
-    );
-    setSelectedStakedIds(allStakeActionIds);
-  };
-
-  // Select current page staked tokens
-  const selectCurrentPageStakedTokens = () => {
-    const startIdx = (stakedCurrentPage - 1) * stakedItemsPerPage;
-    const endIdx = startIdx + stakedItemsPerPage;
-    const pageTokens = stakedTokens.slice(startIdx, endIdx);
-    const pageActionIds = new Set(
-      pageTokens.map((stakedToken) =>
-        stakedToken.StakeActionId ?? stakedToken.TokenInfo.StakeActionId
-      )
-    );
-    setSelectedStakedIds(pageActionIds);
-  };
-
-  // Deselect all staked tokens
-  const deselectAllStakedTokens = () => {
-    setSelectedStakedIds(new Set());
-  };
-
-  // Handle unstake many selected
-  const handleUnstakeSelected = async () => {
-    if (selectedStakedIds.size === 0) {
-      showError("Please select at least one NFT to unstake.");
-      return;
-    }
-
-    try {
-      if (!stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      setIsStakingMultiple(true);
-
-      const stakeActionIds = Array.from(selectedStakedIds).map((id) =>
-        BigInt(id)
-      );
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
-        abi: StakingWalletCSTABI,
-        functionName: 'unstakeMany',
-        args: [stakeActionIds],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot unstake these NFTs at this time');
-        setIsStakingMultiple(false);
-        return;
-      }
-
-      await stakingContract.write.unstakeMany(stakeActionIds);
-      showSuccess(
-        `Transaction submitted! Unstaking ${selectedStakedIds.size} NFTs and claiming rewards...`
-      );
-    } catch (error: unknown) {
-      console.error("Unstake selected failed:", error);
-      handleTxError(error, "Failed to unstake NFTs. Please try again.");
-      setIsStakingMultiple(false);
-    }
-  };
-
-  // Toggle NFT selection
+  // ── CST selection helpers ───────────────────────────────────────────
   const toggleTokenSelection = (tokenId: number) => {
     setSelectedTokenIds((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(tokenId)) {
-        newSet.delete(tokenId);
-      } else {
-        newSet.add(tokenId);
-      }
+      if (newSet.has(tokenId)) newSet.delete(tokenId);
+      else newSet.add(tokenId);
       return newSet;
     });
   };
 
-  // Select all available tokens
   const selectAllTokens = () => {
-    const allTokenIds = new Set(availableTokens.map((token) => token.TokenId));
-    setSelectedTokenIds(allTokenIds);
+    setSelectedTokenIds(new Set(cst.availableTokens.map((t) => t.TokenId)));
   };
 
-  // Deselect all tokens
-  const deselectAllTokens = () => {
-    setSelectedTokenIds(new Set());
+  const deselectAllTokens = () => setSelectedTokenIds(new Set());
+
+  const toggleStakedTokenSelection = (stakeActionId: number) => {
+    setSelectedStakedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(stakeActionId)) newSet.delete(stakeActionId);
+      else newSet.add(stakeActionId);
+      return newSet;
+    });
   };
 
-  // Handle approve action
-  const handleApprove = useCallback(async () => {
-    if (!nftContract) return false;
-
-    try {
-      showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
-
-      const fees = await getFeesWithBuffer();
-      const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
-        abi: CosmicSignatureNFTABI,
-        functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_CST, true],
-        ...fees,
-      });
-      
-      console.log(`Approval transaction hash: ${hash}`);
-      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
-      
-      // Wait for approval transaction to be mined
-      const receipt = await waitForTransactionReceipt(wagmiConfig, {
-        hash,
-      });
-      
-      console.log(`Approval confirmed in block ${receipt.blockNumber}`);
-      showSuccess("✅ Approval confirmed! Proceeding with staking...");
-      
-      // Refetch approval state
-      await refetchCSTApproval();
-      
-      // Small delay to ensure blockchain state is updated
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return true;
-    } catch (error: unknown) {
-      console.error("Approval failed:", error);
-      handleTxError(error, "Failed to approve. Please try again.");
-      return false;
-    }
-  }, [nftContract, showSuccess, showError, showInfo, refetchCSTApproval, handleTxError]);
-
-  // Handle staking action
-  const handleStake = async (tokenId: number) => {
-    try {
-      // Check if contracts are initialized
-      if (!nftContract || !stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      setStakingTokenId(tokenId);
-
-      // Check if approval is needed
-      if (!isApprovedForAll) {
-        const approved = await handleApprove();
-        if (!approved) {
-          setStakingTokenId(null);
-          return;
-        }
-      }
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
-        abi: StakingWalletCSTABI,
-        functionName: 'stake',
-        args: [BigInt(tokenId)],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot stake this NFT at this time');
-        setStakingTokenId(null);
-        return;
-      }
-
-      // Stake the NFT
-      showInfo("Please confirm the transaction in your wallet...");
-      await stakingContract.write.stake(BigInt(tokenId));
-      showInfo("Transaction submitted! Waiting for confirmation...");
-
-      // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: unknown) {
-      console.error("Staking failed:", error);
-      handleTxError(error, "Failed to stake NFT. Please try again.");
-      setStakingTokenId(null);
-    }
+  const selectAllStakedTokens = () => {
+    const allIds = new Set(
+      cst.stakedTokens.map((t) => t.StakeActionId ?? t.TokenInfo.StakeActionId)
+    );
+    setSelectedStakedIds(allIds);
   };
 
-  // Handle staking multiple NFTs
-  const handleStakeMany = async (tokenIds: number[]) => {
-    try {
-      // Check if contracts are initialized
-      if (!nftContract || !stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      if (tokenIds.length === 0) {
-        showError("Please select at least one NFT to stake.");
-        return;
-      }
-
-      setIsStakingMultiple(true);
-
-      // Check if approval is needed
-      if (!isApprovedForAll) {
-        const approved = await handleApprove();
-        if (!approved) {
-          setIsStakingMultiple(false);
-          return;
-        }
-      }
-
-      // Estimate gas to validate transaction
-      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
-        abi: StakingWalletCSTABI,
-        functionName: 'stakeMany',
-        args: [tokenIdsBigInt],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot stake these NFTs at this time');
-        setIsStakingMultiple(false);
-        return;
-      }
-
-      // Stake multiple NFTs
-      showInfo("Please confirm the transaction in your wallet...");
-      await stakingContract.write.stakeMany(tokenIdsBigInt);
-      showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
-
-      // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: unknown) {
-      console.error("Multi-staking failed:", error);
-      handleTxError(error, "Failed to stake NFTs. Please try again.");
-      setIsStakingMultiple(false);
-    }
+  const selectCurrentPageStakedTokens = () => {
+    const startIdx = (stakedCurrentPage - 1) * stakedItemsPerPage;
+    const endIdx = startIdx + stakedItemsPerPage;
+    const pageTokens = cst.stakedTokens.slice(startIdx, endIdx);
+    setSelectedStakedIds(
+      new Set(pageTokens.map((t) => t.StakeActionId ?? t.TokenInfo.StakeActionId))
+    );
   };
 
-  // Handle unstaking action
-  const handleUnstake = async (stakeActionId: number, tokenId: number) => {
-    try {
-      // Check if contracts are initialized
-      if (!stakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
+  const deselectAllStakedTokens = () => setSelectedStakedIds(new Set());
 
-      setUnstakingActionId(stakeActionId);
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
-        abi: StakingWalletCSTABI,
-        functionName: 'unstake',
-        args: [BigInt(stakeActionId)],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot unstake this NFT at this time');
-        setUnstakingActionId(null);
-        return;
-      }
-
-      // Unstake the NFT
-      showInfo("Please confirm the transaction in your wallet...");
-      await stakingContract.write.unstake(BigInt(stakeActionId));
-      showInfo(
-        `Transaction submitted! Unstaking token #${tokenId} and claiming rewards...`
-      );
-
-      // Note: List will auto-refresh when transaction completes (see useEffect)
-    } catch (error: unknown) {
-      console.error("Unstaking failed:", error);
-      handleTxError(error, "Failed to unstake NFT. Please try again.");
-      setUnstakingActionId(null);
-    }
+  const handleUnstakeSelected = async () => {
+    await cst.unstakeMany(Array.from(selectedStakedIds));
+    setSelectedStakedIds(new Set());
   };
 
-  // === Random Walk NFT Handlers ===
-
-  // Handle RWLK approve action
-  const handleRWLKApprove = useCallback(async () => {
-    if (!rwlkNftContract) return false;
-
-    try {
-      showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
-
-      const fees = await getFeesWithBuffer();
-      const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.RANDOM_WALK_NFT,
-        abi: RandomWalkNFTABI,
-        functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_RWLK, true],
-        ...fees,
-      });
-      
-      console.log(`RWLK Approval transaction hash: ${hash}`);
-      showInfo("⏳ Approval transaction submitted. Waiting for confirmation...");
-      
-      // Wait for approval transaction to be mined
-      const receipt = await waitForTransactionReceipt(wagmiConfig, {
-        hash,
-      });
-      
-      console.log(`RWLK Approval confirmed in block ${receipt.blockNumber}`);
-      showSuccess("✅ Approval confirmed! Proceeding with staking...");
-      
-      // Refetch approval state
-      await refetchRWLKApproval();
-      
-      // Small delay to ensure blockchain state is updated
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return true;
-    } catch (error: unknown) {
-      console.error("RWLK Approval failed:", error);
-      handleTxError(error, "Failed to approve. Please try again.");
-      return false;
-    }
-  }, [rwlkNftContract, showInfo, showError, showSuccess, refetchRWLKApproval, handleTxError]);
-
-  // Handle RWLK staking action
-  const handleRWLKStake = async (tokenId: number) => {
-    try {
-      if (!rwlkNftContract || !rwlkStakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      setStakingRWLKTokenId(tokenId);
-
-      // Check if approval is needed
-      if (!isRWLKApprovedForAll) {
-        const approved = await handleRWLKApprove();
-        if (!approved) {
-          setStakingRWLKTokenId(null);
-          return;
-        }
-      }
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
-        abi: StakingWalletRWLKABI,
-        functionName: 'stake',
-        args: [BigInt(tokenId)],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        const errMsg = estimation.error || '';
-        const isAlreadyUsed =
-          errMsg.toLowerCase().includes("already been staked") ||
-          errMsg.toLowerCase().includes("staked only once") ||
-          errMsg.toLowerCase().includes("nfthasalreadybeenstaked");
-        if (isAlreadyUsed) {
-          // Contract confirmed permanently used — hide forever
-          confirmedUsedRwlkIds.current.add(tokenId);
-          setAvailableRWLKTokens((prev) => prev.filter((t) => t.TokenId !== tokenId));
-          showError("This RandomWalk NFT has already been staked before. Each NFT can only be staked once.");
-        } else {
-          showError(errMsg || 'Cannot stake this NFT at this time');
-        }
-        setStakingRWLKTokenId(null);
-        return;
-      }
-
-      // Stake the NFT
-      showInfo("Please confirm the transaction in your wallet...");
-      await rwlkStakingContract.write.stake(BigInt(tokenId));
-      showInfo("Transaction submitted! Waiting for confirmation...");
-      // Success will be handled by useEffect when transaction confirms
-    } catch (error: unknown) {
-      console.error("RWLK Staking failed:", error);
-      handleTxError(error, "Failed to stake NFT. Please try again.");
-      setStakingRWLKTokenId(null);
-    }
-  };
-
-  // Handle staking multiple RWLK NFTs
-  const handleRWLKStakeMany = async (tokenIds: number[]) => {
-    try {
-      if (!rwlkNftContract || !rwlkStakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      if (tokenIds.length === 0) {
-        showError("Please select at least one NFT to stake.");
-        return;
-      }
-
-      setIsStakingRWLKMultiple(true);
-
-      // Check if approval is needed
-      if (!isRWLKApprovedForAll) {
-        const approved = await handleRWLKApprove();
-        if (!approved) {
-          setIsStakingRWLKMultiple(false);
-          return;
-        }
-      }
-
-      // Estimate gas to validate transaction
-      const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
-        abi: StakingWalletRWLKABI,
-        functionName: 'stakeMany',
-        args: [tokenIdsBigInt],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        const errMsg = estimation.error || '';
-        const isAlreadyUsed =
-          errMsg.toLowerCase().includes("already been staked") ||
-          errMsg.toLowerCase().includes("staked only once") ||
-          errMsg.toLowerCase().includes("nfthasalreadybeenstaked");
-        if (isAlreadyUsed) {
-          // Refresh to let wasNftUsed re-run and filter out the culprit(s)
-          await refreshRWLKTokenData();
-          showError("One or more NFTs have already been staked before. The list has been refreshed — please try again.");
-        } else {
-          showError(errMsg || 'Cannot stake these NFTs at this time');
-        }
-        setIsStakingRWLKMultiple(false);
-        return;
-      }
-
-      // Stake multiple NFTs
-      showInfo("Please confirm the transaction in your wallet...");
-      await rwlkStakingContract.write.stakeMany(tokenIdsBigInt);
-      showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
-      // Success will be handled by useEffect when transaction confirms
-    } catch (error: unknown) {
-      console.error("RWLK Multi-staking failed:", error);
-      handleTxError(error, "Failed to stake NFTs. Please try again.");
-      setIsStakingRWLKMultiple(false);
-    }
-  };
-
-  // Handle RWLK unstaking action
-  const handleRWLKUnstake = async (stakeActionId: number, tokenId: number) => {
-    try {
-      if (!rwlkStakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      setUnstakingRWLKActionId(stakeActionId);
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
-        abi: StakingWalletRWLKABI,
-        functionName: 'unstake',
-        args: [BigInt(stakeActionId)],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot unstake this NFT at this time');
-        setUnstakingRWLKActionId(null);
-        return;
-      }
-
-      showInfo("Please confirm the transaction in your wallet...");
-      await rwlkStakingContract.write.unstake(BigInt(stakeActionId));
-      showInfo(`Transaction submitted! Unstaking token #${tokenId}...`);
-      // Success will be handled by useEffect when transaction confirms
-    } catch (error: unknown) {
-      console.error("RWLK Unstaking failed:", error);
-      handleTxError(error, "Failed to unstake NFT. Please try again.");
-      setUnstakingRWLKActionId(null);
-    }
-  };
-
-  // Handle unstaking selected RWLK NFTs
-  const handleRWLKUnstakeSelected = async () => {
-    if (selectedStakedRWLKIds.size === 0) {
-      showError("Please select at least one NFT to unstake.");
-      return;
-    }
-
-    try {
-      if (!rwlkStakingContract) {
-        showError(
-          "Please connect your wallet and ensure you are on the correct network."
-        );
-        return;
-      }
-
-      setIsStakingRWLKMultiple(true);
-
-      const stakeActionIds = Array.from(selectedStakedRWLKIds).map((id) =>
-        BigInt(id)
-      );
-
-      // Estimate gas to validate transaction
-      const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
-        abi: StakingWalletRWLKABI,
-        functionName: 'unstakeMany',
-        args: [stakeActionIds],
-        account: address,
-      });
-
-      if (!estimation.success) {
-        showError(estimation.error || 'Cannot unstake these NFTs at this time');
-        setIsStakingRWLKMultiple(false);
-        return;
-      }
-
-      showInfo("Please confirm the transaction in your wallet...");
-      await rwlkStakingContract.write.unstakeMany(stakeActionIds);
-      showInfo(
-        `Transaction submitted! Unstaking ${selectedStakedRWLKIds.size} NFTs...`
-      );
-      // Success will be handled by useEffect when transaction confirms
-    } catch (error: unknown) {
-      console.error("RWLK Unstake selected failed:", error);
-      handleTxError(error, "Failed to unstake NFTs. Please try again.");
-      setIsStakingRWLKMultiple(false);
-    }
-  };
-
-
-  // Clear processed RWLK transaction when new transaction starts
-  useEffect(() => {
-    if (rwlkStakingContract.status.isPending) {
-      processedRWLKTxRef.current = null;
-    }
-  }, [rwlkStakingContract.status.isPending]);
-
-  // Watch for RWLK transaction success and refresh data
-  useEffect(() => {
-    const txHash = rwlkStakingContract.status.hash;
-    
-    if (
-      rwlkStakingContract.status.isSuccess &&
-      !rwlkStakingContract.status.isPending &&
-      !rwlkStakingContract.status.isConfirming &&
-      address &&
-      txHash &&
-      processedRWLKTxRef.current !== txHash &&
-      (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
-    ) {
-      // Mark transaction as processed
-      processedRWLKTxRef.current = txHash;
-      
-      // Transaction is fully confirmed, refresh data and show success
-      const handleSuccess = async () => {
-        // Add delay to give blockchain/API time to sync
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await refreshRWLKTokenData();
-
-        // Handle success messages based on what operation was performed
-        if (isStakingRWLKMultiple && selectedRWLKTokenIds.size > 0) {
-          // Staking multiple NFTs
-          showSuccess(
-            `Successfully staked ${selectedRWLKTokenIds.size} NFT${
-              selectedRWLKTokenIds.size > 1 ? "s" : ""
-            }!`
-          );
-          setSelectedRWLKTokenIds(new Set());
-        } else if (isStakingRWLKMultiple && selectedStakedRWLKIds.size > 0) {
-          // Unstaking multiple NFTs
-          showSuccess(
-            `Successfully unstaked ${selectedStakedRWLKIds.size} NFT${
-              selectedStakedRWLKIds.size > 1 ? "s" : ""
-            }!`
-          );
-          setSelectedStakedRWLKIds(new Set());
-        } else if (stakingRWLKTokenId) {
-          // Staking single NFT
-          showSuccess(`Successfully staked token #${stakingRWLKTokenId}!`);
-        } else if (unstakingRWLKActionId) {
-          // Unstaking single NFT
-          showSuccess(`Successfully unstaked NFT!`);
-        }
-
-        setStakingRWLKTokenId(null);
-        setIsStakingRWLKMultiple(false);
-        setUnstakingRWLKActionId(null);
-      };
-
-      handleSuccess();
-    }
-  }, [
-    rwlkStakingContract.status.isSuccess,
-    rwlkStakingContract.status.isPending,
-    rwlkStakingContract.status.isConfirming,
-    rwlkStakingContract.status.hash,
-    address,
-    stakingRWLKTokenId,
-    isStakingRWLKMultiple,
-    unstakingRWLKActionId,
-    refreshRWLKTokenData,
-    selectedRWLKTokenIds.size,
-    selectedStakedRWLKIds.size,
-    showSuccess,
-  ]);
-
-  // Clear processed RWLK transaction when new transaction starts
-  useEffect(() => {
-    if (rwlkStakingContract.status.isPending) {
-      processedRWLKTxRef.current = null;
-    }
-  }, [rwlkStakingContract.status.isPending]);
-
-  // Watch for RWLK transaction failures
-  useEffect(() => {
-    if (
-      rwlkStakingContract.status.error &&
-      !rwlkStakingContract.status.isPending &&
-      !rwlkStakingContract.status.isConfirming &&
-      (stakingRWLKTokenId !== null || isStakingRWLKMultiple || unstakingRWLKActionId !== null)
-    ) {
-      // Transaction failed, show error and reset states (silences wallet rejections)
-      handleTxError(rwlkStakingContract.status.error, "Transaction failed");
-      
-      // Clear processed transaction
-      processedRWLKTxRef.current = null;
-      
-      setStakingRWLKTokenId(null);
-      setIsStakingRWLKMultiple(false);
-      setUnstakingRWLKActionId(null);
-    }
-  }, [
-    rwlkStakingContract.status.error,
-    rwlkStakingContract.status.isPending,
-    rwlkStakingContract.status.isConfirming,
-    stakingRWLKTokenId,
-    isStakingRWLKMultiple,
-    unstakingRWLKActionId,
-    handleTxError,
-  ]);
-
-  // Calculate pagination for available tokens
-  const totalPages = Math.ceil(availableTokens.length / itemsPerPage);
+  // ── CST Pagination ─────────────────────────────────────────────────
+  const totalPages = Math.ceil(cst.availableTokens.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedTokens = availableTokens.slice(startIndex, endIndex);
+  const paginatedTokens = cst.availableTokens.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to the NFT section
     const nftSection = document.getElementById("available-nfts-section");
-    if (nftSection) {
-      nftSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (nftSection) nftSection.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Calculate pagination for staked tokens
-  const stakedTotalPages = Math.ceil(stakedTokens.length / stakedItemsPerPage);
+  const stakedTotalPages = Math.ceil(cst.stakedTokens.length / stakedItemsPerPage);
   const stakedStartIndex = (stakedCurrentPage - 1) * stakedItemsPerPage;
   const stakedEndIndex = stakedStartIndex + stakedItemsPerPage;
   const paginatedStakedTokens = useMemo(() => {
-    // Sort by stake timestamp (oldest first, matching legacy component)
-    const sorted = [...stakedTokens].sort(
+    const sorted = [...cst.stakedTokens].sort(
       (a, b) => a.StakeTimeStamp - b.StakeTimeStamp
     );
     return sorted.slice(stakedStartIndex, stakedEndIndex);
-  }, [stakedTokens, stakedStartIndex, stakedEndIndex]);
+  }, [cst.stakedTokens, stakedStartIndex, stakedEndIndex]);
 
   const handleStakedPageChange = (page: number) => {
     setStakedCurrentPage(page);
-    const stakedSection = document.getElementById("staked-nfts-section");
-    if (stakedSection) {
-      stakedSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    const section = document.getElementById("staked-nfts-section");
+    if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Calculate stats from real data
-  const yourNFTCount = isConnected
-    ? availableTokens.length + stakedTokens.length
-    : 0;
-  const yourStakedCount = isConnected ? stakedTokens.length : 0;
-  const yourAvailableCount = isConnected ? availableTokens.length : 0;
+  // ── Computed stats ──────────────────────────────────────────────────
+  const yourNFTCount = isConnected ? cst.availableTokens.length + cst.stakedTokens.length : 0;
+  const yourStakedCount = isConnected ? cst.stakedTokens.length : 0;
+  const yourAvailableCount = isConnected ? cst.availableTokens.length : 0;
 
-  // Get totalStaked and rewardPerNFT from API data
-  const totalStaked = dashboardData?.MainStats?.StakeStatisticsCST?.TotalTokensStaked || 0;
-  const stakingAmountEth = dashboardData?.MainStats?.StakeStatisticsCST?.TotalRewardEth || 0;
+  const cstStakeStats = dashboardData?.MainStats?.StakeStatisticsCST as
+    | { TotalTokensStaked?: number; TotalRewardEth?: number }
+    | undefined;
+  const totalStaked = cstStakeStats?.TotalTokensStaked || 0;
+  const stakingAmountEth = cstStakeStats?.TotalRewardEth || 0;
   const rewardPerNFT = totalStaked > 0 ? stakingAmountEth / totalStaked : 0;
 
-  // RWLK staking global stats
-  const rwlkStatsGlobal = dashboardData?.MainStats?.StakeStatisticsRWalk;
+  const rwlkStatsGlobal = dashboardData?.MainStats?.StakeStatisticsRWalk as
+    | { TotalTokensStaked?: number; NumActiveStakers?: number }
+    | undefined;
   const totalRwlkStaked = rwlkStatsGlobal?.TotalTokensStaked || 0;
   const totalRwlkActiveStakers = rwlkStatsGlobal?.NumActiveStakers || 0;
 
@@ -1462,19 +280,19 @@ export default function StakePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
                   label="Your NFTs"
-                  value={loading ? "..." : yourNFTCount}
+                  value={cst.isLoading ? "..." : yourNFTCount}
                   icon={Gem}
                   className="h-full"
                 />
                 <StatCard
                   label="Currently Staked"
-                  value={loading ? "..." : yourStakedCount}
+                  value={cst.isLoading ? "..." : yourStakedCount}
                   icon={Award}
                   className="h-full"
                 />
                 <StatCard
                   label="Total Rewards (Global)"
-                  value={loading ? "..." : `${formatEth(stakingAmountEth)} ETH`}
+                  value={cst.isLoading ? "..." : `${formatEth(stakingAmountEth)} ETH`}
                   valueClassName="text-xl md:text-2xl"
                   icon={TrendingUp}
                   className="h-full"
@@ -1688,16 +506,14 @@ export default function StakePage() {
                       size="sm"
                       variant="primary"
                       onClick={() =>
-                        handleStakeMany(Array.from(selectedTokenIds))
+                        cst.stakeMany(Array.from(selectedTokenIds))
                       }
                       disabled={
                         selectedTokenIds.size === 0 ||
-                        isStakingMultiple ||
-                        stakingContract.status.isPending ||
-                        stakingContract.status.isConfirming
+                        cst.isSubmitting
                       }
                     >
-                      {isStakingMultiple
+                      {cst.isStakingMultiple
                         ? "Staking..."
                         : `Stake Selected ${
                             selectedTokenIds.size > 0
@@ -1708,7 +524,7 @@ export default function StakePage() {
                   </div>
                 </div>
 
-                {loading ? (
+                {cst.isLoading ? (
                   <div className="text-center py-12">
                     <p className="text-text-secondary">Loading your NFTs...</p>
                   </div>
@@ -1743,7 +559,6 @@ export default function StakePage() {
                                   #{token.TokenId}
                                 </Badge>
                               </div>
-                              {/* Selection Checkbox */}
                               <div className="absolute top-3 right-3">
                                 <input
                                   type="checkbox"
@@ -1766,15 +581,13 @@ export default function StakePage() {
                               <Button
                                 size="sm"
                                 className="w-full"
-                                onClick={() => handleStake(token.TokenId)}
+                                onClick={() => cst.stake(token.TokenId)}
                                 disabled={
-                                  stakingTokenId === token.TokenId ||
-                                  isStakingMultiple ||
-                                  stakingContract.status.isPending ||
-                                  stakingContract.status.isConfirming
+                                  cst.stakingTokenId === token.TokenId ||
+                                  cst.isSubmitting
                                 }
                               >
-                                {stakingTokenId === token.TokenId
+                                {cst.stakingTokenId === token.TokenId
                                   ? "Staking..."
                                   : "Stake NFT"}
                         </Button>
@@ -1784,7 +597,6 @@ export default function StakePage() {
                       })}
                 </div>
 
-                    {/* Pagination Controls */}
                     {totalPages > 1 && (
                       <div className="flex justify-center items-center gap-2 mt-8">
                         <Button
@@ -1801,7 +613,6 @@ export default function StakePage() {
                             { length: totalPages },
                             (_, i) => i + 1
                           ).map((page) => {
-                            // Show first page, last page, current page, and pages around current
                             const showPage =
                               page === 1 ||
                               page === totalPages ||
@@ -1887,11 +698,11 @@ export default function StakePage() {
                         <p className="text-sm text-text-secondary mb-1">
                           Total Claimable Rewards
                         </p>
-                        {loadingRewards ? (
+                        {stakingRewards.isLoading ? (
                           <p className="text-sm text-text-muted">Loading...</p>
                         ) : (
                           <p className="font-mono text-2xl font-semibold text-primary">
-                            {formatEth(totalRewards)} ETH
+                            {formatEth(stakingRewards.totalUncollected)} ETH
                           </p>
                         )}
                       </div>
@@ -1948,13 +759,9 @@ export default function StakePage() {
                           size="sm"
                           variant="secondary"
                           onClick={handleUnstakeSelected}
-                          disabled={
-                            isStakingMultiple ||
-                            stakingContract.status.isPending ||
-                            stakingContract.status.isConfirming
-                          }
+                          disabled={cst.isSubmitting}
                         >
-                          {isStakingMultiple
+                          {cst.isStakingMultiple
                             ? "Unstaking..."
                             : `Unstake Selected & Claim (${selectedStakedIds.size})`}
                         </Button>
@@ -1973,15 +780,15 @@ export default function StakePage() {
                               <input
                                 type="checkbox"
                                 checked={
-                                  stakedTokens.length > 0 &&
-                                  selectedStakedIds.size === stakedTokens.length
+                                  cst.stakedTokens.length > 0 &&
+                                  selectedStakedIds.size === cst.stakedTokens.length
                                 }
                                 ref={(input) => {
                                   if (input) {
                                     input.indeterminate =
                                       selectedStakedIds.size > 0 &&
                                       selectedStakedIds.size <
-                                        stakedTokens.length;
+                                        cst.stakedTokens.length;
                                   }
                                 }}
                                 onChange={(e) => {
@@ -2017,8 +824,6 @@ export default function StakePage() {
                         <tbody className="divide-y divide-text-muted/10">
                           {paginatedStakedTokens.map((stakedToken) => {
                             const token = stakedToken.TokenInfo;
-                            // Use the top-level StakeActionId from the staking contract,
-                            // NOT TokenInfo.StakeActionId which is the NFT's internal field.
                             const actionId = stakedToken.StakeActionId ?? token.StakeActionId;
                             const isSelected = selectedStakedIds.has(actionId);
                             
@@ -2034,13 +839,7 @@ export default function StakePage() {
                                     type="checkbox"
                                     id={`checkbox-${actionId}`}
                                     checked={isSelected}
-                                    onChange={(e) => {
-                                      console.log(
-                                        `Checkbox ${actionId} changed, checked:`,
-                                        e.target.checked
-                                      );
-                                      toggleStakedTokenSelection(actionId);
-                                    }}
+                                    onChange={() => toggleStakedTokenSelection(actionId)}
                                     className="w-4 h-4 rounded border-2 border-text-muted bg-background-elevated cursor-pointer accent-primary"
                                   />
                                 </td>
@@ -2103,7 +902,7 @@ export default function StakePage() {
                                   )}
                               </td>
                               <td className="p-4">
-                                  {loadingRewards ? (
+                                  {stakingRewards.isLoading ? (
                                     <p className="text-sm text-text-muted">
                                       Loading...
                                     </p>
@@ -2111,7 +910,7 @@ export default function StakePage() {
                                     <>
                                 <p className="font-mono text-primary font-semibold">
                                         {formatEth(
-                                          getTokenReward(token.TokenId)
+                                          stakingRewards.getTokenReward(token.TokenId)
                                         )}{" "}
                                   ETH
                                 </p>
@@ -2126,15 +925,14 @@ export default function StakePage() {
                                     size="sm"
                                     variant="outline"
                                     onClick={() =>
-                                      handleUnstake(actionId, token.TokenId)
+                                      cst.unstake(actionId, token.TokenId)
                                     }
                                     disabled={
-                                      unstakingActionId === actionId ||
-                                      stakingContract.status.isPending ||
-                                      stakingContract.status.isConfirming
+                                      cst.unstakingActionId === actionId ||
+                                      cst.isSubmitting
                                     }
                                   >
-                                    {unstakingActionId === actionId
+                                    {cst.unstakingActionId === actionId
                                       ? "Unstaking..."
                                       : "Unstake"}
                                 </Button>
@@ -2146,7 +944,6 @@ export default function StakePage() {
                       </table>
                     </div>
 
-                    {/* Pagination for Staked Tokens */}
                     {stakedTotalPages > 1 && (
                       <div className="flex justify-center items-center gap-2 p-4 border-t border-text-muted/10">
                         <Button
@@ -2242,7 +1039,6 @@ export default function StakePage() {
                   </p>
                 </div>
 
-                {/* Global RWLK staking stats */}
                 <div className="flex flex-wrap gap-4 lg:flex-shrink-0">
                   <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
                     <p className="text-2xl font-mono font-bold text-primary">{totalRwlkStaked}</p>
@@ -2254,13 +1050,13 @@ export default function StakePage() {
                   </div>
                   {isConnected && (
                     <div className="px-5 py-3 rounded-xl bg-primary/10 border border-primary/20 text-center min-w-[110px]">
-                      <p className="text-2xl font-mono font-bold text-primary">{stakedRWLKTokens.length}</p>
+                      <p className="text-2xl font-mono font-bold text-primary">{rwlk.stakedTokens.length}</p>
                       <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Your Staked</p>
                     </div>
                   )}
-                  {isConnected && availableRWLKTokens.length > 0 && (
+                  {isConnected && rwlk.availableTokens.length > 0 && (
                     <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
-                      <p className="text-2xl font-mono font-bold text-text-primary">{availableRWLKTokens.length}</p>
+                      <p className="text-2xl font-mono font-bold text-text-primary">{rwlk.availableTokens.length}</p>
                       <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Available</p>
                     </div>
                   )}
@@ -2272,8 +1068,7 @@ export default function StakePage() {
           {/* Random Walk NFT Staking */}
           <section className="py-12">
             <Container size="lg">
-              {/* Empty State - No Random Walk NFTs */}
-              {!rwlkLoading && isConnected && availableRWLKTokens.length === 0 && stakedRWLKTokens.length === 0 && (
+              {!rwlk.isLoading && isConnected && rwlk.availableTokens.length === 0 && rwlk.stakedTokens.length === 0 && (
                 <Card glass className="p-12 text-center">
                   <div className="max-w-md mx-auto">
                     <Gem className="mx-auto mb-4 text-text-muted" size={64} />
@@ -2287,7 +1082,6 @@ export default function StakePage() {
                 </Card>
               )}
 
-              {/* Not Connected State */}
               {!isConnected && (
                 <Card glass className="p-12 text-center">
                   <div className="max-w-md mx-auto">
@@ -2302,8 +1096,7 @@ export default function StakePage() {
                 </Card>
               )}
 
-              {/* Random Walk Staking Info Card - Collapsible */}
-              {(rwlkLoading || availableRWLKTokens.length > 0 || stakedRWLKTokens.length > 0) && (
+              {(rwlk.isLoading || rwlk.availableTokens.length > 0 || rwlk.stakedTokens.length > 0) && (
                 <>
                   <div className="flex justify-center mb-6">
                     <Button
@@ -2442,7 +1235,7 @@ export default function StakePage() {
           </section>
 
           {/* Your Available Random Walk NFTs */}
-          {isConnected && availableRWLKTokens.length > 0 && (
+          {isConnected && rwlk.availableTokens.length > 0 && (
             <section id="available-rwlk-nfts-section" className="py-12">
               <Container>
                 <div className="flex flex-col gap-4 mb-6">
@@ -2455,14 +1248,13 @@ export default function StakePage() {
                         Showing {(rwlkCurrentPage - 1) * itemsPerPage + 1}-
                         {Math.min(
                           rwlkCurrentPage * itemsPerPage,
-                          availableRWLKTokens.length
+                          rwlk.availableTokens.length
                         )}{" "}
-                        of {availableRWLKTokens.length}
+                        of {rwlk.availableTokens.length}
                       </span>
                     </div>
                   </div>
 
-                  {/* Selection Controls */}
                   <div className="flex items-center justify-between p-4 rounded-lg bg-background-elevated border border-text-muted/10">
                     <div className="flex items-center gap-4">
                       {selectedRWLKTokenIds.size > 0 ? (
@@ -2485,11 +1277,11 @@ export default function StakePage() {
                           variant="outline"
                           onClick={() =>
                             setSelectedRWLKTokenIds(
-                              new Set(availableRWLKTokens.map((t) => t.TokenId))
+                              new Set(rwlk.availableTokens.map((t) => t.TokenId))
                             )
                           }
                         >
-                          Select All ({availableRWLKTokens.length})
+                          Select All ({rwlk.availableTokens.length})
                         </Button>
                       )}
                     </div>
@@ -2497,16 +1289,14 @@ export default function StakePage() {
                       size="sm"
                       variant="primary"
                       onClick={() =>
-                        handleRWLKStakeMany(Array.from(selectedRWLKTokenIds))
+                        rwlk.stakeMany(Array.from(selectedRWLKTokenIds))
                       }
                       disabled={
                         selectedRWLKTokenIds.size === 0 ||
-                        isStakingRWLKMultiple ||
-                        rwlkStakingContract.status.isPending ||
-                        rwlkStakingContract.status.isConfirming
+                        rwlk.isSubmitting
                       }
                     >
-                      {isStakingRWLKMultiple
+                      {rwlk.isStakingMultiple
                         ? "Staking..."
                         : `Stake Selected ${
                             selectedRWLKTokenIds.size > 0
@@ -2517,14 +1307,14 @@ export default function StakePage() {
                   </div>
                 </div>
 
-                {rwlkLoading ? (
+                {rwlk.isLoading ? (
                   <div className="text-center py-12">
                     <p className="text-text-secondary">Loading your NFTs...</p>
                   </div>
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {availableRWLKTokens
+                      {rwlk.availableTokens
                         .slice(
                           (rwlkCurrentPage - 1) * itemsPerPage,
                           rwlkCurrentPage * itemsPerPage
@@ -2553,7 +1343,6 @@ export default function StakePage() {
                                     #{token.TokenId}
                                   </Badge>
                                 </div>
-                                {/* Selection Checkbox */}
                                 <div className="absolute top-3 right-3">
                                   <input
                                     type="checkbox"
@@ -2582,15 +1371,13 @@ export default function StakePage() {
                                 <Button
                                   size="sm"
                                   className="w-full"
-                                  onClick={() => handleRWLKStake(token.TokenId)}
+                                  onClick={() => rwlk.stake(token.TokenId)}
                                   disabled={
-                                    stakingRWLKTokenId === token.TokenId ||
-                                    isStakingRWLKMultiple ||
-                                    rwlkStakingContract.status.isPending ||
-                                    rwlkStakingContract.status.isConfirming
+                                    rwlk.stakingTokenId === token.TokenId ||
+                                    rwlk.isSubmitting
                                   }
                                 >
-                                  {stakingRWLKTokenId === token.TokenId
+                                  {rwlk.stakingTokenId === token.TokenId
                                     ? "Staking..."
                                     : "Stake NFT"}
                                 </Button>
@@ -2600,8 +1387,7 @@ export default function StakePage() {
                         })}
                     </div>
 
-                    {/* Pagination Controls */}
-                    {Math.ceil(availableRWLKTokens.length / itemsPerPage) >
+                    {Math.ceil(rwlk.availableTokens.length / itemsPerPage) >
                       1 && (
                       <div className="flex justify-center items-center gap-2 mt-8">
                         <Button
@@ -2619,17 +1405,17 @@ export default function StakePage() {
                           {Array.from(
                             {
                               length: Math.ceil(
-                                availableRWLKTokens.length / itemsPerPage
+                                rwlk.availableTokens.length / itemsPerPage
                               ),
                             },
                             (_, i) => i + 1
                           ).map((page) => {
-                            const totalPages = Math.ceil(
-                              availableRWLKTokens.length / itemsPerPage
+                            const rwlkTotalPages = Math.ceil(
+                              rwlk.availableTokens.length / itemsPerPage
                             );
                             const showPage =
                               page === 1 ||
-                              page === totalPages ||
+                              page === rwlkTotalPages ||
                               (page >= rwlkCurrentPage - 1 &&
                                 page <= rwlkCurrentPage + 1);
 
@@ -2676,7 +1462,7 @@ export default function StakePage() {
                           }
                           disabled={
                             rwlkCurrentPage ===
-                            Math.ceil(availableRWLKTokens.length / itemsPerPage)
+                            Math.ceil(rwlk.availableTokens.length / itemsPerPage)
                           }
                         >
                           Next
@@ -2690,7 +1476,7 @@ export default function StakePage() {
           )}
 
           {/* Staked Random Walk NFTs */}
-          {isConnected && stakedRWLKTokens.length > 0 && (
+          {isConnected && rwlk.stakedTokens.length > 0 && (
             <section
               id="staked-rwlk-nfts-section"
               className="py-12 bg-background-surface/50"
@@ -2707,15 +1493,14 @@ export default function StakePage() {
                         {(stakedRwlkCurrentPage - 1) * stakedItemsPerPage + 1}-
                         {Math.min(
                           stakedRwlkCurrentPage * stakedItemsPerPage,
-                          stakedRWLKTokens.length
+                          rwlk.stakedTokens.length
                         )}{" "}
-                        of {stakedRWLKTokens.length}
+                        of {rwlk.stakedTokens.length}
                       </span>
                     </div>
                   </div>
 
-                  {/* Selection Controls */}
-                  {stakedRWLKTokens.length > 0 && (
+                  {rwlk.stakedTokens.length > 0 && (
                     <div className="flex items-center justify-between p-4 rounded-lg bg-background-elevated border border-text-muted/10">
                       <div className="flex items-center gap-4">
                         {selectedStakedRWLKIds.size > 0 ? (
@@ -2743,12 +1528,12 @@ export default function StakePage() {
                               onClick={() =>
                                 setSelectedStakedRWLKIds(
                                   new Set(
-                                    stakedRWLKTokens.map((t) => t.StakeActionId)
+                                    rwlk.stakedTokens.map((t) => t.StakeActionId)
                                   )
                                 )
                               }
                             >
-                              Select All ({stakedRWLKTokens.length})
+                              Select All ({rwlk.stakedTokens.length})
                             </Button>
                             <Button
                               size="sm"
@@ -2758,7 +1543,7 @@ export default function StakePage() {
                                   (stakedRwlkCurrentPage - 1) *
                                   stakedItemsPerPage;
                                 const endIdx = startIdx + stakedItemsPerPage;
-                                const pageTokens = stakedRWLKTokens.slice(
+                                const pageTokens = rwlk.stakedTokens.slice(
                                   startIdx,
                                   endIdx
                                 );
@@ -2778,14 +1563,10 @@ export default function StakePage() {
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={handleRWLKUnstakeSelected}
-                          disabled={
-                            isStakingRWLKMultiple ||
-                            rwlkStakingContract.status.isPending ||
-                            rwlkStakingContract.status.isConfirming
-                          }
+                          onClick={() => rwlk.unstakeMany(Array.from(selectedStakedRWLKIds))}
+                          disabled={rwlk.isSubmitting}
                         >
-                          {isStakingRWLKMultiple
+                          {rwlk.isStakingMultiple
                             ? "Unstaking..."
                             : `Unstake Selected (${selectedStakedRWLKIds.size})`}
                         </Button>
@@ -2804,23 +1585,23 @@ export default function StakePage() {
                               <input
                                 type="checkbox"
                                 checked={
-                                  stakedRWLKTokens.length > 0 &&
+                                  rwlk.stakedTokens.length > 0 &&
                                   selectedStakedRWLKIds.size ===
-                                    stakedRWLKTokens.length
+                                    rwlk.stakedTokens.length
                                 }
                                 ref={(input) => {
                                   if (input) {
                                     input.indeterminate =
                                       selectedStakedRWLKIds.size > 0 &&
                                       selectedStakedRWLKIds.size <
-                                        stakedRWLKTokens.length;
+                                        rwlk.stakedTokens.length;
                                   }
                                 }}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setSelectedStakedRWLKIds(
                                       new Set(
-                                        stakedRWLKTokens.map(
+                                        rwlk.stakedTokens.map(
                                           (t) => t.StakeActionId
                                         )
                                       )
@@ -2850,7 +1631,7 @@ export default function StakePage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-text-muted/10">
-                          {stakedRWLKTokens
+                          {rwlk.stakedTokens
                             .slice(
                               (stakedRwlkCurrentPage - 1) * stakedItemsPerPage,
                               stakedRwlkCurrentPage * stakedItemsPerPage
@@ -2938,18 +1719,17 @@ export default function StakePage() {
                                       size="sm"
                                       variant="outline"
                                       onClick={() =>
-                                        handleRWLKUnstake(
+                                        rwlk.unstake(
                                           actionId,
                                           stakedToken.TokenId
                                         )
                                       }
                                       disabled={
-                                        unstakingRWLKActionId === actionId ||
-                                        rwlkStakingContract.status.isPending ||
-                                        rwlkStakingContract.status.isConfirming
+                                        rwlk.unstakingActionId === actionId ||
+                                        rwlk.isSubmitting
                                       }
                                     >
-                                      {unstakingRWLKActionId === actionId
+                                      {rwlk.unstakingActionId === actionId
                                         ? "Unstaking..."
                                         : "Unstake"}
                                     </Button>
@@ -2961,8 +1741,7 @@ export default function StakePage() {
                       </table>
                     </div>
 
-                    {/* Pagination for Staked Tokens */}
-                    {Math.ceil(stakedRWLKTokens.length / stakedItemsPerPage) >
+                    {Math.ceil(rwlk.stakedTokens.length / stakedItemsPerPage) >
                       1 && (
                       <div className="flex justify-center items-center gap-2 p-4 border-t border-text-muted/10">
                         <Button
@@ -2980,17 +1759,17 @@ export default function StakePage() {
                           {Array.from(
                             {
                               length: Math.ceil(
-                                stakedRWLKTokens.length / stakedItemsPerPage
+                                rwlk.stakedTokens.length / stakedItemsPerPage
                               ),
                             },
                             (_, i) => i + 1
                           ).map((page) => {
-                            const totalPages = Math.ceil(
-                              stakedRWLKTokens.length / stakedItemsPerPage
+                            const rwlkStakedTotalPages = Math.ceil(
+                              rwlk.stakedTokens.length / stakedItemsPerPage
                             );
                             const showPage =
                               page === 1 ||
-                              page === totalPages ||
+                              page === rwlkStakedTotalPages ||
                               (page >= stakedRwlkCurrentPage - 1 &&
                                 page <= stakedRwlkCurrentPage + 1);
 
@@ -3038,7 +1817,7 @@ export default function StakePage() {
                           disabled={
                             stakedRwlkCurrentPage ===
                             Math.ceil(
-                              stakedRWLKTokens.length / stakedItemsPerPage
+                              rwlk.stakedTokens.length / stakedItemsPerPage
                             )
                           }
                         >

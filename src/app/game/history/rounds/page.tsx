@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Trophy, Users, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { useApiQuery } from '@/hooks/useApiQuery';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
@@ -11,113 +12,39 @@ import { Breadcrumbs } from '@/components/features/Breadcrumbs';
 import { AddressDisplay } from '@/components/features/AddressDisplay';
 import { formatDate, formatDuration, safeTimestamp } from '@/lib/utils';
 import api from '@/services/api';
+import type {
+	ApiCurRoundStats,
+	ApiMainPrize,
+	ApiStakingDeposit,
+	ApiEnduranceChampion,
+	ApiChronoWarrior,
+	ApiTxEnvelope,
+	ApiRoundListItem,
+} from "@/services/apiTypes";
 
-// API Response Interface
-interface RoundStats {
-	RoundNum: number;
-	TotalBids: number;
-	TotalDonatedNFTs: number;
-	NumERC20Donations: number;
-	TotalRaffleEthDeposits: string;
-	TotalRaffleEthDepositsEth: number;
-	TotalRaffleNFTs: number;
-	TotalDonatedCount: number;
-	TotalDonatedAmount: string;
-	TotalDonatedAmountEth: number;
-}
-
-interface MainPrize {
-	WinnerAid: number;
-	WinnerAddr: string;
-	TimeoutTs: number;
-	EthAmount: string;
-	EthAmountEth: number;
-	CstAmount: string;
-	CstAmountEth: number;
-	NftTokenId: number;
-	Seed: string;
-}
-
-interface StakingDeposit {
-	StakingDepositId: number;
-	StakingDepositAmount: string;
-	StakingDepositAmountEth: number;
-	StakingPerToken: string;
-	StakingPerTokenEth: number;
-	StakingNumStakedTokens: number;
-}
-
-interface EnduranceChampion {
-	WinnerAddr: string;
-	NftTokenId: number;
-	CstAmount: string;
-	CstAmountEth: number;
-}
-
-interface ChronoWarrior {
-	WinnerAddr: string;
-	EthAmount: string;
-	EthAmountEth: number;
-	CstAmount: string;
-	CstAmountEth: number;
-	NftTokenId: number;
-}
-
-interface ClaimPrizeTx {
-	Tx: {
-		EvtLogId: number;
-		BlockNum: number;
-		TxId: number;
-		TxHash: string;
-		TimeStamp: number;
-		DateTime: string;
-	};
-}
-
-interface ApiRoundData {
-	RoundNum: number;
-	ClaimPrizeTx: ClaimPrizeTx;
-	MainPrize: MainPrize;
-	StakingDeposit: StakingDeposit;
-	EnduranceChampion: EnduranceChampion;
-	ChronoWarrior: ChronoWarrior;
-	RoundStats: RoundStats;
-	RaffleNFTWinners: unknown;
-	StakingNFTWinners: unknown;
-	RaffleETHDeposits: unknown;
-	AllPrizes: unknown;
-}
+type MainPrize = ApiMainPrize;
+type StakingDeposit = ApiStakingDeposit;
+type EnduranceChampion = ApiEnduranceChampion;
+type ChronoWarrior = ApiChronoWarrior;
+type ClaimPrizeTx = { Tx: ApiTxEnvelope };
+type ApiRoundData = ApiRoundListItem;
 
 export default function RoundsArchivePage() {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [page, setPage] = useState(0);
 	const [perPage, setPerPage] = useState(20);
-	const [rounds, setRounds] = useState<ApiRoundData[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	// Fetch rounds data from API
-	useEffect(() => {
-		const fetchRounds = async () => {
-			setLoading(true);
-			setError(null);
-			try {
-				const data = await api.getRoundList();
-				// Sort by timestamp (most recent first)
-				const sortedData = data.sort((a: ApiRoundData, b: ApiRoundData) => 
-					b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp
-				);
-				setRounds(sortedData);
-			} catch (err) {
-				console.error('Error fetching rounds:', err);
-				setError('Failed to load rounds data. Please try again later.');
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchRounds();
-	}, []);
+	const { data: roundsData, isLoading: loading, error: fetchError } = useApiQuery<ApiRoundData[]>(
+		'rounds-list',
+		async () => {
+			const data = await api.getRoundList() as unknown as ApiRoundData[];
+			return data.sort((a: ApiRoundData, b: ApiRoundData) =>
+				b.ClaimPrizeTx.Tx.TimeStamp - a.ClaimPrizeTx.Tx.TimeStamp
+			);
+		},
+	);
+	const rounds = roundsData ?? [];
+	const error = fetchError?.message ?? null;
 
 	// Reset page to 0 when search query or perPage changes
 	useEffect(() => {

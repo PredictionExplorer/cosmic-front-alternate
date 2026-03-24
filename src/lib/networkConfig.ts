@@ -1,17 +1,59 @@
 /**
  * Network Configuration
- * 
- * Centralized configuration for default network settings.
- * Can be controlled via NEXT_PUBLIC_DEFAULT_NETWORK environment variable.
- * 
- * Usage:
- * Set in .env.local:
- * NEXT_PUBLIC_DEFAULT_NETWORK=sepolia
- * 
- * Options: "local" | "sepolia" | "mainnet"
+ *
+ * Same env convention as the blue (cosmicgame) frontend:
+ * - NEXT_PUBLIC_NETWORK — local | sepolia | mainnet
+ * - NEXT_PUBLIC_API_URL — Cosmic Game API base URL (HTTPS recommended)
+ * - NEXT_PUBLIC_RPC_URL — JSON-RPC endpoint for the selected network
+ *
+ * No implicit defaults for these three — they must be set (see getEnvValidation).
  */
 
 export type NetworkType = "local" | "sepolia" | "mainnet";
+
+/** Required env vars — matches blue frontend naming. */
+export const REQUIRED_ENV_VARS = [
+  "NEXT_PUBLIC_NETWORK",
+  "NEXT_PUBLIC_API_URL",
+  "NEXT_PUBLIC_RPC_URL",
+] as const;
+
+export interface EnvValidation {
+  valid: boolean;
+  missing: string[];
+}
+
+/**
+ * Validates that required environment variables are set (same rules as blue).
+ */
+export function getEnvValidation(): EnvValidation {
+  const missing: string[] = [];
+  const network = process.env.NEXT_PUBLIC_NETWORK?.trim().toLowerCase();
+
+  if (!network) {
+    missing.push("NEXT_PUBLIC_NETWORK");
+  } else if (!["local", "sepolia", "mainnet"].includes(network)) {
+    missing.push("NEXT_PUBLIC_NETWORK (must be: local, sepolia, or mainnet)");
+  }
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!apiUrl) missing.push("NEXT_PUBLIC_API_URL");
+
+  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim();
+  if (!rpcUrl) missing.push("NEXT_PUBLIC_RPC_URL");
+
+  return { valid: missing.length === 0, missing };
+}
+
+/**
+ * Normalized Cosmic Game API base URL (trailing slash).
+ * Reads NEXT_PUBLIC_API_URL — same variable name as the blue frontend.
+ */
+export function getCosmicApiBaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_API_URL?.trim() ?? "";
+  if (!url) return "";
+  return url.endsWith("/") ? url : `${url}/`;
+}
 
 /**
  * Network configuration mapping
@@ -35,22 +77,25 @@ export const NETWORK_CONFIG = {
 } as const;
 
 /**
- * Get the default network from environment variable
- * Falls back to "local" if not set or invalid
+ * Get the default network from NEXT_PUBLIC_NETWORK (same as blue).
+ * Falls back to "local" only when unset/invalid (build paths; use getEnvValidation for strict checks).
  */
 export function getDefaultNetwork(): NetworkType {
-  const envNetwork = process.env.NEXT_PUBLIC_DEFAULT_NETWORK?.toLowerCase();
-  
-  if (envNetwork === "sepolia" || envNetwork === "mainnet" || envNetwork === "local") {
+  const envNetwork = process.env.NEXT_PUBLIC_NETWORK?.trim().toLowerCase();
+
+  if (
+    envNetwork === "sepolia" ||
+    envNetwork === "mainnet" ||
+    envNetwork === "local"
+  ) {
     return envNetwork;
   }
-  
-  // Default to local if not set
+
   return "local";
 }
 
 /**
- * Get the default chain ID based on environment configuration
+ * Get the default chain ID based on NEXT_PUBLIC_NETWORK.
  */
 export function getDefaultChainId(): number {
   const network = getDefaultNetwork();
@@ -80,7 +125,6 @@ if (process.env.NODE_ENV === "development") {
   const defaultNetwork = getDefaultNetwork();
   const config = NETWORK_CONFIG[defaultNetwork];
   console.log(
-    `[Network Config] Default network: ${config.name} (Chain ID: ${config.chainId}, API Port: ${config.apiPort})`
+    `[Network Config] Default network: ${config.name} (Chain ID: ${config.chainId}, API Port: ${config.apiPort})`,
   );
 }
-

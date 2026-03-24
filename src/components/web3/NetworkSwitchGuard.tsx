@@ -10,10 +10,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import { AlertTriangle, Network, Loader2 } from "lucide-react";
 import { useNetworkSwitch } from "@/hooks/useNetworkSwitch";
 import { defaultChain } from "@/lib/web3/chains";
 import { Button } from "@/components/ui/Button";
+import { nsDebug } from "@/lib/networkSwitchDebug";
+
+const SESSION_BYPASS_KEY = "cosmic-network-guard-bypass";
 
 /**
  * NetworkSwitchGuard Component
@@ -38,38 +42,67 @@ import { Button } from "@/components/ui/Button";
  * ```
  */
 export function NetworkSwitchGuard() {
+  const { status } = useAccount();
   const {
-    isCorrectNetwork,
+    shouldShowSwitchModal,
     isSwitching,
     error,
     switchToRequiredNetwork,
-    isConnected,
+    reportedChainId,
+    isLocalNetworkEnv,
   } = useNetworkSwitch();
-  
-  const [isVisible, setIsVisible] = useState(false);
-  
-  // Show modal when user is connected but on wrong network
+
+  /** Local dev escape hatch: fullscreen guard traps you — allow hiding for this tab session. */
+  const [sessionBypass, setSessionBypass] = useState(false);
+
   useEffect(() => {
-    if (isConnected && !isCorrectNetwork) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
+    try {
+      if (sessionStorage.getItem(SESSION_BYPASS_KEY) === "1") {
+        setSessionBypass(true);
+      }
+    } catch {
+      /* private mode */
     }
-  }, [isConnected, isCorrectNetwork]);
-  
-  // Auto-trigger network switch on first detection
+  }, []);
+
   useEffect(() => {
-    if (isConnected && !isCorrectNetwork && !isSwitching && !error) {
-      // Small delay to ensure wallet is ready
-      const timer = setTimeout(() => {
-        switchToRequiredNetwork();
-      }, 500);
-      
-      return () => clearTimeout(timer);
+    if (status === "disconnected") {
+      try {
+        sessionStorage.removeItem(SESSION_BYPASS_KEY);
+      } catch {
+        /* ignore */
+      }
+      setSessionBypass(false);
     }
-  }, [isConnected, isCorrectNetwork, isSwitching, error, switchToRequiredNetwork]);
-  
-  if (!isVisible) {
+  }, [status]);
+
+  useEffect(() => {
+    nsDebug("NetworkSwitchGuard render decision", {
+      shouldShowSwitchModal,
+      sessionBypass,
+      modalVisible: shouldShowSwitchModal && !sessionBypass,
+      reportedChainId,
+      isLocalNetworkEnv,
+    });
+  }, [
+    shouldShowSwitchModal,
+    sessionBypass,
+    reportedChainId,
+    isLocalNetworkEnv,
+  ]);
+
+  const dismissForSession = () => {
+    nsDebug("user clicked: Dismiss for this browser tab (session bypass)");
+    try {
+      sessionStorage.setItem(SESSION_BYPASS_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setSessionBypass(true);
+  };
+
+  // Wrong chain + stable "connected" session (not mid-reconnect / HMR).
+  if (!shouldShowSwitchModal || sessionBypass) {
     return null;
   }
   
@@ -127,7 +160,9 @@ export function NetworkSwitchGuard() {
                 .
                 <br />
                 <span className="text-sm text-text-muted mt-2 block">
-                  Click below to switch or add the network.
+                  This dialog opens automatically when your wallet is on another chain — you
+                  don&apos;t open it yourself. Use the button below, or dismiss (local dev only)
+                  to use the site while you fix MetaMask.
                 </span>
               </>
             )}
@@ -160,6 +195,12 @@ export function NetworkSwitchGuard() {
                   {defaultChain.rpcUrls.default.http[0]}
                 </span>
               </div>
+              <div className="flex justify-between border-t border-text-muted/10 pt-2 mt-2">
+                <span className="text-text-muted">Wallet reports chain:</span>
+                <span className="font-mono text-text-primary">
+                  {reportedChainId ?? "—"}
+                </span>
+              </div>
             </div>
           </div>
           
@@ -189,6 +230,19 @@ export function NetworkSwitchGuard() {
               </>
             )}
           </Button>
+
+          {isLocalNetworkEnv && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full border-text-muted/30 text-text-muted hover:text-text-primary"
+              onClick={dismissForSession}
+              disabled={isSwitching}
+            >
+              Dismiss for this browser tab (use site; fix MetaMask in extension)
+            </Button>
+          )}
           
           {/* Help Text */}
           <p className="mt-4 text-center text-xs text-text-muted">
@@ -196,9 +250,10 @@ export function NetworkSwitchGuard() {
               "This may take a few seconds..."
             ) : (
               <>
-                If you don&apos;t have this network, it will be added automatically.
-                <br />
-                You can also add it manually in MetaMask settings.
+                The app tries to add this network automatically when you click the button.
+                If the dialog keeps coming back, add it manually in MetaMask: network menu →
+                Add network → Add a network manually — use the Chain ID and RPC above (symbol:{" "}
+                {defaultChain.nativeCurrency.symbol}).
               </>
             )}
           </p>

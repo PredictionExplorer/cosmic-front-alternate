@@ -284,34 +284,36 @@ node scripts/generate-placeholders.js
 
 ## 📝 Environment Variables
 
-Create `.env.local` for local development:
+Same **required** variable names as the blue (cosmicgame) frontend:
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_NETWORK` | `local` \| `sepolia` \| `mainnet` — default chain for the app |
+| `NEXT_PUBLIC_API_URL` | Cosmic Game API base URL (e.g. `https://example.com/api/cosmicgame/`) |
+| `NEXT_PUBLIC_RPC_URL` | JSON-RPC URL for the chain above (HTTPS recommended in production) |
+
+Create `.env.local` for local development (see `.env.example`):
 
 ```env
-# Network Configuration (Required)
-# Specifies which blockchain network the app should use by default
-# Options: "local" | "sepolia" | "mainnet"
-# When users access the website, if their MetaMask network is different
-# from this default network, they will be automatically prompted to switch.
-NEXT_PUBLIC_DEFAULT_NETWORK=local
+NEXT_PUBLIC_NETWORK=sepolia
+NEXT_PUBLIC_API_URL=https://your-api.example.com/api/cosmicgame/
+NEXT_PUBLIC_RPC_URL=https://sepolia-rollup.arbitrum.io/rpc
 
-# WalletConnect Project ID (Required for wallet connections)
-# Get your free Project ID at: https://cloud.walletconnect.com
+# WalletConnect (recommended for WalletConnect / mobile)
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
-# Optional: Custom API Endpoints
-# If not specified, defaults will be used based on NEXT_PUBLIC_DEFAULT_NETWORK
-# NEXT_PUBLIC_API_BASE_URL_LOCAL=http://161.129.67.42:7070/api/cosmicgame/
-# NEXT_PUBLIC_API_BASE_URL_SEPOLIA=http://161.129.67.42:8353/api/cosmicgame/
-# NEXT_PUBLIC_API_BASE_URL_MAINNET=http://161.129.67.42:8383/api/cosmicgame/
+# Optional
+# NEXT_PUBLIC_SENTRY_DSN=
+# NEXT_PUBLIC_ASSETS_BASE_URL=https://nfts.cosmicsignature.com/
 ```
 
 ### Network Options
 
-| Value | Network | Chain ID | API Port | Description |
-|-------|---------|----------|----------|-------------|
-| `local` | Local Testnet | 31337 | 7070 | Local development testnet |
-| `sepolia` | Arbitrum Sepolia | 421614 | 8353 | Arbitrum testnet |
-| `mainnet` | Arbitrum One | 42161 | 8383 | Arbitrum mainnet |
+| Value | Network | Chain ID | Description |
+|-------|---------|----------|-------------|
+| `local` | Local Testnet | 31337 | Local development testnet |
+| `sepolia` | Arbitrum Sepolia | 421614 | Arbitrum testnet |
+| `mainnet` | Arbitrum One | 42161 | Arbitrum mainnet |
 
 ## 🎯 Development Roadmap
 

@@ -1,3 +1,28 @@
+/**
+ * Domain / UI types.
+ *
+ * These are the "clean" shapes the UI works with. For types that match the
+ * API exactly, we re-export from the canonical DTO file so there is one
+ * source of truth.
+ */
+
+export type {
+	ApiCSTToken as CSTToken,
+	ApiStakedCSTToken as StakedCSTToken,
+	ApiRWLKToken as RWLKToken,
+	ApiStakedRWLKToken as StakedRWLKToken,
+	ApiStakingAction as StakingAction,
+	ApiStakingReward as StakingReward,
+	ApiCollectedStakingReward as CollectedStakingReward,
+	ApiRWLKMint as RWLKMint,
+	ApiClaimHistory as ClaimHistory,
+	ApiMarketingReward as MarketingReward,
+	ApiDonatedNFT as DonatedNFT,
+	ApiDonatedERC20 as DonatedERC20,
+	ApiUserInfo as UserInfo,
+	ApiDashboardData as DashboardData,
+} from "@/services/apiTypes";
+
 export interface NFT {
 	id: number;
 	tokenId: number;
@@ -70,65 +95,3 @@ export interface UserStats {
 	nftsStaked: NFT[];
 	cstBalance: number;
 }
-
-export interface CSTToken {
-	RecordId: number;
-	Tx: {
-		EvtLogId: number;
-		BlockNum: number;
-		TxId: number;
-		TxHash: string;
-		TimeStamp: number;
-		DateTime: string;
-	};
-	ContractAddr: string;
-	TokenId: number;
-	WinnerAid: number;
-	WinnerAddr: string;
-	CurOwnerAid: number;
-	CurOwnerAddr: string;
-	Seed: string;
-	RoundNum: number;
-	RecordType: number;
-	TokenName: string;
-	Staked: boolean;
-	StakedOwnerAid: number;
-	StakedOwnerAddr: string;
-	StakeActionId: number;
-	StakeTimeStamp: number;
-	StakeDateTime: string;
-	UnstakeActionId: number;
-	WasUnstaked: boolean;
-	ActualUnstakeTimeStamp: number;
-	ActualUnstakeDateTime: string;
-}
-
-export interface StakedCSTToken {
-	TokenInfo: CSTToken;
-	StakeEvtLogId: number;
-	StakeBlockNum: number;
-	StakeActionId: number;
-	StakeTimeStamp: number;
-	StakeDateTime: string;
-	UserAddr: string;
-	UserAid: number;
-}
-
-export interface RWLKToken {
-	TokenId: number;
-	TokenName?: string;
-	IsUsed: boolean;
-	IsStaked: boolean;
-	StakeActionId?: number;
-}
-
-export interface StakedRWLKToken {
-	TokenId: number;
-	TokenName?: string;
-	StakeActionId: number;
-	StakeTimeStamp: number;
-	StakeDateTime: string;
-	UserAddr: string;
-	UserAid: number;
-}
-

@@ -13,15 +13,43 @@
 
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/web3/config";
+import { getCosmicApiBaseUrl, getDefaultChainId, getEnvValidation } from "@/lib/networkConfig";
+import { defaultChain } from "@/lib/web3/chains";
+import { shouldUseRpcProxy } from "@/lib/web3/transport";
 import { useApiNetwork } from "@/hooks/useApiNetwork";
 import { NetworkSwitchGuard } from "@/components/web3/NetworkSwitchGuard";
 
 import "@rainbow-me/rainbowkit/styles.css";
+
+const envValidation = getEnvValidation();
+
+function EnvErrorScreen({ missing }: { missing: string[] }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] p-6 text-[#e5e5e5]">
+      <div className="max-w-md text-center">
+        <h1 className="mb-4 text-xl font-semibold">
+          Cannot run: required environment variables are not set.
+        </h1>
+        <p className="mb-6 opacity-90">
+          Set them in your shell or in a .env file, then restart the dev server.
+        </p>
+        <p className="mb-2 text-sm">Missing or invalid:</p>
+        <ul className="list-none space-y-1 text-sm opacity-90">
+          {missing.map((name) => (
+            <li key={name}>
+              <code className="rounded bg-[#222] px-1.5 py-0.5">{name}</code>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Query client for TanStack Query
@@ -57,6 +85,34 @@ function ApiNetworkSync() {
 }
 
 /**
+ * Logs resolved network, chain id, RPC, and API URL once on startup (same idea as blue frontend).
+ */
+function StartupConfigLog() {
+  useEffect(() => {
+    const chainId = getDefaultChainId();
+    const rpcUrl = defaultChain.rpcUrls.default.http[0] ?? "";
+    const apiUrl = getCosmicApiBaseUrl();
+    const networkEnv = process.env.NEXT_PUBLIC_NETWORK ?? "";
+    const rpcDisplay =
+      typeof window !== "undefined" &&
+      rpcUrl &&
+      shouldUseRpcProxy(rpcUrl)
+        ? `${window.location.origin}/api/rpc → ${rpcUrl}`
+        : rpcUrl;
+
+    console.log(
+      "[Cosmic Signature] Config:\n" +
+        `  Network: ${networkEnv}\n` +
+        `  Chain ID: ${chainId}\n` +
+        `  RPC URL: ${rpcDisplay}\n` +
+        `  API URL: ${apiUrl}`,
+    );
+  }, []);
+
+  return null;
+}
+
+/**
  * Web3Provider Component
  *
  * Wraps children with all necessary Web3 providers.
@@ -80,6 +136,10 @@ function ApiNetworkSync() {
  * ```
  */
 export function Web3Provider({ children }: Web3ProviderProps) {
+  if (!envValidation.valid) {
+    return <EnvErrorScreen missing={envValidation.missing} />;
+  }
+
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
@@ -89,6 +149,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
           showRecentTransactions={true}
           coolMode // Adds confetti on connect 🎉
         >
+          <StartupConfigLog />
           <ApiNetworkSync />
           <NetworkSwitchGuard />
           {children}

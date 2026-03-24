@@ -10,8 +10,9 @@
  * Data source: API /system/admin_events/:start/:end  (getSystemEvents)
  */
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
 import { explorer } from '@/lib/web3/chains';
+import { useApiQuery } from "@/hooks/useApiQuery";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -26,6 +27,7 @@ import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { api } from "@/services/api";
+import { reportError } from "@/lib/errorReporter";
 import { cn } from "@/lib/utils";
 import { ADMIN_EVENTS } from "@/lib/adminEvents";
 
@@ -278,24 +280,16 @@ export default function SystemEventPage({ params }: PageProps) {
   const roundNum = Number(round);
   const startId = Number(start);
   const endId = Number(end);
-  const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState<AdminEvent[]>([]);
 
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        setLoading(true);
-        const data = await api.getSystemEvents(startId, endId);
-        setEvents(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch system events:", err);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchEvents();
-  }, [startId, endId]);
+  const { data: eventsData, isLoading: loading, error: fetchError } = useApiQuery<AdminEvent[]>(
+    `system-events-${startId}-${endId}`,
+    async () => {
+      const data = await api.getSystemEvents(startId, endId);
+      return Array.isArray(data) ? (data as unknown as AdminEvent[]) : [];
+    },
+  );
+  const events = eventsData ?? [];
+  const error = fetchError?.message ?? null;
 
   return (
     <div className="min-h-screen">
@@ -322,6 +316,11 @@ export default function SystemEventPage({ params }: PageProps) {
               <Card glass className="p-12 text-center">
                 <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={40} />
                 <p className="text-text-secondary">Loading configuration events...</p>
+              </Card>
+            ) : error ? (
+              <Card glass className="p-12 text-center">
+                <Settings className="mx-auto mb-4 text-status-error" size={40} />
+                <p className="text-status-error">{error}</p>
               </Card>
             ) : (
               <AdminEventsTable list={events} />

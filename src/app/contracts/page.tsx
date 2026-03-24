@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { defaultChain } from '@/lib/web3/chains';
-import { api } from '@/services/api';
+import { useApiData } from "@/contexts/ApiDataContext";
 import { formatTime } from '@/lib/utils';
 import { useCosmicGameRead } from '@/hooks/useCosmicGameContract';
 import { useCharityWallet } from '@/hooks/useCharityWallet';
@@ -18,35 +18,11 @@ import {
 	CheckCircle2,
 	Loader2
 } from 'lucide-react';
+import type { ApiDashboardData } from "@/services/apiTypes";
 
-interface DashboardData {
-	ContractAddrs: {
-		CosmicGameAddr: string;
-		CosmicTokenAddr: string;
-		CosmicSignatureAddr: string;
-		RandomWalkAddr: string;
-		CosmicDaoAddr: string;
-		CharityWalletAddr: string;
-		MarketingWalletAddr: string;
-		PrizesWalletAddr: string;
-		StakingWalletCSTAddr: string;
-		StakingWalletRWalkAddr: string;
-	};
-	PrizePercentage: number;
-	ChronoWarriorPercentage: number;
-	RafflePercentage: number;
-	StakingPercentage: number;
-	NumRaffleEthWinnersBidding: number;
-	NumRaffleNFTWinnersBidding: number;
-	NumRaffleNFTWinnersStakingRWalk: number;
-	CharityPercentage: number;
-	TimeoutClaimPrize: number;
-	InitialSecondsUntilPrize: number;
-	CurRoundNum: number;
-	MainStats: {
-		TotalBids: number;
-		TotalRounds: number;
-	};
+interface DashboardData extends ApiDashboardData {
+	ContractAddrs: Record<string, string>;
+	MainStats: { TotalBids: number; TotalRounds: number };
 }
 
 interface ContractItemProps {
@@ -94,8 +70,8 @@ const ContractItem = ({ name, value, copyable = false }: ContractItemProps) => {
 };
 
 export default function ContractsPage() {
-	const [data, setData] = useState<DashboardData | null>(null);
-	const [loading, setLoading] = useState(true);
+	const { dashboardData, isLoading: loading } = useApiData();
+	const data = dashboardData as unknown as DashboardData | null;
 
 	// Get contract read hooks
 	const cosmicGameRead = useCosmicGameRead();
@@ -126,21 +102,6 @@ export default function ContractsPage() {
 	const cstAuctionElapsed = cstAuctionDurations && Array.isArray(cstAuctionDurations) ? Number(cstAuctionDurations[1]) : 0;
 	const ethAuctionDuration = ethAuctionDurations && Array.isArray(ethAuctionDurations) ? Number(ethAuctionDurations[0]) : 0;
 	const ethAuctionElapsed = ethAuctionDurations && Array.isArray(ethAuctionDurations) ? Number(ethAuctionDurations[1]) : 0;
-
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				const dashboardData = await api.getDashboardInfo();
-				setData(dashboardData);
-			} catch (error) {
-				console.error('Error fetching dashboard data:', error);
-			} finally {
-				setLoading(false);
-			}
-		};
-		fetchData();
-	}, []);
 
 	const contractItems = [
 		{

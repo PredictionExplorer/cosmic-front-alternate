@@ -4,6 +4,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { reportError } from '@/lib/errorReporter';
 
 interface Props {
   children: React.ReactNode;
@@ -45,13 +46,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error details to console (in production, send to error tracking service)
-    console.error('Error caught by ErrorBoundary:', error);
-    console.error('Error info:', errorInfo);
-    
-    // TODO: Send to error tracking service (Sentry, DataDog, etc.)
-    // Example:
-    // Sentry.captureException(error, { extra: errorInfo });
+    reportError(error, `ErrorBoundary (${errorInfo.componentStack?.slice(0, 200)})`);
   }
 
   handleReset = () => {
