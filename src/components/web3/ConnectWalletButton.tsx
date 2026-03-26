@@ -21,6 +21,7 @@ import { Wallet, ChevronDown, Copy, ExternalLink, LogOut, LayoutDashboard, Image
 import { Button } from "@/components/ui/Button";
 import { useCosmicTokenBalance } from "@/hooks/useCosmicToken";
 import { useBalance, useAccount } from "wagmi";
+import { defaultChain } from "@/lib/web3/chains";
 import { useResolvedChainId } from "@/hooks/useResolvedChainId";
 import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -67,17 +68,55 @@ export function ConnectWalletButton({
   className,
 }: ConnectWalletButtonProps) {
   // Get CST token balance (polls every 15 s + on each new block)
-  const { formattedBalance: cstBalance, isLoading: cstLoading } = useCosmicTokenBalance();
+  const {
+    formattedBalance: cstBalance,
+    isLoading: cstLoading,
+    error: cstBalanceError,
+  } = useCosmicTokenBalance();
   const pathname = usePathname();
   /** RainbowKit’s `chain.unsupported` can stay true when MetaMask SDK is stale; trust merged id. */
   const { isOnAppChain } = useResolvedChainId();
 
   // ETH balance with block-level polling so it updates after bids/claims
   const { address: connectedAddress } = useAccount();
-  const { data: ethBalanceData } = useBalance({
+  const {
+    data: ethBalanceData,
+    isPending: ethBalancePending,
+    isError: ethBalanceError,
+    error: ethBalanceQueryError,
+  } = useBalance({
     address: connectedAddress,
+    chainId: defaultChain.id,
     query: { refetchInterval: 15_000 },
   });
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (ethBalanceQueryError && connectedAddress) {
+      console.error("[ConnectWalletButton] useBalance failed:", ethBalanceQueryError);
+    }
+  }, [ethBalanceQueryError, connectedAddress]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (cstBalanceError && connectedAddress) {
+      console.error("[ConnectWalletButton] CST balance read failed:", cstBalanceError);
+    }
+  }, [cstBalanceError, connectedAddress]);
+
+  /** Confirms whether “0 ETH” is a real RPC result vs a hidden failure. */
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    if (!connectedAddress || !ethBalanceData) return;
+    console.log(
+      "[ConnectWalletButton] useBalance result — wei:",
+      ethBalanceData.value?.toString(),
+      "formatted:",
+      ethBalanceData.formatted,
+      "chainId:",
+      defaultChain.id,
+    );
+  }, [connectedAddress, ethBalanceData]);
   
   // Dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -226,21 +265,27 @@ export function ConnectWalletButton({
                           </div>
                           
                           {/* ETH Balance */}
-                          {ethBalanceData && (
+                          {connectedAddress && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-text-muted/10">
                               <span className="text-sm text-text-secondary">ETH</span>
                               <span className="font-mono text-sm text-text-primary font-medium">
-                                {parseFloat(ethBalanceData.formatted).toFixed(4)}
+                                {ethBalancePending
+                                  ? "…"
+                                  : ethBalanceError
+                                    ? "—"
+                                    : ethBalanceData
+                                      ? parseFloat(ethBalanceData.formatted).toFixed(4)
+                                      : "—"}
                               </span>
                             </div>
                           )}
-                          
+
                           {/* CST Balance */}
-                          {!cstLoading && (
+                          {connectedAddress && (
                             <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-background-elevated border border-primary/20">
                               <span className="text-sm text-primary font-medium">CST</span>
                               <span className="font-mono text-sm text-text-primary font-medium">
-                                {parseFloat(cstBalance).toFixed(2)}
+                                {cstLoading ? "…" : parseFloat(cstBalance).toFixed(2)}
                               </span>
                             </div>
                           )}

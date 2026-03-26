@@ -16,7 +16,11 @@
 import { ReactNode, useEffect } from "react";
 import { WagmiProvider } from "wagmi";
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { wagmiConfig } from "@/lib/web3/config";
 import { getCosmicApiBaseUrl, getDefaultChainId, getEnvValidation } from "@/lib/networkConfig";
 import { defaultChain } from "@/lib/web3/chains";
@@ -87,6 +91,36 @@ function ApiNetworkSync() {
 /**
  * Logs resolved network, chain id, RPC, and API URL once on startup (same idea as blue frontend).
  */
+/**
+ * Wagmi/viem failures usually land in TanStack Query as `status: "error"` only.
+ * In development, mirror those to the browser console so RPC issues are visible.
+ */
+function TanStackQueryErrorLogger() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+
+    return queryClient.getQueryCache().subscribe((event) => {
+      const q = event.query;
+      if (!q || q.state.status !== "error" || !q.state.error) return;
+      const key = q.queryKey;
+      if (!Array.isArray(key) || key.length < 1) return;
+      const head = String(key[0]);
+      if (
+        head === "balance" ||
+        head === "readContract" ||
+        head === "feeHistory" ||
+        head === "estimateGas"
+      ) {
+        console.error(`[TanStack Query failed: ${head}]`, q.queryKey, q.state.error);
+      }
+    });
+  }, [queryClient]);
+
+  return null;
+}
+
 function StartupConfigLog() {
   useEffect(() => {
     const chainId = getDefaultChainId();
@@ -143,6 +177,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
+        <TanStackQueryErrorLogger />
         <RainbowKitProvider
           theme={darkTheme()}
           modalSize="compact"

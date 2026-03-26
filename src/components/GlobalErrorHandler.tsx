@@ -18,6 +18,8 @@ export function GlobalErrorHandler() {
     }
 
     function onUnhandledRejection(event: PromiseRejectionEvent) {
+      // Prevent browser/Next dev from also logging the raw rejection payload.
+      event.preventDefault();
       reportError(event.reason, 'unhandledrejection');
     }
 

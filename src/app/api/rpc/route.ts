@@ -4,6 +4,7 @@
  * typical CORS blocks on self-hosted HTTP nodes.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { extractJsonRpcErrors } from "@/lib/web3/jsonRpcResponseIssues";
 
 const NETWORK = process.env.NEXT_PUBLIC_NETWORK || "sepolia";
 
@@ -68,6 +69,26 @@ export async function POST(req: NextRequest) {
         },
         { status: 502 },
       );
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      const rpcErrors = extractJsonRpcErrors(data);
+      if (rpcErrors.length > 0) {
+        console.error(
+          "[api/rpc] Upstream JSON-RPC error (forwarded to client). HTTP",
+          res.status,
+          "| errors:",
+          JSON.stringify(rpcErrors).slice(0, 2000),
+        );
+      }
+      if (!res.ok) {
+        console.error(
+          "[api/rpc] Upstream non-OK HTTP",
+          res.status,
+          "| body preview:",
+          text.slice(0, 500),
+        );
+      }
     }
 
     return NextResponse.json(data, { status: res.status });

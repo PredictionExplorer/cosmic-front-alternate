@@ -36,7 +36,7 @@ if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
  * Chains: one per NEXT_PUBLIC_NETWORK (local | sepolia | mainnet) — see chains.ts.
  * Multi-chain in one build caused MetaMask SDK / RainbowKit to revert to 421614 after 31337.
  *
- * HTTP RPC URLs use the /api/rpc proxy in the browser (mixed content + CORS).
+ * Browser RPC uses the /api/rpc proxy (mixed content, CORS, http vs https localhost).
  */
 export const wagmiConfig = getDefaultConfig({
   appName: "Cosmic Signature",

@@ -153,10 +153,11 @@ export function getContractErrorMessage(
  * Use this instead of bare console.error throughout the codebase.
  */
 export function reportError(error: unknown, context?: string): void {
+  const summarizedError = summarizeErrorForConsole(error);
   if (context) {
-    console.error(`[${context}]`, error);
+    console.error(`[${context}] ${summarizedError}`);
   } else {
-    console.error(error);
+    console.error(summarizedError);
   }
 
   if (error instanceof Error) {
@@ -170,4 +171,50 @@ export function reportError(error: unknown, context?: string): void {
       ...(context ? { tags: { context } } : {}),
     });
   }
+}
+
+/**
+ * Keeps console output concise in dev: do not log full viem error objects,
+ * because they can include ABI/call metadata and flood Turbopack logs.
+ */
+function summarizeErrorForConsole(error: unknown): string {
+  if (error instanceof Error) {
+    const shortMessage = (
+      error as Error & {
+        shortMessage?: string;
+        details?: string;
+        cause?: unknown;
+      }
+    ).shortMessage;
+    if (shortMessage && shortMessage.trim().length > 0) {
+      return shortMessage;
+    }
+
+    const message = error.message?.trim();
+    if (message) {
+      return message;
+    }
+
+    const details = (
+      error as Error & {
+        details?: string;
+      }
+    ).details;
+    if (details && details.trim().length > 0) {
+      return details;
+    }
+
+    if (
+      (error as Error & { cause?: unknown }).cause instanceof Error &&
+      (error as Error & { cause: Error }).cause.message.trim().length > 0
+    ) {
+      return (error as Error & { cause: Error }).cause.message;
+    }
+  }
+
+  if (typeof error === "string" && error.trim().length > 0) {
+    return error;
+  }
+
+  return "An unexpected error occurred.";
 }
