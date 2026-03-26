@@ -65,12 +65,12 @@ export const metadata: Metadata = {
 	}
 };
 
-export default function RootLayout({
+export default async function RootLayout({
 	children
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const requestHeaders = headers();
+	const requestHeaders = await headers();
 	const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
 	const showLandingChrome = isLandingHost(host);
 
