@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter, Space_Grotesk } from 'next/font/google';
+import { Cormorant_Garamond, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -18,17 +18,17 @@ const cormorant = Cormorant_Garamond({
 	display: 'swap'
 });
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
 	subsets: ['latin'],
-	weight: ['300', '400', '500', '600'],
-	variable: '--font-inter',
+	weight: ['300', '400', '500', '600', '700'],
+	variable: '--font-jakarta',
 	display: 'swap'
 });
 
-const spaceGrotesk = Space_Grotesk({
+const jetbrainsMono = JetBrains_Mono({
 	subsets: ['latin'],
-	weight: ['400', '500', '600'],
-	variable: '--font-space-grotesk',
+	weight: ['300', '400', '500', '600'],
+	variable: '--font-jetbrains',
 	display: 'swap'
 });
 
@@ -70,7 +70,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" className="scroll-smooth" suppressHydrationWarning>
-			<body className={`${cormorant.variable} ${inter.variable} ${spaceGrotesk.variable}`} suppressHydrationWarning>
+			<body className={`${cormorant.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
 				<Web3Provider>
 					<NotificationProvider>
 						<TimeOffsetProvider>

@@ -37,8 +37,8 @@ const config: Config = {
 			},
 			fontFamily: {
 				serif: ['var(--font-cormorant)', 'Georgia', 'serif'],
-				sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-				mono: ['var(--font-space-grotesk)', 'Menlo', 'monospace']
+				sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
+				mono: ['var(--font-jetbrains)', '"JetBrains Mono"', 'Menlo', 'monospace']
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',

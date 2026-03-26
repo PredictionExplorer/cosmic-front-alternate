@@ -92,14 +92,14 @@ export const rainbowKitTheme = {
       standby: "rgba(212, 175, 55, 0.3)",
     },
     fonts: {
-      body: "var(--font-inter), sans-serif",
+      body: "var(--font-jakarta), sans-serif",
     },
     radii: {
-      actionButton: "0.75rem",
-      connectButton: "0.75rem",
-      menuButton: "0.75rem",
-      modal: "1rem",
-      modalMobile: "1rem",
+      actionButton: "0",
+      connectButton: "0",
+      menuButton: "0",
+      modal: "0.25rem",
+      modalMobile: "0.25rem",
     },
     shadows: {
       connectButton:

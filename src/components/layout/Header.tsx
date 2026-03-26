@@ -51,53 +51,45 @@ export function Header() {
         <nav className="flex items-center justify-between py-4 lg:py-6">
           {/* Logo */}
           <Link href="/" className="group flex items-center space-x-3">
-            <div className="relative h-12 w-12 flex-shrink-0">
+            <div className="relative h-10 w-10 lg:h-11 lg:w-11 flex-shrink-0">
               <Image
                 src="/logo.svg"
                 alt="Cosmic Signature"
                 fill
-                className="object-contain transition-transform group-hover:scale-110"
+                className="object-contain transition-transform duration-500 group-hover:scale-105"
                 priority
               />
             </div>
             <div className="hidden sm:block">
-              <div className="flex items-center gap-2">
-                <span className="font-serif text-xl font-semibold text-text-primary transition-colors group-hover:text-primary">
+              <span className="font-serif text-2xl tracking-wide text-text-primary transition-colors duration-500 group-hover:text-primary">
                 Cosmic Signature
-                </span>
-                <span className="relative flex items-center">
-                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg animate-pulse-slow">
-                    Beta
-                  </span>
-                  <span className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 blur-sm opacity-50"></span>
-                </span>
-              </div>
-              <div className="text-xs text-text-secondary tracking-wider">
+              </span>
+              <div className="text-[11px] tracking-[0.2em] uppercase text-text-muted mt-0.5">
                 Generative Art Collection
               </div>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden items-center space-x-1 lg:flex">
+          <div className="hidden items-center space-x-2 lg:flex">
             {NAV_LINKS.map((link) => {
               if ("submenu" in link) {
                 return (
                   <div key={link.label} className="relative group">
-                    <button className="px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:text-primary">
+                    <button className="relative px-4 py-2 text-[13px] font-medium uppercase tracking-[0.12em] text-text-secondary transition-colors duration-500 hover:text-primary">
                       {link.label}
                     </button>
-                    <div className="absolute left-0 top-full hidden pt-2 group-hover:block">
-                      <div className="rounded-lg border border-text-muted/10 bg-background-surface/95 backdrop-blur-xl p-2 shadow-luxury min-w-[200px]">
+                    <div className="absolute left-0 top-full hidden pt-3 group-hover:block">
+                      <div className="border border-text-muted/10 border-t-primary/30 bg-background-surface/95 backdrop-blur-xl p-3 shadow-luxury min-w-[220px]">
                         {link.submenu.map((sublink) => (
                           <Link
                             key={sublink.href}
                             href={sublink.href}
                             className={cn(
-                              "block rounded px-4 py-2 text-sm transition-colors",
+                              "block px-4 py-2.5 text-[13px] tracking-wide transition-colors duration-300",
                               pathname === sublink.href
-                                ? "bg-primary/10 text-primary"
-                                : "text-text-secondary hover:bg-background-elevated hover:text-primary"
+                                ? "text-primary"
+                                : "text-text-secondary hover:text-primary"
                             )}
                           >
                             {sublink.label}
@@ -109,13 +101,14 @@ export function Header() {
                 );
               }
 
+              const isActive = "href" in link && pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "px-4 py-2 text-sm font-medium transition-colors",
-                    pathname === link.href
+                    "nav-link relative px-4 py-2 text-[13px] font-medium uppercase tracking-[0.12em] transition-colors duration-500",
+                    isActive
                       ? "text-primary"
                       : "text-text-secondary hover:text-primary"
                   )}
@@ -136,11 +129,11 @@ export function Header() {
 
           {/* Mobile menu button */}
           <button
-            className="lg:hidden p-2 text-text-primary hover:text-primary transition-colors"
+            className="lg:hidden p-2 text-text-secondary hover:text-primary transition-colors duration-500"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </nav>
       </Container>
@@ -155,12 +148,12 @@ export function Header() {
             className="lg:hidden border-t border-text-muted/10 bg-background-surface/95 backdrop-blur-xl"
           >
             <Container>
-              <div className="py-4 space-y-1">
+              <div className="py-6 space-y-1">
                 {NAV_LINKS.map((link) => {
                   if ("submenu" in link) {
                     return (
                       <div key={link.label} className="space-y-1">
-                        <div className="px-4 py-2 text-sm font-semibold text-text-primary">
+                        <div className="px-4 py-2 text-[11px] font-medium uppercase tracking-[0.15em] text-text-muted">
                           {link.label}
                         </div>
                         {link.submenu.map((sublink) => (
@@ -168,9 +161,9 @@ export function Header() {
                             key={sublink.href}
                             href={sublink.href}
                             className={cn(
-                              "block px-6 py-2 text-sm transition-colors",
+                              "block px-6 py-2.5 text-[13px] tracking-[0.06em] transition-colors duration-300",
                               pathname === sublink.href
-                                ? "text-primary bg-primary/10"
+                                ? "text-primary"
                                 : "text-text-secondary hover:text-primary"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
@@ -187,9 +180,9 @@ export function Header() {
                       key={link.href}
                       href={link.href}
                       className={cn(
-                        "block px-4 py-2 text-sm font-medium transition-colors",
+                        "block px-4 py-2.5 text-[13px] font-medium uppercase tracking-[0.12em] transition-colors duration-300",
                         pathname === link.href
-                          ? "text-primary bg-primary/10"
+                          ? "text-primary"
                           : "text-text-secondary hover:text-primary"
                       )}
                       onClick={() => setMobileMenuOpen(false)}
@@ -198,7 +191,7 @@ export function Header() {
                     </Link>
                   );
                 })}
-                <div className="pt-4">
+                <div className="pt-6 px-4">
                   <ConnectWalletButton size="md" className="w-full" />
                 </div>
               </div>

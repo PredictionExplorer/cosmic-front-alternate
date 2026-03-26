@@ -24,8 +24,8 @@
 
   /* Fonts */
   --font-family-serif: var(--font-cormorant), Georgia, serif;
-  --font-family-sans: var(--font-inter), system-ui, sans-serif;
-  --font-family-mono: var(--font-space-grotesk), Menlo, monospace;
+  --font-family-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-family-mono: var(--font-jetbrains), "JetBrains Mono", Menlo, monospace;
 
   /* Animations */
   --animate-fade-in: fade-in 0.6s ease-in-out;
@@ -98,8 +98,8 @@
 @layer base {
   :root {
     --font-cormorant: "Cormorant Garamond", Georgia, serif;
-    --font-inter: "Inter", system-ui, sans-serif;
-    --font-space-grotesk: "Space Grotesk", Menlo, monospace;
+    --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-jetbrains: "JetBrains Mono", Menlo, monospace;
     /* Calculate scrollbar width for consistent spacing */
     --scrollbar-width: calc(100vw - 100%);
   }
@@ -120,7 +120,8 @@
   body {
     background: linear-gradient(135deg, #0a0a0b 0%, #151518 100%);
     color: #f5f5f0;
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-jakarta), system-ui, sans-serif;
+    letter-spacing: 0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     width: 100%;
@@ -349,18 +350,18 @@
 
   /* Number display */
   .number-display {
-    font-family: var(--font-space-grotesk), Menlo, monospace;
+    font-family: var(--font-jetbrains), "JetBrains Mono", Menlo, monospace;
     color: #d4af37;
     font-weight: 600;
   }
 
   /* Card hover effect */
   .card-hover {
-    transition: all 0.3s;
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   .card-hover:hover {
-    transform: scale(1.02);
+    transform: scale(1.01);
     box-shadow: 0 10px 40px rgb(212 175 55 / 0.1);
   }
 
@@ -379,10 +380,32 @@
     transform-origin: left;
     transform: scaleX(0);
     background-color: #d4af37;
-    transition: transform 0.3s;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   .link-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Nav link — gallery-style underline sweep */
+  .nav-link {
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 1rem;
+    right: 1rem;
+    height: 1px;
+    transform-origin: left;
+    transform: scaleX(0);
+    background-color: #d4af37;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .nav-link:hover::after {
     transform: scaleX(1);
   }
 
@@ -429,9 +452,11 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgb(212 175 55 / 0.3) 20%,
-      rgb(212 175 55 / 0.5) 50%,
-      rgb(212 175 55 / 0.3) 80%,
+      rgb(212 175 55 / 0.15) 10%,
+      rgb(212 175 55 / 0.4) 35%,
+      rgb(212 175 55 / 0.6) 50%,
+      rgb(212 175 55 / 0.4) 65%,
+      rgb(212 175 55 / 0.15) 90%,
       transparent 100%
     );
   }
@@ -484,7 +509,7 @@
   .overline {
     font-size: 0.8125rem;
     font-weight: 500;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.25em;
     text-transform: uppercase;
     color: #d4af37;
   }
