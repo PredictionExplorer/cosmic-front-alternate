@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { headers } from 'next/headers';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -10,6 +11,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ApiDataProvider } from '@/contexts/ApiDataContext';
 import { TimeOffsetProvider } from '@/contexts/TimeOffsetContext';
 import { SystemModeProvider } from '@/contexts/SystemModeContext';
+import { isLandingHost } from '@/lib/hostRouting';
 
 const cormorant = Cormorant_Garamond({
 	subsets: ['latin'],
@@ -68,6 +70,10 @@ export default function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const requestHeaders = headers();
+	const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+	const showLandingChrome = isLandingHost(host);
+
 	return (
 		<html lang="en" className="scroll-smooth" suppressHydrationWarning>
 			<body className={`${cormorant.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
@@ -78,11 +84,11 @@ export default function RootLayout({
 								<SystemModeProvider>
 									<GlobalErrorHandler />
 									<div className="flex min-h-screen flex-col">
-										<Header />
+										{!showLandingChrome && <Header />}
 										<ErrorBoundary>
-											<main className="flex-1 pt-[72px] lg:pt-[88px]">{children}</main>
+											<main className={`flex-1 ${showLandingChrome ? '' : 'pt-[72px] lg:pt-[88px]'}`}>{children}</main>
 										</ErrorBoundary>
-										<Footer />
+										{!showLandingChrome && <Footer />}
 									</div>
 								</SystemModeProvider>
 							</ApiDataProvider>
