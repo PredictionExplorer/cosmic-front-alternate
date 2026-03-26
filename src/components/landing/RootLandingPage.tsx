@@ -1,0 +1,205 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Countdown = {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  isLaunched: boolean;
+};
+
+type LandingConfig = {
+  /**
+   * Absolute Unix time: seconds since 1970-01-01T00:00:00Z (same instant worldwide).
+   * Optional string in JSON is coerced. Values above 1e12 are treated as milliseconds by mistake.
+   */
+  launchTimestampSeconds?: number | string;
+  /** ISO-8601 instant in UTC, e.g. "2026-04-04T00:00:00Z". */
+  launchDateUtc?: string;
+};
+
+const DEFAULT_LAUNCH_TIMESTAMP_MS = new Date("2026-04-04T00:00:00Z").getTime();
+const LANDING_CONFIG_URL = "/landing-config.json";
+const REFRESH_INTERVAL_MS = 60_000;
+
+function getCountdown(launchTimestampMs: number): Countdown {
+  const now = Date.now();
+  const diff = launchTimestampMs - now;
+
+  if (diff <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, isLaunched: true };
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / (24 * 60 * 60));
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+
+  return { days, hours, minutes, seconds, isLaunched: false };
+}
+
+function parseOptionalNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Config stores Unix time in seconds. If someone pastes milliseconds (~1.7e12) by mistake,
+ * treat as ms; otherwise seconds → ms.
+ */
+function instantFromUnixField(secondsOrMs: number): number {
+  if (secondsOrMs > 1e12) {
+    return Math.round(secondsOrMs);
+  }
+  return Math.round(secondsOrMs * 1000);
+}
+
+function formatLaunchDateUtc(launchTimestampMs: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(launchTimestampMs));
+}
+
+async function fetchLaunchTimestampMs(): Promise<number | null> {
+  try {
+    const response = await fetch(`${LANDING_CONFIG_URL}?t=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const config = (await response.json()) as LandingConfig;
+
+    const ts = parseOptionalNumber(config.launchTimestampSeconds);
+    if (ts !== null) {
+      return instantFromUnixField(ts);
+    }
+
+    if (typeof config.launchDateUtc === "string") {
+      const parsed = Date.parse(config.launchDateUtc);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function RootLandingPage() {
+  const [launchTimestampMs, setLaunchTimestampMs] = useState<number>(
+    DEFAULT_LAUNCH_TIMESTAMP_MS,
+  );
+  const [countdown, setCountdown] = useState<Countdown>(() =>
+    getCountdown(DEFAULT_LAUNCH_TIMESTAMP_MS),
+  );
+  /** Avoid flashing countdown with default launch time before JSON is applied. */
+  const [configReady, setConfigReady] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const refreshConfig = async () => {
+      const nextLaunchTimestampMs = await fetchLaunchTimestampMs();
+      if (!isActive) {
+        return;
+      }
+      if (typeof nextLaunchTimestampMs === "number") {
+        setLaunchTimestampMs(nextLaunchTimestampMs);
+      }
+      setConfigReady(true);
+    };
+
+    refreshConfig();
+    const refreshTimerId = window.setInterval(refreshConfig, REFRESH_INTERVAL_MS);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(refreshTimerId);
+    };
+  }, []);
+
+  useEffect(() => {
+    setCountdown(getCountdown(launchTimestampMs));
+
+    const timerId = window.setInterval(() => {
+      setCountdown(getCountdown(launchTimestampMs));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [launchTimestampMs]);
+
+  const showCountdown = configReady && !countdown.isLaunched;
+  const launchDateLabel = formatLaunchDateUtc(launchTimestampMs);
+
+  return (
+    <div className="relative min-h-screen overflow-hidden px-6 py-12 md:px-10 md:py-16">
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background-surface" />
+      <div className="absolute -top-40 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+
+      <main className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-4xl flex-col items-center justify-center text-center">
+        <p className="overline mb-5">Cosmic Signature</p>
+        <h1 className="heading-exhibition mb-6 text-balance">
+          Generative Art
+          <span className="text-gradient block">Born from Physics</span>
+        </h1>
+        <p className="body-museum mb-10 max-w-2xl text-balance">
+          A limited collection of one-of-a-kind artworks generated by real three-body
+          gravitational simulations. No AI. No manual drawing. Pure deterministic chaos
+          transformed into collectible digital art.
+        </p>
+
+        {showCountdown && (
+          <>
+            <div className="mb-12 grid w-full grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+              {[
+                { label: "Days", value: countdown.days },
+                { label: "Hours", value: countdown.hours },
+                { label: "Minutes", value: countdown.minutes },
+                { label: "Seconds", value: countdown.seconds },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-primary/20 bg-background-surface/70 p-4 sm:p-6"
+                >
+                  <div className="font-mono text-4xl font-semibold text-primary sm:text-6xl">
+                    {String(item.value).padStart(2, "0")}
+                  </div>
+                  <div className="mt-2 text-[11px] uppercase tracking-[0.22em] text-text-muted sm:text-xs">
+                    {item.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mb-8 text-sm uppercase tracking-[0.2em] text-primary/85">
+              Launches on {launchDateLabel} UTC
+            </div>
+          </>
+        )}
+
+        <a
+          href="https://app.cosmicsignature.com"
+          className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-background transition-colors duration-300 hover:bg-primary-light"
+        >
+          Open App
+        </a>
+      </main>
+    </div>
+  );
+}

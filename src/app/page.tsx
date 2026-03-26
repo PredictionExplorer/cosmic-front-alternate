@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,8 +22,15 @@ import { useApiData } from "@/contexts/ApiDataContext";
 import api, { getAssetsUrl } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { safeTimestamp } from "@/lib/utils";
+import { isLandingHost } from "@/lib/hostRouting";
+import { RootLandingPage } from "@/components/landing/RootLandingPage";
 
 export default function Home() {
+  const [hostname, setHostname] = useState<string | null>(null);
+  useEffect(() => {
+    setHostname(window.location.hostname);
+  }, []);
+
   const { dashboardData } = useApiData();
 
   const totalNFTs =
@@ -57,6 +64,15 @@ export default function Home() {
   const featuredNFTs = featuredNFTsRaw ?? [];
 
   const heroNFT = useMemo(() => featuredNFTs[0] ?? null, [featuredNFTs]);
+  const shouldShowLanding = isLandingHost(hostname);
+
+  if (hostname === null) {
+    return <div className="min-h-screen bg-background" />;
+  }
+
+  if (shouldShowLanding) {
+    return <RootLandingPage />;
+  }
 
   return (
     <div className="overflow-hidden">
