@@ -17,7 +17,7 @@ export default function GalleryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "id">("id");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = viewMode === "grid" ? 20 : 10;
+  const itemsPerPage = viewMode === "grid" ? 18 : 10;
 
   // Fetch all NFTs from API
   const { data: allNFTsRaw, isLoading } = useApiQuery(
@@ -83,14 +83,17 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen">
       {/* Gallery Header */}
-      <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
+      <section className="section-padding bg-background-surface/30 border-b border-text-muted/10">
         <Container>
           <div className="max-w-3xl">
-            <h1 className="text-4xl font-serif font-bold text-gradient mb-4">
-              The Gallery
+            <p className="overline mb-4">The Collection</p>
+            <h1 className="heading-lg text-balance mb-6">
+              Cosmic Signature
+              <span className="text-gradient block">Artworks</span>
             </h1>
-            <p className="text-lg text-text-secondary leading-relaxed">
-              Explore the complete collection of Cosmic Signature NFTs. Each piece is unique generative art.
+            <p className="body-museum">
+              Each piece is a unique visualization of the Three Body Problem — gravitational
+              chaos rendered in spectral light. Browse the complete collection below.
             </p>
           </div>
         </Container>
@@ -163,16 +166,16 @@ export default function GalleryPage() {
       <section className="section-padding" id="nft-gallery-section">
         <Container>
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(12)].map((_, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(9)].map((_, index) => (
                 <div key={index} className="animate-pulse">
-                  <Card glass className="overflow-hidden">
+                  <div className="art-frame rounded-sm overflow-hidden">
                     <div className="aspect-square bg-background-elevated" />
-                    <div className="p-4 space-y-3">
+                    <div className="px-5 py-4 space-y-3 border-t border-text-muted/5">
                       <div className="h-4 bg-background-elevated rounded w-3/4" />
-                      <div className="h-3 bg-background-elevated rounded w-1/2" />
+                      <div className="h-3 bg-background-elevated rounded w-1/3" />
                     </div>
-                  </Card>
+                  </div>
                 </div>
               ))}
             </div>
@@ -192,7 +195,7 @@ export default function GalleryPage() {
               </div>
 
               {viewMode === "grid" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                   {paginatedNFTs.map((nft, index) => (
                     <NFTCard
                       key={nft.id}

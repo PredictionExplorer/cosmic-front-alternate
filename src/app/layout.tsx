@@ -33,11 +33,11 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-	title: 'Cosmic Signature | Premium NFT Auction Game',
+	title: 'Cosmic Signature | Generative Art from Physics',
 	description:
-		'Experience the intersection of art and strategy. Compete in sophisticated blockchain auctions to win premium NFTs and substantial prizes.',
-	keywords: ['NFT', 'blockchain game', 'auction', 'Ethereum', 'crypto art', 'Web3 gaming'],
-	authors: [{ name: 'Cosmic Signature Team' }],
+		'A limited collection of generative artworks born from the Three Body Problem — real gravitational physics, spectral light rendering, and deterministic chaos. No AI. Museum-quality digital art with verifiable provenance.',
+	keywords: ['generative art', 'Three Body Problem', 'NFT', 'digital art', 'physics art', 'spectral rendering', 'art collection', 'Ethereum'],
+	authors: [{ name: 'Cosmic Signature' }],
 	icons: {
 		icon: [
 			{ url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
@@ -50,15 +50,15 @@ export const metadata: Metadata = {
 		],
 	},
 	openGraph: {
-		title: 'Cosmic Signature | Premium NFT Auction Game',
-		description: 'Experience the intersection of art and strategy in a sophisticated blockchain auction game.',
+		title: 'Cosmic Signature | Generative Art from Physics',
+		description: 'A limited collection of generative artworks visualizing the Three Body Problem — real physics, spectral rendering, verifiable provenance. No AI.',
 		type: 'website',
 		images: [{ url: '/logo.svg' }],
 	},
 	twitter: {
 		card: 'summary_large_image',
 		title: 'Cosmic Signature',
-		description: 'Premium NFT Auction Game',
+		description: 'Generative art born from the Three Body Problem. Physics as artist. Each piece provably unique.',
 		images: ['/logo.svg'],
 	}
 };

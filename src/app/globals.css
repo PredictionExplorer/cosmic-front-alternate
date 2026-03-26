@@ -385,6 +385,109 @@
   .link-underline:hover::after {
     transform: scaleX(1);
   }
+
+  /* Museum-style section padding (generous whitespace) */
+  .section-museum {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+
+  @media (min-width: 768px) {
+    .section-museum {
+      padding-top: 8rem;
+      padding-bottom: 8rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-museum {
+      padding-top: 10rem;
+      padding-bottom: 10rem;
+    }
+  }
+
+  /* Art frame — subtle museum-quality border for NFT display */
+  .art-frame {
+    position: relative;
+    border: 1px solid rgb(212 175 55 / 0.12);
+    box-shadow:
+      0 0 0 1px rgb(107 107 102 / 0.06),
+      0 20px 60px rgb(0 0 0 / 0.4);
+    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .art-frame:hover {
+    border-color: rgb(212 175 55 / 0.25);
+    box-shadow:
+      0 0 0 1px rgb(212 175 55 / 0.1),
+      0 30px 80px rgb(0 0 0 / 0.5);
+  }
+
+  /* Divider — thin gold rule for section separation */
+  .divider-gold {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(212 175 55 / 0.3) 20%,
+      rgb(212 175 55 / 0.5) 50%,
+      rgb(212 175 55 / 0.3) 80%,
+      transparent 100%
+    );
+  }
+
+  /* Heading — exhibition scale */
+  .heading-exhibition {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 3.5rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  @media (min-width: 768px) {
+    .heading-exhibition {
+      font-size: 5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .heading-exhibition {
+      font-size: 6rem;
+    }
+  }
+
+  /* Body text — museum wall label style */
+  .body-museum {
+    font-size: 1.125rem;
+    color: #a8a8a0;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+  }
+
+  @media (min-width: 768px) {
+    .body-museum {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Caption — small label text */
+  .caption-museum {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #6b6b66;
+  }
+
+  /* Overline — section label above headings */
+  .overline {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #d4af37;
+  }
 }
 
 @layer utilities {

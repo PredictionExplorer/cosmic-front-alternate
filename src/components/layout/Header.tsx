@@ -72,8 +72,8 @@ export function Header() {
                   <span className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 blur-sm opacity-50"></span>
                 </span>
               </div>
-              <div className="text-xs text-text-secondary">
-                Premium NFT Auction Game
+              <div className="text-xs text-text-secondary tracking-wider">
+                Generative Art Collection
               </div>
             </div>
           </Link>

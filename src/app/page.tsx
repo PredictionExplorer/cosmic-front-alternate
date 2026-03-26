@@ -1,114 +1,38 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import {
-  Trophy,
-  Timer,
-  Sparkles,
   ArrowRight,
-  TrendingUp,
-  Award,
+  Shield,
+  Fingerprint,
+  Atom,
+  Eye,
+  Clock,
   Gem,
-  Users,
+  ExternalLink,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { NFTCard } from "@/components/nft/NFTCard";
-import { CountdownTimer } from "@/components/game/CountdownTimer";
-import { StatCard } from "@/components/game/StatCard";
-import { ElegantTable } from "@/components/data/ElegantTable";
-import { ProbabilityDisplay } from "@/components/game/ProbabilityDisplay";
-import { Badge } from "@/components/ui/Badge";
-import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { useApiData } from "@/contexts/ApiDataContext";
-import { useTimeOffset } from "@/contexts/TimeOffsetContext";
-import { useCosmicGameRead } from "@/hooks/useCosmicGameContract";
 import api, { getAssetsUrl } from "@/services/api";
-import type { ComponentBidData } from "@/lib/apiTransforms";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { safeTimestamp } from "@/lib/utils";
-import { shortenAddress } from "@/lib/web3/utils";
-import { formatDate } from "@/lib/utils";
 
 export default function Home() {
   const { dashboardData } = useApiData();
-  const { applyOffset } = useTimeOffset();
-  const { useCurrentChampions, useCstRewardPerBid } =
-    useCosmicGameRead();
-  const { data: cstRewardPerBid } = useCstRewardPerBid();
-  // featuredNFTs and isLoadingNFTs driven by useApiQuery below
 
-  // Helper function to map bid type numbers to labels
-  const getBidTypeLabel = (bidType: number | string): string => {
-    const typeNum = typeof bidType === "string" ? parseInt(bidType) : bidType;
-    switch (typeNum) {
-      case 0:
-        return "ETH Bid";
-      case 1:
-        return "RWLK Token Bid";
-      case 2:
-        return "CST Bid";
-      default:
-        return "ETH Bid"; // Default fallback
-    }
-  };
+  const totalNFTs =
+    ((dashboardData?.MainStats as Record<string, unknown>)
+      ?.NumCSTokenMints as number) || 0;
 
-  // Helper function to format bid duration
-  const formatDuration = (seconds: number): string => {
-    if (seconds < 60) {
-      return `${Math.floor(seconds)}s`;
-    } else if (seconds < 3600) {
-      const minutes = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${minutes}m ${secs}s`;
-    } else if (seconds < 86400) {
-      const hours = Math.floor(seconds / 3600);
-      const minutes = Math.floor((seconds % 3600) / 60);
-      return `${hours}h ${minutes}m`;
-    } else {
-      const days = Math.floor(seconds / 86400);
-      const hours = Math.floor((seconds % 86400) / 3600);
-      return `${days}d ${hours}h`;
-    }
-  };
+  const contractBalance = (dashboardData?.CosmicGameBalanceEth as number) || 0;
 
-  // Get data from dashboard API and blockchain
-  const roundNum = dashboardData?.CurRoundNum;
-  const lastBidder = dashboardData?.LastBidderAddr;
-  const { data: championsData } = useCurrentChampions();
-
-  // CST reward amount per bid (from contract)
-  const cstRewardAmount = cstRewardPerBid 
-    ? Number(cstRewardPerBid) / 1e18 
-    : 100; // Fallback to 100 if not loaded yet
-
-  const { data: mainPrizeTime } = useApiQuery<number>(
-    "prize-time",
-    () => api.getPrizeTime(),
-    { refetchInterval: 10000 },
-  );
-
-  const [timeRemaining, setTimeRemaining] = useState(0);
-
-  useEffect(() => {
-    if (mainPrizeTime) {
-      const updateTime = () => {
-        // Apply offset to the prize time to sync with blockchain time
-        const adjustedPrizeTime = applyOffset(Number(mainPrizeTime));
-        const remaining = adjustedPrizeTime - Math.floor(Date.now() / 1000);
-        setTimeRemaining(Math.max(0, remaining));
-      };
-
-      updateTime();
-      const interval = setInterval(updateTime, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [mainPrizeTime, applyOffset]);
-
-  const { data: featuredNFTsRaw, isLoading: isLoadingNFTs, error: nftError } = useApiQuery(
+  const { data: featuredNFTsRaw, isLoading: isLoadingNFTs } = useApiQuery(
     "home-featured-nfts",
     async () => {
       const nfts = await api.getCSTList();
@@ -132,600 +56,307 @@ export default function Home() {
   );
   const featuredNFTs = featuredNFTsRaw ?? [];
 
-  const { data: bannedBidsData } = useApiQuery<number[]>(
-    "home-banned-bids",
-    async () => {
-      const bids = await api.getBannedBids();
-      if (!bids || !Array.isArray(bids)) return [];
-      return bids.map((x: Record<string, unknown>) => x.bid_id as number);
-    },
-  );
-  const bannedBids = bannedBidsData ?? [];
-
-  // Fetch current round bids
-  const { data: currentBidsData, isLoading: isLoadingBids } = useApiQuery(
-    roundNum != null ? `home-bids-round-${roundNum}` : "",
-    async () => {
-      const currentRoundNumber =
-        roundNum?.toString() || dashboardData?.CurRoundNum?.toString();
-
-      if (currentRoundNumber === undefined || currentRoundNumber === null || currentRoundNumber === '') {
-        return [];
-      }
-
-      const bids = await api.getBidListByRound(
-        parseInt(currentRoundNumber),
-        "desc"
-      );
-      if (!bids || !Array.isArray(bids)) {
-        return [];
-      }
-
-      return bids
-        .slice(0, 10)
-        .map((bid: ComponentBidData, index: number) => {
-          const bidTypeNum = bid.BidType || 0;
-          const timestamp = bid.TimeStamp || 0;
-
-          let duration = 0;
-          if (index === 0) {
-            duration = Date.now() / 1000 - timestamp;
-          } else {
-            const prevTimestamp = bids[index - 1].TimeStamp || 0;
-            duration = prevTimestamp - timestamp;
-          }
-
-          const amount = bidTypeNum === 2
-            ? (bid.NumCSTTokensEth || 0)
-            : (bid.BidPriceEth || 0);
-
-          return {
-            id: bid.EvtLogId || 0,
-            bidder: bid.BidderAddr || "0x0",
-            bidType: getBidTypeLabel(bidTypeNum),
-            bidTypeNum,
-            amount,
-            timestamp,
-            message: bid.Message || undefined,
-            roundNum: bid.RoundNum || undefined,
-            rwalkNftId:
-              bid.RWalkNFTId !== null && bid.RWalkNFTId !== undefined
-                ? bid.RWalkNFTId
-                : undefined,
-            duration,
-            nftDonationAddr: bid.NFTDonationTokenAddr || undefined,
-            nftDonationId:
-              bid.NFTDonationTokenId !== null &&
-              bid.NFTDonationTokenId !== undefined
-                ? bid.NFTDonationTokenId
-                : undefined,
-            erc20DonationAddr: bid.DonatedERC20TokenAddr || undefined,
-            erc20DonationAmount: bid.DonatedERC20TokenAmount || undefined,
-          };
-        });
-    },
-    { enabled: roundNum != null, refetchInterval: 10000 },
-  );
-  const currentBids = currentBidsData ?? [];
-
-  // Prepare display data with safe defaults
-  const currentRound = {
-    roundNumber: (roundNum != null && roundNum >= 0) ? roundNum.toString() : "0",
-    prizePool: (dashboardData?.PrizeAmountEth as number) || 0,
-    totalBids: (dashboardData?.CurNumBids as number) || 0,
-    lastBidder: lastBidder
-      ? shortenAddress(lastBidder as string, 6)
-      : "No bids yet",
-    totalNFTs:
-      ((dashboardData?.MainStats as Record<string, unknown>)
-        ?.NumCSTokenMints as number) || 0,
-    contractBalance: (dashboardData?.CosmicGameBalanceEth as number) || 0,
-  };
-
-  // Extract champion addresses safely
-  const championsArray = championsData as unknown as
-    | [string, bigint, string, bigint]
-    | undefined;
-  const enduranceChampion = championsArray?.[0]
-    ? shortenAddress(championsArray[0], 6)
-    : "None yet";
-  const chronoWarrior = championsArray?.[2]
-    ? shortenAddress(championsArray[2], 6)
-    : "None yet";
-
-  // ── Pending-activation countdown ──────────────────────────────────────────
-  const roundActivationTimestamp = useMemo(() => {
-    const val = dashboardData?.CurRoundStats?.ActivationTime;
-    if (val == null || val === "" || val === "0" || val === 0) return null;
-    if (typeof val === "number") return val;
-    const num = Number(val);
-    if (!isNaN(num) && num > 1_000_000_000) return num;
-    const parsed = new Date(val as string).getTime();
-    if (!isNaN(parsed)) return Math.floor(parsed / 1000);
-    return null;
-  }, [dashboardData?.CurRoundStats?.ActivationTime]);
-
-  const [timeUntilActivation, setTimeUntilActivation] = useState(0);
-  useEffect(() => {
-    if (roundActivationTimestamp === null) { setTimeUntilActivation(0); return; }
-    const update = () => {
-      const remaining = Math.max(0, roundActivationTimestamp - Math.floor(applyOffset(Date.now() / 1000)));
-      setTimeUntilActivation(remaining);
-    };
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [roundActivationTimestamp, applyOffset]);
-
-  const isPendingActivation = timeUntilActivation > 0;
-
-  const { data: ethBidPriceData } = useApiQuery(
-    "home-eth-bid-price",
-    async () => {
-      const priceData = await api.getETHBidPrice();
-      return priceData?.ETHPrice ? parseFloat(priceData.ETHPrice as string) / 1e18 : 0;
-    },
-    { refetchInterval: 5000 },
-  );
-  const ethBidPrice = ethBidPriceData ?? 0;
+  const heroNFT = useMemo(() => featuredNFTs[0] ?? null, [featuredNFTs]);
 
   return (
     <div className="overflow-hidden">
-      {/* Pending-activation banner */}
-      {isPendingActivation && (
-        <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 border-b border-primary/30 backdrop-blur-sm"
-        >
-          <Container>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-3 text-center">
-              <div className="flex items-center gap-2 text-primary font-bold text-base uppercase tracking-widest">
-                <Timer size={20} className="animate-pulse" />
-                Round Starts In
-              </div>
-              <CountdownTimer targetSeconds={timeUntilActivation} size="md" showIcon={false} />
-              <Link href="/game/play" className="text-xs text-primary/80 hover:text-primary underline underline-offset-2 transition-colors">
-                Go to game →
-              </Link>
-            </div>
-          </Container>
-        </motion.div>
-      )}
-
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center justify-center">
-        {/* Animated Background */}
+      {/* ───── Hero ───── */}
+      <section className="relative min-h-screen flex items-center justify-center">
+        {/* Background — large NFT as ambient backdrop */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-radial from-primary/5 via-transparent to-transparent" />
-          <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-primary/5 blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-accent-platinum/5 blur-3xl animate-pulse-slow animation-delay-400" />
+          {heroNFT && (
+            <Image
+              src={heroNFT.imageUrl}
+              alt=""
+              fill
+              className="object-cover opacity-[0.07] scale-110 blur-sm"
+              unoptimized
+              priority
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
+          <div className="absolute inset-0 bg-gradient-radial from-primary/3 via-transparent to-transparent" />
         </div>
 
         <Container className="relative z-10">
-          <div className="text-center space-y-8">
+          <div className="max-w-5xl mx-auto text-center space-y-10">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <h1 className="heading-xl text-balance mb-6">
-                Where Strategy Meets
-                <span className="block text-gradient mt-2">
-                  Exceptional Art
-                </span>
+              <p className="overline mb-8">Generative Art from the Three Body Problem</p>
+              <h1 className="heading-exhibition text-balance mb-8">
+                Born from Physics.
+                <span className="block text-gradient mt-1">One of a Kind.</span>
               </h1>
-              <p className="body-xl max-w-3xl mx-auto text-balance">
-                Experience the intersection of sophisticated blockchain gaming
-                and premium NFT collecting. Compete in strategic auctions to win
-                substantial prizes and unique digital art.
+              <p className="body-museum max-w-2xl mx-auto text-balance">
+                Each Cosmic Signature artwork is a unique visualization of gravitational chaos&mdash;three
+                celestial bodies dancing under Newtonian gravity, rendered in spectral light.
+                No AI. No human hand. Pure physics, captured forever.
               </p>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-5"
             >
               <Button size="xl" asChild>
-                <Link href="/game/play">
-                  Enter Game
+                <Link href="/gallery">
+                  View the Collection
                   <ArrowRight className="ml-2" size={20} />
                 </Link>
               </Button>
               <Button size="xl" variant="outline" asChild>
-                <Link href="/gallery">View Gallery</Link>
+                <Link href="/the-art">How It&apos;s Made</Link>
               </Button>
             </motion.div>
 
-            {/* Key Stats - Real Data with Fixed Height */}
+            {/* Quiet stats */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 max-w-4xl mx-auto"
-              style={{ minHeight: "80px" }}
+              transition={{ duration: 1, delay: 0.8 }}
+              className="flex items-center justify-center gap-12 pt-8"
             >
               <div className="text-center">
-                <div className="font-mono text-3xl font-semibold text-primary mb-1">
-                  {currentRound.roundNumber}
-                </div>
-                <div className="text-sm text-text-secondary">Current Round</div>
+                <div className="font-mono text-2xl font-semibold text-primary">{totalNFTs}</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mt-1">Artworks Minted</div>
               </div>
+              <div className="h-8 w-px bg-text-muted/20" />
               <div className="text-center">
-                <div className="font-mono text-3xl font-semibold text-primary mb-1">
-                  {currentRound.prizePool.toFixed(2)} ETH
-                </div>
-                <div className="text-sm text-text-secondary">Prize Pool</div>
+                <div className="font-mono text-2xl font-semibold text-primary">16-bit</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mt-1">Color Depth</div>
               </div>
+              <div className="h-8 w-px bg-text-muted/20" />
               <div className="text-center">
-                <div className="font-mono text-3xl font-semibold text-primary mb-1">
-                  {currentRound.totalNFTs}
-                </div>
-                <div className="text-sm text-text-secondary">NFTs Minted</div>
-              </div>
-              <div className="text-center">
-                <div className="font-mono text-3xl font-semibold text-primary mb-1">
-                  {currentRound.totalBids}
-                </div>
-                <div className="text-sm text-text-secondary">Total Bids</div>
+                <div className="font-mono text-2xl font-semibold text-primary">100K</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mt-1">Orbits Evaluated</div>
               </div>
             </motion.div>
           </div>
         </Container>
 
-        {/* Scroll Indicator */}
+        {/* Scroll hint */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          transition={{ duration: 1, delay: 1.2 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
         >
-          <div className="flex flex-col items-center space-y-2">
-            <span className="text-xs text-text-secondary uppercase tracking-wider">
-              Scroll to explore
-            </span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="h-6 w-px bg-gradient-to-b from-primary to-transparent"
-            />
-          </div>
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="h-8 w-px bg-gradient-to-b from-primary/60 to-transparent"
+          />
         </motion.div>
       </section>
 
-      {/* Current Round Status */}
-      <section className="section-padding bg-background-surface/50">
-        <Container>
-          <div className="text-center mb-12">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+      {/* ───── The Art ───── */}
+      <section className="section-museum">
+        <Container size="lg">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              className="heading-md text-balance mb-4"
+              transition={{ duration: 0.8 }}
             >
-              Round {currentRound.roundNumber} is Live
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="body-lg max-w-2xl mx-auto"
-            >
-              Be the last bidder when the timer expires to claim the main prize
-            </motion.p>
-          </div>
-
-          {/* Timer and Prize Pool - Fixed Height Container */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card
-              glass
-              className="p-8 md:p-12 text-center"
-              style={{ minHeight: "400px" }}
-            >
-              <div className="mb-8 flex flex-col items-center">
-                <p className="text-sm text-text-secondary mb-4 uppercase tracking-wider">
-                  Time Remaining
+              <p className="overline mb-4">What You&apos;re Looking At</p>
+              <h2 className="heading-lg text-balance mb-8">
+                The Three Body Problem,
+                <span className="text-gradient block">Rendered in Light</span>
+              </h2>
+              <div className="space-y-5 body-museum">
+                <p>
+                  Every Cosmic Signature is a visualization of one of the oldest unsolved
+                  problems in physics. Three massive celestial bodies orbit each other under
+                  the force of gravity, producing trajectories that are fundamentally
+                  unpredictable&mdash;deterministic chaos.
                 </p>
-                <CountdownTimer
-                  targetSeconds={timeRemaining}
-                  size="lg"
-                  showIcon={false}
-                />
+                <p>
+                  The artwork captures this dance. Each body leaves a trail of spectral light
+                  as it moves through space. These trails are not painted&mdash;they are
+                  physically simulated using real Newtonian gravity and a high-precision
+                  symplectic integrator borrowed from astrophysics research.
+                </p>
+                <p>
+                  The colors span the visible light spectrum from deep violet (380 nm) to
+                  vivid red (700 nm), rendered using 16 spectral wavelength bins&mdash;the same
+                  physics that describes how real light behaves.
+                </p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <div>
-                  <div className="font-mono text-4xl font-semibold text-primary mb-2">
-                    {currentRound.prizePool.toFixed(2)}
-                  </div>
-                  <div className="text-sm text-text-secondary">
-                    ETH Prize Pool
-                  </div>
-                </div>
-                <div>
-                  <div className="font-mono text-4xl font-semibold text-primary mb-2">
-                    {currentRound.totalBids}
-                  </div>
-                  <div className="text-sm text-text-secondary">Bids Placed</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-medium text-text-primary mb-2">
-                    {currentRound.lastBidder}
-                  </div>
-                  <div className="text-sm text-text-secondary">Last Bidder</div>
-                </div>
-              </div>
-
               <div className="mt-8">
-                <div className="mb-4 text-sm text-text-secondary">
-                  Current ETH Bid Price:{" "}
-                  <span className="text-primary font-mono">
-                    {ethBidPrice.toFixed(6)} ETH
-                  </span>
-                </div>
-                <Button size="lg" asChild>
-                  <Link href="/game/play">
-                    Place Your Bid
-                    <ArrowRight className="ml-2" size={20} />
+                <Button variant="outline" asChild>
+                  <Link href="/the-art">
+                    Explore the Full Process
+                    <ArrowRight className="ml-2" size={16} />
                   </Link>
                 </Button>
               </div>
-            </Card>
-          </motion.div>
+            </motion.div>
 
-          {/* Current Champions - Real Data */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StatCard
-              label="Endurance Champion"
-              value={enduranceChampion}
-              icon={Award}
-              delay={0.3}
-            />
-            <StatCard
-              label="Chrono-Warrior"
-              value={chronoWarrior}
-              icon={Timer}
-              delay={0.4}
-            />
-          </div>
-
-          {/* Probability Display - Shows winning chances when user has placed bids */}
-          <div className="mt-8">
-            <ProbabilityDisplay />
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="space-y-5"
+            >
+              {[
+                {
+                  icon: Atom,
+                  title: "Physics-Based",
+                  text: "Real Newtonian gravitational simulation. A 4th-order Yoshida symplectic integrator ensures energy conservation over millions of timesteps.",
+                },
+                {
+                  icon: Eye,
+                  title: "Spectral Rendering",
+                  text: "16 wavelength bins spanning 380–700 nm. Color mixing follows physical light behavior, not standard RGB.",
+                },
+                {
+                  icon: Fingerprint,
+                  title: "Deterministic & Verifiable",
+                  text: "Same seed, same art — pixel for pixel. Anyone can verify by running the open-source code with the on-chain seed.",
+                },
+                {
+                  icon: Shield,
+                  title: "No AI. No Human Hand.",
+                  text: "Zero neural networks, zero training data. The entire pipeline is deterministic computation: gravity, Fourier analysis, spectral optics.",
+                },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.1 * i }}
+                >
+                  <Card glass className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 rounded-lg bg-primary/8 p-3">
+                        <item.icon size={22} className="text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-serif text-lg font-semibold text-text-primary mb-1">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-text-secondary leading-relaxed">{item.text}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
         </Container>
       </section>
 
-      {/* Current Bids List */}
-      <section className="section-padding">
-        <Container>
+      {/* ───── Divider ───── */}
+      <div className="divider-gold mx-auto max-w-md" />
+
+      {/* ───── How It's Made — 7 Stages ───── */}
+      <section className="section-museum">
+        <Container size="lg">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-20"
           >
-            <h2 className="heading-md text-balance mb-4">Recent Bids</h2>
-            <p className="body-lg max-w-2xl mx-auto">
-              Live view of the latest bids in Round {currentRound.roundNumber}
+            <p className="overline mb-4">From Seed to Artwork</p>
+            <h2 className="heading-lg text-balance mb-6">Seven Stages of Creation</h2>
+            <p className="body-museum max-w-2xl mx-auto">
+              Every Cosmic Signature follows the same pipeline. A hex seed derived from
+              on-chain randomness drives the entire process.
             </p>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            {isLoadingBids ? (
-              <Card glass className="p-12 text-center">
-                <div className="flex items-center justify-center space-x-3">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <p className="text-text-secondary">Loading bids...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+            {[
+              {
+                num: "01",
+                title: "The Seed",
+                desc: "A hex string from on-chain randomness is fed into SHA3-256, producing a deterministic stream of billions of random numbers — all perfectly reproducible.",
+              },
+              {
+                num: "02",
+                title: "The Search",
+                desc: "100,000 random three-body configurations are generated and simulated. A scoring system evaluates chaos and balance, selecting the single most visually compelling orbit.",
+              },
+              {
+                num: "03",
+                title: "The Simulation",
+                desc: "The winning configuration is simulated at full resolution: one million warmup steps, then one million recorded steps of gravitational physics in 3D space.",
+              },
+              {
+                num: "04",
+                title: "The Camera",
+                desc: "A slow elliptical camera drift orbits the scene, revealing the three-dimensional structure of the trajectories — cinematic parallax for the 30-second video.",
+              },
+              {
+                num: "05",
+                title: "The Colors",
+                desc: "Each body receives a base color in OKLab perceptual color space, with 120° hue separation. Colors evolve through drift, modulation, and jitter across the spectrum.",
+              },
+              {
+                num: "06",
+                title: "The Rendering",
+                desc: "Every timestep, triangle edges are drawn as spectral energy across 16 wavelength bins (380–700 nm). Velocity HDR, depth of field, and energy red-shift create rich detail.",
+              },
+              {
+                num: "07",
+                title: "The Finish",
+                desc: "AgX-style tonemapping, bloom, chromatic dispersion, nebula overlays, and cinematic grading. Output: 16-bit PNG and 30-second H.265 video at 60 fps, 10-bit color.",
+              },
+            ].map((stage, i) => (
+              <motion.div
+                key={stage.num}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: i * 0.07 }}
+              >
+                <div className="h-full">
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <span className="font-mono text-3xl font-light text-primary/40">
+                      {stage.num}
+                    </span>
+                    <h3 className="font-serif text-xl font-semibold text-text-primary">
+                      {stage.title}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    {stage.desc}
+                  </p>
                 </div>
-              </Card>
-            ) : Array.isArray(currentBids) && currentBids.length > 0 ? (
-              <ElegantTable
-                data={currentBids}
-                mode="table"
-                columns={[
-                  {
-                    key: "timestamp",
-                    label: "Time",
-                    sortable: true,
-                    render: (value) => (
-                      <span className="text-text-secondary text-sm whitespace-nowrap">
-                        {typeof value === "number"
-                          ? formatDate(new Date(value * 1000))
-                          : "Unknown"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "bidder",
-                    label: "Bidder",
-                    render: (_value, item) => (
-                      <AddressDisplay
-                        address={item.bidder as string}
-                        showCopy={false}
-                      />
-                    ),
-                  },
-                  {
-                    key: "bidType",
-                    label: "Type",
-                    render: (value) => {
-                      const bidTypeStr = String(value);
-                      let variant: "default" | "info" | "success" = "default";
-
-                      if (bidTypeStr.includes("ETH")) {
-                        variant = "default";
-                      } else if (bidTypeStr.includes("CST")) {
-                        variant = "info";
-                      } else if (bidTypeStr.includes("RWLK")) {
-                        variant = "success";
-                      }
-
-                      return <Badge variant={variant}>{bidTypeStr}</Badge>;
-                    },
-                  },
-                  {
-                    key: "amount",
-                    label: "Price",
-                    sortable: true,
-                    render: (value, item) => {
-                      const bidTypeStr = String(item.bidType || "");
-                      const amount = typeof value === "number" ? value : 0;
-                      let tokenSymbol = "ETH";
-
-                      if (bidTypeStr.includes("CST")) {
-                        tokenSymbol = "CST";
-                      } else if (bidTypeStr.includes("RWLK")) {
-                        tokenSymbol = "ETH";
-                      } else if (bidTypeStr.includes("ETH")) {
-                        tokenSymbol = "ETH";
-                      }
-
-                      // Dynamic precision: 7 decimals for small amounts, 4 for larger
-                      const formatted =
-                        amount < 1 ? amount.toFixed(7) : amount.toFixed(4);
-
-                      return (
-                        <span className="font-mono text-primary font-semibold whitespace-nowrap">
-                          {formatted} {tokenSymbol}
-                        </span>
-                      );
-                    },
-                  },
-                  {
-                    key: "duration",
-                    label: "Duration",
-                    render: (value) => (
-                      <span className="text-text-secondary text-sm whitespace-nowrap">
-                        {typeof value === "number"
-                          ? formatDuration(value)
-                          : "-"}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: "bidInfo",
-                    label: "Bid Info",
-                    render: (_value, item) => {
-                      const hasRWLK =
-                        item.bidTypeNum === 1 &&
-                        item.rwalkNftId !== undefined &&
-                        item.rwalkNftId !== null;
-                      const hasNFTDonation = !!item.nftDonationAddr;
-                      const hasERC20Donation = !!item.erc20DonationAddr;
-                      const hasSpecialFeatures = hasRWLK || hasNFTDonation || hasERC20Donation;
-
-                      return (
-                        <div className="flex items-center gap-2">
-                          {hasSpecialFeatures ? (
-                            <div className="flex gap-1">
-                              {hasRWLK && (
-                                <Badge variant="success">
-                                  RW
-                                </Badge>
-                              )}
-                              {hasNFTDonation && (
-                                <Badge variant="default">
-                                  NFT
-                                </Badge>
-                              )}
-                              {hasERC20Donation && (
-                                <Badge variant="default">
-                                  ERC20
-                                </Badge>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-text-secondary text-sm">—</span>
-                          )}
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    key: "message",
-                    label: "Message",
-                    render: (value, item) => {
-                      const isBanned = bannedBids.includes(item.id as number);
-                      const message = value ? String(value) : "";
-
-                      if (isBanned || !message) {
-                        return (
-                          <span className="text-text-muted text-sm">-</span>
-                        );
-                      }
-
-                      return (
-                        <span
-                          className="text-text-secondary italic text-sm truncate max-w-xs block"
-                          title={message}
-                        >
-                          &quot;{message}&quot;
-                        </span>
-                      );
-                    },
-                  },
-                  {
-                    key: "id",
-                    label: "Details",
-                    render: (value) => (
-                      <Link href={`/game/history/bids/${value}`}>
-                        <Button variant="outline" size="sm">
-                          View
-                        </Button>
-                      </Link>
-                    ),
-                  },
-                ]}
-                emptyMessage="No bids yet. Be the first to place a bid!"
-              />
-            ) : (
-              <Card glass className="p-12 text-center">
-                <p className="text-text-secondary mb-6">
-                  No bids yet. Be the first to place a bid!
-                </p>
-                <Button size="lg" asChild>
-                  <Link href="/game/play">
-                    Place First Bid
-                    <ArrowRight className="ml-2" size={20} />
-                  </Link>
-                </Button>
-              </Card>
-            )}
-          </motion.div>
+              </motion.div>
+            ))}
+          </div>
 
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.6 }}
-            className="text-center mt-8"
+            className="text-center mt-16"
           >
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/game/play">
-                Place Your Bid
-                <ArrowRight className="ml-2" size={20} />
+            <Button variant="outline" asChild>
+              <Link href="/the-art">
+                Read the Full Technical Guide
+                <ArrowRight className="ml-2" size={16} />
               </Link>
             </Button>
           </motion.div>
         </Container>
       </section>
 
-      {/* Three Pillars */}
-      <section className="section-padding bg-background-surface/50">
+      {/* ───── Divider ───── */}
+      <div className="divider-gold mx-auto max-w-md" />
+
+      {/* ───── Featured Collection ───── */}
+      <section className="section-museum bg-background-surface/30">
         <Container>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -733,359 +364,418 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="heading-md text-balance mb-4">Three Ways to Win</h2>
-            <p className="body-lg max-w-2xl mx-auto">
-              Multiple paths to victory ensure every player has a chance
+            <p className="overline mb-4">Recent Works</p>
+            <h2 className="heading-lg text-balance mb-6">From the Collection</h2>
+            <p className="body-museum max-w-2xl mx-auto">
+              Each piece is a unique record of gravitational chaos — selected from
+              100,000 candidates, rendered in spectral light.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div style={{ minHeight: "500px" }}>
+            {isLoadingNFTs ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[...Array(6)].map((_, index) => (
+                  <div key={`skeleton-${index}`} className="animate-pulse">
+                    <div className="art-frame rounded-sm overflow-hidden">
+                      <div className="aspect-square bg-background-elevated" />
+                      <div className="p-5 space-y-3 border-t border-text-muted/5">
+                        <div className="h-4 bg-background-elevated rounded w-3/4" />
+                        <div className="h-3 bg-background-elevated rounded w-1/3" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : featuredNFTs.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {featuredNFTs.map((nft, index) => (
+                  <NFTCard
+                    key={`nft-${nft.id}`}
+                    nft={nft}
+                    delay={index * 0.08}
+                    priority={index < 3}
+                    size="large"
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card glass className="p-16 text-center">
+                <p className="text-text-secondary">
+                  The first artworks have not yet been minted.
+                </p>
+              </Card>
+            )}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mt-16"
+          >
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/gallery">
+                View Full Collection
+                <ArrowRight className="ml-2" size={18} />
+              </Link>
+            </Button>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* ───── What Makes Each Piece Unique ───── */}
+      <section className="section-museum">
+        <Container size="lg">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <p className="overline mb-4">Collector&apos;s Guide</p>
+            <h2 className="heading-lg text-balance mb-6">What Makes Each Piece Unique</h2>
+            <p className="body-museum max-w-2xl mx-auto">
+              Every seed produces different masses, starting positions, velocities, color palettes,
+              post-processing effects, and camera paths. Rarity emerges naturally from the
+              mathematics — it cannot be gamed or pre-selected.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                icon: Trophy,
-                title: "Collect",
-                description:
-                  "Acquire premium Cosmic Signature NFTs through gameplay. Each NFT is uniquely generated with a verifiable seed.",
-                features: [
-                  "Unique artwork",
-                  "Verifiable rarity",
-                  "Stakeable assets",
-                ],
+                title: "Orbit Character",
+                desc: "The chaos metric and equilateralness score shape whether the piece is a tight symmetric mandala or a loose, expansive flow. Both are valid aesthetic families.",
               },
               {
-                icon: Sparkles,
-                title: "Compete",
-                description:
-                  "Strategic bidding across multiple prize categories. Time your bids perfectly to maximize winning chances.",
-                features: [
-                  "Main Prize: 25% ETH",
-                  "Champion Prizes",
-                  "Raffle Rewards",
-                ],
+                title: "Color Temperature",
+                desc: "Base hue and wave frequency create natural families — cool pieces dominated by violets and cyans, warm pieces in golds and reds, or full-spectrum traversals.",
               },
               {
-                icon: TrendingUp,
-                title: "Earn",
-                description:
-                  "Stake your NFTs to earn passive rewards. Every bid earns you CST tokens you can reinvest.",
-                features: [
-                  "6% to stakers",
-                  `${cstRewardAmount} CST per bid`,
-                  "Compound gains",
-                ],
+                title: "Trail Density",
+                desc: "Alpha variation per body ({1/13M, 1/15M, 1/17M}) combined with orbit dynamics creates pieces ranging from dense luminous tangles to sparse, delicate tracery.",
               },
-            ].map((pillar, index) => (
+              {
+                title: "Rare Effects",
+                desc: "Champlevé (25%), Opalescence (25%), and Perceptual Blur (5%) are among the rarest visual traits. Some combinations appear in fewer than 1% of all pieces.",
+              },
+              {
+                title: "Nebula Clouds",
+                desc: "When enabled, swirling clouds of fractal noise glow beneath the orbital trails — giving the artwork a sense of deep-space depth and atmosphere.",
+              },
+              {
+                title: "Cinematic Grade",
+                desc: "Vibrance, clarity, tone curves, cool shadow tints, warm highlight tints, and vignette — a full color grading suite borrowed from professional film post-production.",
+              },
+            ].map((item, i) => (
               <motion.div
-                key={pillar.title}
-                initial={{ opacity: 0, y: 30 }}
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                transition={{ duration: 0.5, delay: i * 0.06 }}
               >
-                <Card glass hover className="p-8 h-full">
-                  <div className="mb-6">
-                    <div className="inline-flex items-center justify-center rounded-lg bg-primary/10 p-4 mb-4">
-                      <pillar.icon size={32} className="text-primary" />
-                    </div>
-                    <h3 className="font-serif text-2xl font-semibold text-text-primary mb-3">
-                      {pillar.title}
-                    </h3>
-                    <p className="text-text-secondary leading-relaxed">
-                      {pillar.description}
-                    </p>
-                  </div>
-                  <ul className="space-y-2">
-                    {pillar.features.map((feature) => (
-                      <li
-                        key={feature}
-                        className="flex items-center text-sm text-text-secondary"
-                      >
-                        <span className="mr-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                <Card glass className="p-7 h-full">
+                  <h3 className="font-serif text-lg font-semibold text-text-primary mb-3">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-text-secondary leading-relaxed">{item.desc}</p>
                 </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <Button variant="outline" asChild>
+              <Link href="/the-art#traits">
+                Full Traits &amp; Rarity Guide
+                <ArrowRight className="ml-2" size={16} />
+              </Link>
+            </Button>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* ───── Divider ───── */}
+      <div className="divider-gold mx-auto max-w-md" />
+
+      {/* ───── Collector Value ───── */}
+      <section className="section-museum bg-background-surface/30">
+        <Container size="lg">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <p className="overline mb-4">For Collectors</p>
+            <h2 className="heading-lg text-balance mb-6">Why This Collection Matters</h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+            {[
+              {
+                icon: Clock,
+                title: "Naturally Limited Supply",
+                desc: "The bidding timer increases exponentially after each bid. As rounds grow longer, new artworks become increasingly rare. There is no arbitrary cap — scarcity emerges from the mathematics of the game itself.",
+              },
+              {
+                icon: Fingerprint,
+                title: "Verifiable Provenance",
+                desc: "Every artwork's on-chain seed is permanently recorded. Anyone can clone the open-source repository, rebuild the Rust binary, and reproduce the exact artwork pixel-for-pixel. Provenance is mathematical, not institutional.",
+              },
+              {
+                icon: Gem,
+                title: "Museum-Quality Output",
+                desc: "16-bit PNG images with full spectral fidelity. 30-second H.265 videos at 60 fps with 10-bit color depth. AgX tonemapping from professional cinema. These are archival-quality digital artworks.",
+              },
+              {
+                icon: Shield,
+                title: "Open Source & CC0",
+                desc: "The entire generation codebase is released under CC0 1.0 — public domain. Smart contracts are audited and verified on-chain. Complete transparency at every layer.",
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+              >
+                <div className="flex items-start gap-5">
+                  <div className="flex-shrink-0 rounded-lg bg-primary/8 p-4">
+                    <item.icon size={28} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-text-secondary leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
         </Container>
       </section>
 
-      {/* Featured NFTs */}
-      <section className="section-padding">
-        <Container>
+      {/* ───── How to Acquire ───── */}
+      <section className="section-museum">
+        <Container size="lg">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="heading-md text-balance mb-4">
-              Featured Collection
-            </h2>
-            <p className="body-lg max-w-2xl mx-auto mb-8">
-              Each NFT is a unique piece of generative art, created from
-              verifiable on-chain seeds
+            <p className="overline mb-4">Acquiring Artworks</p>
+            <h2 className="heading-lg text-balance mb-6">Two Paths to Ownership</h2>
+            <p className="body-museum max-w-2xl mx-auto">
+              Collectors can acquire Cosmic Signature artworks through the on-chain game
+              or by purchasing from other collectors on the secondary market.
             </p>
           </motion.div>
 
-          {/* Fixed height container to prevent layout shift */}
-          <div style={{ minHeight: "600px" }}>
-            {isLoadingNFTs ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, index) => (
-                  <div key={`skeleton-${index}`} className="animate-pulse">
-                    <Card glass className="overflow-hidden">
-                      <div className="aspect-square bg-background-elevated" />
-                      <div className="p-4 space-y-3">
-                        <div className="h-4 bg-background-elevated rounded w-3/4" />
-                        <div className="h-3 bg-background-elevated rounded w-1/2" />
-                      </div>
-                    </Card>
-                  </div>
-                ))}
-              </div>
-            ) : Array.isArray(featuredNFTs) && featuredNFTs.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredNFTs.map((nft, index) => (
-                  <NFTCard
-                    key={`nft-${nft.id}`}
-                    nft={nft}
-                    delay={index * 0.1}
-                    priority={index < 3}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card glass className="p-12 text-center">
-                <p className="text-text-secondary">
-                  No NFTs have been minted yet. Be the first to win one!
-                </p>
-              </Card>
-            )}
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6 }}
-            className="text-center mt-12"
-          >
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/gallery">
-                View Full Gallery
-                <ArrowRight className="ml-2" size={20} />
-              </Link>
-            </Button>
-          </motion.div>
-        </Container>
-      </section>
-
-      {/* How It Works Preview */}
-      <section className="section-padding bg-background-surface/50">
-        <Container>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="heading-md text-balance mb-4">
-              How Sophisticated Players Win
-            </h2>
-            <p className="body-lg max-w-2xl mx-auto">
-              Master the mechanics to maximize your winning potential
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Steps */}
-            <div className="space-y-6">
-              {[
-                {
-                  number: "01",
-                  title: "Place Your Bid",
-                  description:
-                    `Bid with ETH or CST tokens. Each bid extends the countdown timer and earns you ${cstRewardAmount} CST tokens as a reward.`,
-                },
-                {
-                  number: "02",
-                  title: "Watch the Timer",
-                  description:
-                    "Be strategic. Prices decrease over time (Dutch auction), but waiting means others can outbid you. Timing is everything.",
-                },
-                {
-                  number: "03",
-                  title: "Become Last Bidder",
-                  description:
-                    "Stay competitive. The timer extends with each bid. Hold your position until time expires to win the main prize.",
-                },
-                {
-                  number: "04",
-                  title: "Claim Your Prizes",
-                  description:
-                    "Multiple ways to win: Main Prize, Endurance Champion, Chrono-Warrior, or Raffle. Even unsuccessful bidders can win.",
-                },
-              ].map((step, index) => (
-                <motion.div
-                  key={step.number}
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex space-x-4"
-                >
-                  <div className="flex-shrink-0">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                      <span className="font-mono text-lg font-semibold text-primary">
-                        {step.number}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-text-secondary leading-relaxed">
-                      {step.description}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Visual Stats */}
-            <div className="space-y-6">
-              <Card glass className="p-8">
-                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                  Prize Distribution
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <Card glass className="p-8 lg:p-10 h-full">
+                <div className="inline-flex items-center justify-center rounded-lg bg-primary/8 p-4 mb-6">
+                  <Atom size={28} className="text-primary" />
+                </div>
+                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-4">
+                  Through the Game
                 </h3>
-                <div className="space-y-4">
-                  {[
-                    { label: "Main Prize", value: "25%", color: "bg-primary" },
-                    {
-                      label: "Chrono-Warrior",
-                      value: "8%",
-                      color: "bg-status-info",
-                    },
-                    {
-                      label: "Staking Rewards",
-                      value: "6%",
-                      color: "bg-status-success",
-                    },
-                    { label: "Charity", value: "7%", color: "bg-status-error" },
-                    {
-                      label: "Raffle Prizes",
-                      value: "4%",
-                      color: "bg-status-warning",
-                    },
-                  ].map((item) => (
-                    <div key={item.label} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-text-secondary">
-                          {item.label}
-                        </span>
-                        <span className="font-mono text-primary font-semibold">
-                          {item.value}
-                        </span>
-                      </div>
-                      <div className="h-2 bg-background-elevated rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${item.color} rounded-full transition-all duration-1000`}
-                          style={{ width: item.value }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-text-secondary leading-relaxed mb-6">
+                  New artworks are minted when bidding rounds conclude. Place bids with ETH or CST tokens.
+                  Multiple winners per round — the last bidder claims the main prize, but every
+                  participant has chances through raffles, champion prizes, and staking rewards.
+                </p>
+                <Button asChild>
+                  <Link href="/game/how-it-works">
+                    Learn About the Game
+                    <ArrowRight className="ml-2" size={16} />
+                  </Link>
+                </Button>
               </Card>
+            </motion.div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <Card glass className="p-6">
-                  <Gem className="text-primary mb-3" size={28} />
-                  <div className="font-mono text-2xl font-semibold text-primary mb-1">
-                    {cstRewardPerBid ? Number(cstRewardPerBid) / 1e18 : '--'}
-                  </div>
-                  <div className="text-sm text-text-secondary">CST Per Bid</div>
-                </Card>
-                <Card glass className="p-6">
-                  <Users className="text-primary mb-3" size={28} />
-                  <div className="font-mono text-2xl font-semibold text-primary mb-1">
-                    15+
-                  </div>
-                  <div className="text-sm text-text-secondary">
-                    Prize Winners
-                  </div>
-                </Card>
-              </div>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card glass className="p-8 lg:p-10 h-full">
+                <div className="inline-flex items-center justify-center rounded-lg bg-primary/8 p-4 mb-6">
+                  <Gem size={28} className="text-primary" />
+                </div>
+                <h3 className="font-serif text-2xl font-semibold text-text-primary mb-4">
+                  Secondary Market
+                </h3>
+                <p className="text-text-secondary leading-relaxed mb-6">
+                  Browse the existing collection and acquire pieces directly from current owners.
+                  No game participation required. Every artwork carries full on-chain provenance
+                  — seed, minting round, original winner, and complete ownership history.
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href="/gallery">
+                    Browse the Collection
+                    <ArrowRight className="ml-2" size={16} />
+                  </Link>
+                </Button>
+              </Card>
+            </motion.div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ───── Divider ───── */}
+      <div className="divider-gold mx-auto max-w-md" />
+
+      {/* ───── About the Game (condensed) ───── */}
+      <section className="section-museum bg-background-surface/30">
+        <Container size="lg">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <p className="overline mb-4">The Mechanism</p>
+            <h2 className="heading-lg text-balance mb-6">How New Artworks Are Created</h2>
+            <p className="body-museum max-w-3xl mx-auto">
+              Cosmic Signature artworks are minted through an on-chain bidding game on Arbitrum.
+              The game creates natural scarcity — as the collection grows, new works become
+              exponentially harder to produce.
+            </p>
+          </motion.div>
+
+          <div className="max-w-3xl mx-auto space-y-8">
+            {[
+              {
+                num: "01",
+                title: "Bidding Opens",
+                desc: "Each round begins with a Dutch auction — the bid price starts high and decreases over time. Bidders can use ETH or CST tokens.",
+              },
+              {
+                num: "02",
+                title: "The Timer Extends",
+                desc: "Every bid resets a countdown timer. The timer increment grows with each round, making later rounds progressively longer and new artworks increasingly rare.",
+              },
+              {
+                num: "03",
+                title: "Multiple Winners",
+                desc: "When the timer expires, prizes are distributed: 25% ETH to the last bidder, 8% to the Chrono-Warrior champion, plus raffles, staking rewards, and 7% to Protocol Guild (Ethereum public goods).",
+              },
+              {
+                num: "04",
+                title: "Artworks Minted",
+                desc: "New Cosmic Signature NFTs are minted and distributed to winners. Each artwork's seed is derived from blockchain entropy — unique, unpredictable, and permanently recorded on-chain.",
+              },
+            ].map((step, i) => (
+              <motion.div
+                key={step.num}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="flex gap-6"
+              >
+                <div className="flex-shrink-0">
+                  <span className="font-mono text-2xl font-light text-primary/40">{step.num}</span>
+                </div>
+                <div>
+                  <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-text-secondary leading-relaxed">{step.desc}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
 
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            className="text-center mt-12"
+            className="text-center mt-12 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/game/how-it-works">
-                Learn More About Game Mechanics
-                <ArrowRight className="ml-2" size={20} />
+            <Button asChild>
+              <Link href="/game/play">
+                Enter the Game
+                <ArrowRight className="ml-2" size={16} />
               </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/game/how-it-works">Full Game Mechanics</Link>
             </Button>
           </motion.div>
         </Container>
       </section>
 
-      {/* CTA Section */}
+      {/* ───── Trust ───── */}
       <section className="section-padding">
         <Container>
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center"
           >
-            <Card glass className="p-12 md:p-16">
-              <h2 className="heading-lg text-balance mb-6">
-                Ready to Compete?
+            <Card glass className="p-10 md:p-16 text-center">
+              <p className="overline mb-6">Trust &amp; Transparency</p>
+              <h2 className="heading-md text-balance mb-10">
+                Built on Openness
               </h2>
-              <p className="body-xl max-w-3xl mx-auto mb-10">
-                Join the most sophisticated NFT auction game on the blockchain.
-                Every bid earns rewards. Every round creates opportunities.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button size="xl" asChild>
-                  <Link href="/game/play">Start Playing Now</Link>
-                </Button>
-                <Button size="xl" variant="outline" asChild>
-                  <Link href="/game/how-it-works">Watch Tutorial</Link>
-                </Button>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mb-12">
+                {[
+                  { label: "Audited Contracts", sub: "Certora verified" },
+                  { label: "Open Source", sub: "CC0 1.0 Public Domain" },
+                  { label: "On Arbitrum", sub: "Low-cost L2" },
+                  { label: "7% to Public Goods", sub: "Protocol Guild" },
+                ].map((item) => (
+                  <div key={item.label} className="text-center">
+                    <div className="font-serif text-lg font-semibold text-text-primary mb-1">
+                      {item.label}
+                    </div>
+                    <div className="text-xs text-text-muted">{item.sub}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* Trust Indicators */}
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-                <div className="text-center">
-                  <div className="text-2xl mb-2">🔒</div>
-                  <div className="text-sm text-text-secondary">
-                    Audited Smart Contracts
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl mb-2">⚡</div>
-                  <div className="text-sm text-text-secondary">
-                    Built on Arbitrum
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl mb-2">🎨</div>
-                  <div className="text-sm text-text-secondary">
-                    Unique Generative Art
-                  </div>
-                </div>
+              <p className="body-museum max-w-2xl mx-auto mb-10">
+                Zero creator ETH extraction. All funds flow to players, stakers, and public goods.
+                The contract balance currently holds{" "}
+                <span className="text-primary font-mono font-semibold">
+                  {contractBalance.toFixed(2)} ETH
+                </span>
+                .
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button variant="outline" size="lg" asChild>
+                  <a
+                    href="https://github.com/PredictionExplorer/Cosmic-Signature/tree/main"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="mr-2" size={16} />
+                    View Source Code
+                  </a>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link href="/contracts">Smart Contracts</Link>
+                </Button>
               </div>
             </Card>
           </motion.div>

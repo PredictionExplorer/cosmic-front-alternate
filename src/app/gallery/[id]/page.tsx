@@ -329,7 +329,7 @@ export default function NFTDetailPage({
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Card glass className="overflow-hidden">
+            <div className="art-frame rounded-sm overflow-hidden">
               <div className="relative aspect-square bg-background-elevated">
                 {showVideo && videoUrl ? (
                   <video
@@ -364,7 +364,7 @@ export default function NFTDetailPage({
                   </Button>
                 </div>
               )}
-            </Card>
+            </div>
           </motion.div>
 
           {/* Right: Metadata */}
@@ -645,25 +645,29 @@ export default function NFTDetailPage({
               </Button>
             </div>
 
-            {/* Generation Info */}
+            {/* About This Artwork */}
             <Card glass>
               <CardContent className="p-6">
                 <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                  About This NFT
+                  About This Artwork
                 </h3>
                 <div className="space-y-4 text-sm text-text-secondary">
                   <p>
-                    This Cosmic Signature NFT was generated using a
-                    deterministic algorithm with the seed value shown above. The
-                    generation process is fully transparent and verifiable
-                    on-chain.
+                    This piece is a visualization of the Three Body Problem — three
+                    celestial bodies orbiting under Newtonian gravity, producing
+                    trajectories of deterministic chaos. The artwork was selected from
+                    100,000 candidate orbits and rendered in 16 spectral wavelength bins
+                    spanning the visible light spectrum (380–700 nm).
                   </p>
                   <p>
-                    Each NFT is unique based on its seed, which is derived from
-                    blockchain data including block hashes, timestamps, and
-                    Arbitrum-specific entropy sources.
+                    The on-chain seed uniquely determines every aspect: orbit shape, color palette,
+                    post-processing effects, and camera path. No AI is involved. Anyone can verify
+                    this artwork by running the open-source code with the seed shown above.
                   </p>
-                  <div className="flex flex-col gap-2">
+                  <p className="text-xs text-text-muted">
+                    Output: 16-bit PNG + 30-second H.265 video at 60 fps, 10-bit color depth.
+                  </p>
+                  <div className="flex flex-col gap-2 pt-2">
                     <a
                       href={imageUrl}
                       target="_blank"
@@ -682,6 +686,13 @@ export default function NFTDetailPage({
                       View Video
                       <ExternalLink className="ml-1" size={14} />
                     </a>
+                    <Link
+                      href="/the-art"
+                      className="inline-flex items-center text-primary hover:text-primary/80 transition-colors"
+                    >
+                      How This Art Was Created
+                      <ExternalLink className="ml-1" size={14} />
+                    </Link>
                   </div>
                 </div>
               </CardContent>
@@ -690,44 +701,54 @@ export default function NFTDetailPage({
             {/* Provenance */}
             <Card glass>
               <CardContent className="p-6">
-                <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
+                <h3 className="font-serif text-xl font-semibold text-text-primary mb-2">
                   Provenance
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-2" />
+                <p className="text-xs text-text-muted mb-5 uppercase tracking-wider">Certificate of Authenticity</p>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-4 pb-4 border-b border-text-muted/10">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    </div>
                     <div className="flex-1">
                       <p className="text-sm text-text-primary font-medium">
                         Minted
                       </p>
-                      <p className="text-xs text-text-secondary">
-                        {formatTimestamp(nft.Tx.TimeStamp)} • Round {nft.RoundNum}
+                      <p className="text-xs text-text-secondary mt-0.5">
+                        {formatTimestamp(nft.Tx.TimeStamp)}
+                      </p>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        Round {nft.RoundNum} &middot; {getPrizeType(nft.RecordType, nft.RoundNum)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-accent-gold mt-2" />
+                  <div className="flex items-start space-x-4 pb-4 border-b border-text-muted/10">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-primary/60" />
+                    </div>
                     <div className="flex-1">
                       <p className="text-sm text-text-primary font-medium">
                         Original Winner
                       </p>
                       <Link
                         href={`/account?address=${nft.WinnerAddr}`}
-                        className="text-xs text-text-secondary font-mono hover:text-primary transition-colors"
+                        className="text-xs text-text-secondary font-mono hover:text-primary transition-colors break-all"
                       >
                         {nft.WinnerAddr}
                       </Link>
                     </div>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-accent-platinum mt-2" />
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-accent-platinum" />
+                    </div>
                     <div className="flex-1">
                       <p className="text-sm text-text-primary font-medium">
                         Current Owner
                       </p>
                       <Link
                         href={`/account?address=${nft.CurOwnerAddr}`}
-                        className="text-xs text-text-secondary font-mono hover:text-primary transition-colors"
+                        className="text-xs text-text-secondary font-mono hover:text-primary transition-colors break-all"
                       >
                         {nft.CurOwnerAddr}
                       </Link>

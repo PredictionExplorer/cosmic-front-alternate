@@ -1,8 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { explorer } from '@/lib/web3/chains';
-import { ExternalLink, Github, Palette, Shield, Code } from 'lucide-react';
+import { ExternalLink, Github, ArrowRight, Shield, Code, Palette, Heart } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -11,51 +12,57 @@ export default function AboutPage() {
 	return (
 		<div className="min-h-screen">
 			{/* Hero */}
-			<section className="section-padding bg-background-surface/50">
-				<Container>
+			<section className="section-museum bg-background-surface/30">
+				<Container size="lg">
 					<motion.div
 						initial={{ opacity: 0, y: 30 }}
 						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.8 }}
 						className="text-center max-w-4xl mx-auto"
 					>
-						<h1 className="heading-xl text-balance mb-6">
-							About
-							<span className="text-gradient block mt-2">Cosmic Signature</span>
+						<p className="overline mb-6">About the Project</p>
+						<h1 className="heading-exhibition text-balance mb-8">
+							Physics as Artist.
+							<span className="text-gradient block">Chaos as Beauty.</span>
 						</h1>
-						<p className="body-xl">
-							A sophisticated blockchain auction game that combines strategic competition with premium
-							generative art NFTs
+						<p className="body-museum max-w-2xl mx-auto">
+							Cosmic Signature is a generative art project that turns one of physics&apos; oldest
+							unsolved problems into unique, verifiable digital artworks. No AI. No human hand.
+							The Three Body Problem becomes the artist.
 						</p>
 					</motion.div>
 				</Container>
 			</section>
 
-			{/* The Concept */}
-			<section className="section-padding">
+			<div className="divider-gold mx-auto max-w-md" />
+
+			{/* The Vision */}
+			<section className="section-museum">
 				<Container size="lg">
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
 						<motion.div
 							initial={{ opacity: 0, x: -30 }}
 							whileInView={{ opacity: 1, x: 0 }}
 							viewport={{ once: true }}
 						>
-							<h2 className="heading-sm mb-6">The Concept</h2>
-							<div className="space-y-4 text-text-secondary leading-relaxed">
+							<h2 className="heading-sm mb-6">The Vision</h2>
+							<div className="space-y-5 body-museum">
 								<p>
-									Cosmic Signature represents a new paradigm in blockchain gaming - one that values
-									strategic depth over mindless clicking, artistic merit over mass production, and
-									transparent mechanics over hidden algorithms.
+									Cosmic Signature begins with a simple idea: what if the most beautiful art
+									came not from a human hand or an AI model, but from the fundamental laws of physics?
 								</p>
 								<p>
-									Built on Arbitrum for efficient transactions, the game employs sophisticated smart
-									contracts to create a provably fair competition where timing, strategy, and resource
-									management determine success.
+									The Three Body Problem — three celestial masses orbiting under Newtonian gravity — produces
+									trajectories that are simultaneously deterministic and utterly unpredictable. Small
+									differences in starting conditions lead to wildly different paths. This &quot;deterministic
+									chaos&quot; creates visual complexity that no algorithm could design and no artist
+									could anticipate.
 								</p>
 								<p>
-									Each round presents multiple pathways to victory. Whether you pursue the main prize
-									as last bidder, dominate as Endurance Champion, master the timing for
-									Chrono-Warrior, or simply participate for raffle chances - there&apos;s a strategy
-									for every player.
+									Each artwork in the collection is born from this process. A single on-chain seed drives
+									the entire generation pipeline: physics simulation, spectral rendering, and
+									cinema-grade post-production. The result is a 16-bit image and 30-second video that
+									are provably unique and permanently tied to their blockchain origin.
 								</p>
 							</div>
 						</motion.div>
@@ -64,20 +71,21 @@ export default function AboutPage() {
 							initial={{ opacity: 0, x: 30 }}
 							whileInView={{ opacity: 1, x: 0 }}
 							viewport={{ once: true }}
-							className="space-y-6"
+							className="space-y-5"
 						>
 							<Card glass className="p-6">
 								<div className="flex items-start space-x-4">
-									<div className="flex-shrink-0 rounded-lg bg-primary/10 p-3">
-										<Shield size={24} className="text-primary" />
+									<div className="flex-shrink-0 rounded-lg bg-primary/8 p-3">
+										<Palette size={22} className="text-primary" />
 									</div>
 									<div>
 										<h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
-											Audited & Secure
+											Art from Physics
 										</h3>
 										<p className="text-sm text-text-secondary">
-											All smart contracts have been thoroughly audited by leading security firms.
-											Code is open source and verifiable on-chain.
+											Real gravitational simulation. 16 spectral wavelength bins.
+											100,000 orbits evaluated per piece. The pipeline produces
+											museum-quality output that rewards close inspection.
 										</p>
 									</div>
 								</div>
@@ -85,16 +93,16 @@ export default function AboutPage() {
 
 							<Card glass className="p-6">
 								<div className="flex items-start space-x-4">
-									<div className="flex-shrink-0 rounded-lg bg-status-success/10 p-3">
-										<Palette size={24} className="text-status-success" />
+									<div className="flex-shrink-0 rounded-lg bg-primary/8 p-3">
+										<Shield size={22} className="text-primary" />
 									</div>
 									<div>
 										<h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
-											Generative Art
+											Verifiable &amp; Transparent
 										</h3>
 										<p className="text-sm text-text-secondary">
-											Every NFT is uniquely generated using a deterministic algorithm with
-											verifiable on-chain seeds. No two are alike.
+											Every artwork is deterministic — same seed, same output, pixel for pixel.
+											Open-source code under CC0. Audited smart contracts verified on-chain.
 										</p>
 									</div>
 								</div>
@@ -102,16 +110,17 @@ export default function AboutPage() {
 
 							<Card glass className="p-6">
 								<div className="flex items-start space-x-4">
-									<div className="flex-shrink-0 rounded-lg bg-status-info/10 p-3">
-										<Code size={24} className="text-status-info" />
+									<div className="flex-shrink-0 rounded-lg bg-primary/8 p-3">
+										<Heart size={22} className="text-primary" />
 									</div>
 									<div>
 										<h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
-											Open Source
+											Public Goods Funding
 										</h3>
 										<p className="text-sm text-text-secondary">
-											Complete transparency. All smart contract code, NFT generation scripts, and
-											game mechanics are publicly available.
+											7% of every round goes to Protocol Guild — the collective funding
+											mechanism for 170+ Ethereum core protocol contributors.
+											Art that builds the future.
 										</p>
 									</div>
 								</div>
@@ -121,126 +130,122 @@ export default function AboutPage() {
 				</Container>
 			</section>
 
-			{/* The Art */}
-			<section className="section-padding bg-background-surface/50">
-				<Container>
+			{/* Philosophy */}
+			<section className="section-padding bg-background-surface/30">
+				<Container size="lg">
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						viewport={{ once: true }}
+						className="text-center mb-16"
+					>
+						<p className="overline mb-4">Project Philosophy</p>
+						<h2 className="heading-md mb-4">Built on Principles</h2>
+					</motion.div>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+						{[
+							{
+								title: 'Zero Creator Extraction',
+								description:
+									'No team wallet receives ETH. All funds flow to players, stakers, and public goods. The project succeeds when its participants succeed.'
+							},
+							{
+								title: 'Naturally Limited Supply',
+								description:
+									'The bidding timer grows exponentially. As rounds lengthen, new artworks become increasingly rare — scarcity emerges from mathematics, not artificial caps.'
+							},
+							{
+								title: 'Complete Transparency',
+								description:
+									'All smart contract code, the NFT generation pipeline, and game mechanics are publicly available and open source under CC0.'
+							},
+							{
+								title: 'Provable Fairness',
+								description:
+									'All randomness is generated on-chain using multiple entropy sources. Results are verifiable and cannot be manipulated by anyone.'
+							},
+							{
+								title: 'Charitable Impact',
+								description:
+									'7% of every round is sent on-chain to Protocol Guild, funding the people building the infrastructure we all depend on.'
+							},
+							{
+								title: 'Community Governance',
+								description:
+									'CST token holders can vote on game parameters through on-chain DAO governance, ensuring the community shapes the project\'s future.'
+							}
+						].map((feature, index) => (
+							<motion.div
+								key={feature.title}
+								initial={{ opacity: 0, y: 20 }}
+								whileInView={{ opacity: 1, y: 0 }}
+								viewport={{ once: true }}
+								transition={{ delay: index * 0.05 }}
+							>
+								<Card glass className="p-6 h-full">
+									<h3 className="font-serif text-lg font-semibold text-text-primary mb-3">
+										{feature.title}
+									</h3>
+									<p className="text-sm text-text-secondary leading-relaxed">{feature.description}</p>
+								</Card>
+							</motion.div>
+						))}
+					</div>
+				</Container>
+			</section>
+
+			<div className="divider-gold mx-auto max-w-md" />
+
+			{/* The Technology */}
+			<section className="section-museum">
+				<Container size="lg">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true }}
 						className="text-center mb-12"
 					>
-						<h2 className="heading-md mb-4">The Art</h2>
-						<p className="body-lg max-w-2xl mx-auto">Understanding Cosmic Signature NFT generation</p>
+						<p className="overline mb-4">The Technology</p>
+						<h2 className="heading-md mb-4">How the Art Is Created</h2>
+						<p className="body-museum max-w-2xl mx-auto">
+							A Rust-based pipeline simulates gravitational physics, renders in the spectral domain,
+							and applies cinema-grade post-production — all deterministically from a single on-chain seed.
+						</p>
 					</motion.div>
 
-					<Card glass className="p-8 md:p-12">
-						<div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-							<div className="space-y-6">
-								<div>
-									<h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-										Generation Process
-									</h3>
-									<div className="space-y-4 text-text-secondary">
-										<p className="leading-relaxed">
-											Each Cosmic Signature NFT is created through a deterministic generative art
-											algorithm stored on IPFS. The process is completely transparent and
-											verifiable.
-										</p>
-										<div className="space-y-3">
-											<div className="flex items-start space-x-3">
-												<span className="flex-shrink-0 font-mono text-primary">1.</span>
-												<p className="text-sm">
-													When an NFT is minted, a unique seed is generated from blockchain
-													data (block hashes, timestamps, Arbitrum entropy)
-												</p>
-											</div>
-											<div className="flex items-start space-x-3">
-												<span className="flex-shrink-0 font-mono text-primary">2.</span>
-												<p className="text-sm">
-													This seed is permanently stored on-chain and associated with the
-													token ID
-												</p>
-											</div>
-											<div className="flex items-start space-x-3">
-												<span className="flex-shrink-0 font-mono text-primary">3.</span>
-												<p className="text-sm">
-													The generation script uses this seed to create a unique visual
-													output (both image and video)
-												</p>
-											</div>
-											<div className="flex items-start space-x-3">
-												<span className="flex-shrink-0 font-mono text-primary">4.</span>
-												<p className="text-sm">
-													Anyone can verify the NFT by running the script with the same seed
-												</p>
-											</div>
-										</div>
+					<div className="max-w-3xl mx-auto">
+						<Card glass className="p-8 md:p-10">
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-6 mb-8">
+								{[
+									{ value: '100K', label: 'Orbits per piece' },
+									{ value: '2M', label: 'Simulation steps' },
+									{ value: '16', label: 'Spectral bins' },
+									{ value: '60 fps', label: 'Video framerate' },
+									{ value: '10-bit', label: 'Color depth (video)' },
+									{ value: 'CC0', label: 'Open source license' },
+								].map((stat) => (
+									<div key={stat.label} className="text-center">
+										<div className="font-mono text-xl font-semibold text-primary mb-1">{stat.value}</div>
+										<div className="text-xs text-text-muted">{stat.label}</div>
 									</div>
-								</div>
-
-								<div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-									<p className="text-sm text-text-secondary">
-										<strong className="text-text-primary">Provably Unique:</strong> The
-										deterministic nature of the algorithm guarantees that each seed produces a
-										completely unique visual output. No duplicates are possible.
-									</p>
-								</div>
+								))}
 							</div>
-
-							<div className="space-y-6">
-								<div>
-									<h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-										Technical Details
-									</h3>
-									<div className="space-y-4">
-										<div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-											<p className="text-sm font-semibold text-text-primary mb-2">
-												Entropy Sources
-											</p>
-											<ul className="space-y-1 text-xs text-text-secondary">
-												<li>• Previous L2 block hash</li>
-												<li>• Block base fee</li>
-												<li>• Arbitrum L1 block hash</li>
-												<li>• Gas backlog metrics</li>
-												<li>• L1 pricing units</li>
-											</ul>
-										</div>
-
-										<div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-											<p className="text-sm font-semibold text-text-primary mb-2">
-												Output Formats
-											</p>
-											<ul className="space-y-1 text-xs text-text-secondary">
-												<li>• Static image (high resolution)</li>
-												<li>• Animated video loop</li>
-												<li>• Metadata (JSON)</li>
-											</ul>
-										</div>
-
-										<div className="p-4 rounded-lg bg-background-elevated border border-text-muted/10">
-											<p className="text-sm font-semibold text-text-primary mb-2">
-												Generation Script
-											</p>
-											<p className="text-xs text-text-secondary mb-3">
-												The algorithm is written in Rust and permanently stored on IPFS for
-												immutable access.
-											</p>
-											<Button size="sm" variant="outline" className="w-full">
-												<ExternalLink size={14} className="mr-2" />
-												View Script on IPFS
-											</Button>
-										</div>
-									</div>
-								</div>
+							<div className="text-center">
+								<Button variant="outline" asChild>
+									<Link href="/the-art">
+										Read the Full Technical Guide
+										<ArrowRight className="ml-2" size={16} />
+									</Link>
+								</Button>
 							</div>
-						</div>
-					</Card>
+						</Card>
+					</div>
 				</Container>
 			</section>
 
 			{/* Smart Contracts */}
-			<section className="section-padding">
+			<section className="section-padding bg-background-surface/30">
 				<Container size="lg">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
@@ -249,48 +254,48 @@ export default function AboutPage() {
 						className="text-center mb-12"
 					>
 						<h2 className="heading-md mb-4">Smart Contracts</h2>
-						<p className="body-lg max-w-2xl mx-auto">Transparent, audited, and open source</p>
+						<p className="body-lg max-w-2xl mx-auto">Audited, transparent, and open source</p>
 					</motion.div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						{[
 							{
 								name: 'Cosmic Signature Game',
-								description: 'Main game logic including bidding, prizes, and round management',
+								description: 'Main game logic — bidding, prizes, round management',
 								address: '0x1234...5678'
 							},
 							{
 								name: 'Cosmic Signature NFT',
-								description: 'ERC-721 contract for game NFTs with custom metadata',
+								description: 'ERC-721 — unique artworks with on-chain seeds',
 								address: '0x2345...6789'
 							},
 							{
 								name: 'Cosmic Signature Token',
-								description: 'ERC-20 token with voting, burning, and minting capabilities',
+								description: 'ERC-20 — governance, bidding, and rewards',
 								address: '0x3456...7890'
 							},
 							{
 								name: 'Prizes Wallet',
-								description: 'Holds and distributes prizes, tokens, and donated NFTs',
+								description: 'Prize distribution and donated NFT custody',
 								address: '0x4567...8901'
 							},
 							{
 								name: 'Staking Wallets',
-								description: 'Manages NFT staking and reward distribution',
+								description: 'NFT staking and reward distribution',
 								address: '0x5678...9012'
 							},
 							{
 								name: 'Marketing & Charity',
-								description: 'Distributes marketing rewards and charitable donations',
+								description: 'Marketing rewards and Protocol Guild distributions',
 								address: '0x6789...0123'
 							}
 						].map((contract, index) => (
 							<motion.div
 								key={contract.name}
-								initial={{ opacity: 0, y: 30 }}
+								initial={{ opacity: 0, y: 20 }}
 								whileInView={{ opacity: 1, y: 0 }}
 								viewport={{ once: true }}
-								transition={{ delay: index * 0.1 }}
+								transition={{ delay: index * 0.05 }}
 							>
 								<Card glass hover className="p-6">
 									<h3 className="font-serif text-lg font-semibold text-text-primary mb-2">
@@ -317,7 +322,6 @@ export default function AboutPage() {
 						initial={{ opacity: 0 }}
 						whileInView={{ opacity: 1 }}
 						viewport={{ once: true }}
-						transition={{ delay: 0.6 }}
 						className="mt-12 text-center"
 					>
 						<Button size="lg" variant="outline" asChild>
@@ -330,8 +334,8 @@ export default function AboutPage() {
 				</Container>
 			</section>
 
-			{/* Security & Audits */}
-			<section className="section-padding bg-background-surface/50">
+			{/* Security */}
+			<section className="section-padding">
 				<Container size="lg">
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
@@ -339,41 +343,40 @@ export default function AboutPage() {
 						viewport={{ once: true }}
 						className="text-center mb-12"
 					>
-						<h2 className="heading-md mb-4">Security & Audits</h2>
-						<p className="body-lg max-w-2xl mx-auto">Your safety is our priority</p>
+						<h2 className="heading-md mb-4">Security &amp; Audits</h2>
 					</motion.div>
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{[
 							{
 								icon: Shield,
-								title: 'Multiple Audits',
+								title: 'Certora Verified',
 								description:
-									'Comprehensive security audits conducted by industry-leading firms specializing in smart contract security.'
+									'Smart contracts have been formally verified by Certora — mathematical proof that the code behaves as specified.'
 							},
 							{
 								icon: Code,
 								title: 'Open Source',
 								description:
-									'All smart contract code is publicly available on GitHub for community review and verification.'
+									'All code is publicly available under CC0 on GitHub for community review and independent verification.'
 							},
 							{
 								icon: ExternalLink,
 								title: 'On-Chain Verification',
 								description:
-									'Contract source code is verified on Arbiscan, allowing anyone to inspect the actual deployed bytecode.'
+									'Contract source code is verified on Arbiscan. Anyone can inspect the actual deployed bytecode.'
 							}
 						].map((item, index) => (
 							<motion.div
 								key={item.title}
-								initial={{ opacity: 0, y: 30 }}
+								initial={{ opacity: 0, y: 20 }}
 								whileInView={{ opacity: 1, y: 0 }}
 								viewport={{ once: true }}
-								transition={{ delay: index * 0.1 }}
+								transition={{ delay: index * 0.08 }}
 							>
 								<Card glass className="p-6 text-center h-full">
-									<div className="inline-flex items-center justify-center rounded-lg bg-primary/10 p-4 mb-4">
-										<item.icon size={28} className="text-primary" />
+									<div className="inline-flex items-center justify-center rounded-lg bg-primary/8 p-4 mb-4">
+										<item.icon size={24} className="text-primary" />
 									</div>
 									<h3 className="font-serif text-lg font-semibold text-text-primary mb-3">
 										{item.title}
@@ -386,87 +389,14 @@ export default function AboutPage() {
 				</Container>
 			</section>
 
-			{/* Key Features */}
-			<section className="section-padding">
-				<Container>
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						className="text-center mb-12"
-					>
-						<h2 className="heading-md mb-4">Why Cosmic Signature</h2>
-					</motion.div>
-
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-						{[
-							{
-								title: 'Strategic Depth',
-								description:
-									'Dutch auction mechanics create a game of timing and psychology. Early bids pay premium prices, late bids risk being outbid.'
-							},
-							{
-								title: 'Multiple Prize Categories',
-								description:
-									'15+ winners per round across various categories: main prize, champions, raffles, and staking rewards.'
-							},
-							{
-								title: 'Dual Token System',
-								description:
-									'Bid with ETH or earned CST tokens. Every bid generates CST rewards, creating a self-sustaining economy.'
-							},
-							{
-								title: 'Provable Fairness',
-								description:
-									'All randomness generated on-chain using multiple entropy sources. Results are verifiable and cannot be manipulated.'
-							},
-							{
-								title: 'Premium NFTs',
-								description:
-									'High-quality generative art with both static images and animated videos. Each piece is unique and verifiably scarce.'
-							},
-							{
-								title: 'Passive Income',
-								description:
-									'Stake NFTs to earn ETH rewards from every round. Withdraw anytime with no lock periods or penalties.'
-							},
-							{
-								title: 'Charitable Giving',
-								description:
-									'7% of every round goes to verified charitable causes. Play the game, help the world.'
-							},
-							{
-								title: 'Community Governed',
-								description:
-									'CST token holders can vote on game parameters, ensuring the community shapes the future (DAO features coming soon).'
-							}
-						].map((feature, index) => (
-							<motion.div
-								key={feature.title}
-								initial={{ opacity: 0, y: 30 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true }}
-								transition={{ delay: index * 0.05 }}
-							>
-								<Card glass className="p-6 h-full">
-									<h3 className="font-serif text-lg font-semibold text-text-primary mb-3">
-										{feature.title}
-									</h3>
-									<p className="text-sm text-text-secondary leading-relaxed">{feature.description}</p>
-								</Card>
-							</motion.div>
-						))}
-					</div>
-				</Container>
-			</section>
-
-			{/* Contact/Community */}
-			<section className="section-padding bg-background-surface/50">
+			{/* Community CTA */}
+			<section className="section-padding bg-background-surface/30">
 				<Container size="md">
 					<Card glass className="p-12 text-center">
 						<h2 className="heading-sm mb-6">Join the Community</h2>
-						<p className="body-lg mb-8">
-							Connect with other players, get support, and stay updated on latest developments
+						<p className="body-museum mb-8 max-w-lg mx-auto">
+							Connect with other collectors, follow the project&apos;s development,
+							and stay informed about new rounds and artworks.
 						</p>
 						<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
 							<Button size="lg" variant="outline" asChild>
@@ -476,12 +406,12 @@ export default function AboutPage() {
 							</Button>
 							<Button size="lg" variant="outline" asChild>
 								<a href="https://x.com/CosmicSignatureNFT" target="_blank" rel="noopener noreferrer">
-									Follow on Twitter
+									Follow on X
 								</a>
 							</Button>
 							<Button size="lg" variant="outline" asChild>
 								<a href="https://github.com/PredictionExplorer/Cosmic-Signature/tree/main" target="_blank" rel="noopener noreferrer">
-									<Github className="mr-2" size={20} />
+									<Github className="mr-2" size={18} />
 									GitHub
 								</a>
 							</Button>

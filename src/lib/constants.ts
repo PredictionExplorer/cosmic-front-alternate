@@ -1,8 +1,9 @@
 // Navigation Links Configuration
 
 export const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/gallery", label: "Gallery" },
+  { href: "/gallery", label: "Collection" },
+  { href: "/the-art", label: "The Art" },
+  { href: "/about", label: "About" },
   {
     label: "Game",
     submenu: [
@@ -14,10 +15,9 @@ export const NAV_LINKS = [
       { href: "/game/history/rounds", label: "Round History" },
     ],
   },
-  { href: "/donations", label: "Donations" },
   { href: "/stake", label: "Stake" },
+  { href: "/donations", label: "Donations" },
   { href: "/contracts", label: "Contracts" },
-  { href: "/about", label: "About" },
 ] as const;
 
 // Social Media Links Configuration
