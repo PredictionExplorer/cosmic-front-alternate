@@ -224,7 +224,7 @@
     "outputs": []
   },
   {
-    "name": "wasNftUsed",
+    "name": "usedNfts",
     "type": "function",
     "stateMutability": "view",
     "inputs": [

@@ -78,7 +78,7 @@ export function useRWLKStaking() {
               const result = await readContract(wagmiConfig, {
                 address: CONTRACTS.STAKING_WALLET_RWLK,
                 abi: StakingWalletRWLKABI,
-                functionName: "wasNftUsed",
+                functionName: "usedNfts",
                 args: [BigInt(tokenId)],
               });
               if ((result as bigint) !== 0n) contractUsedIds.add(tokenId);

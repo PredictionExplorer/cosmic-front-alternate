@@ -15,7 +15,27 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { shortenAddress } from "@/lib/utils";
 import { api, getAssetsUrl } from "@/services/api";
-import type { ApiCSTToken } from "@/services/apiTypes";
+import type { ApiCSTToken, ApiDashboardData } from "@/services/apiTypes";
+
+/** Sum ETH per staked NFT for a round (unique staking deposits; same deposit repeats per staker). */
+function aggregateEthPerStakedNft(
+  rewards: Record<string, unknown>[],
+): number | null {
+  if (!rewards.length) return null;
+  const byDeposit = new Map<string, number>();
+  for (const r of rewards) {
+    const depositKey = String(r.RecordId ?? r.recordId ?? "");
+    const per = Number(
+      r.AmountPerTokenEth ?? r.amountPerTokenEth ?? NaN,
+    );
+    if (!depositKey || Number.isNaN(per)) continue;
+    if (!byDeposit.has(depositKey)) byDeposit.set(depositKey, per);
+  }
+  if (byDeposit.size === 0) return null;
+  let sum = 0;
+  for (const v of byDeposit.values()) sum += v;
+  return sum;
+}
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useNotification } from "@/contexts/NotificationContext";
 
@@ -70,6 +90,23 @@ export default function NFTDetailPage({
   const nameHistory = nameHistoryRaw ?? [];
 
   // Fetch NFT data and max token ID
+  /** ETH per staked NFT for the last completed round (fetched via CurRoundNum − 1). */
+  const {
+    data: lastRoundRewardInfo,
+    isLoading: loadingLastRoundReward,
+    error: lastRoundRewardError,
+  } = useApiQuery(
+    "gallery-staking-last-round-per-nft",
+    async () => {
+      const dash: ApiDashboardData = await api.getDashboardInfo();
+      const cur = dash.CurRoundNum ?? 0;
+      const lastRound = Math.max(0, cur - 1);
+      const rewards = await api.getStakingCSTRewardsByRound(lastRound);
+      const ethPerStakedNft = aggregateEthPerStakedNft(rewards);
+      return { ethPerStakedNft };
+    },
+  );
+
   const { data: nftBundle, isLoading: loading, error: fetchError, refetch: refetchNFT } = useApiQuery(
     "gallery-nft-" + id,
     async () => {
@@ -455,7 +492,17 @@ export default function NFTDetailPage({
 
                 <div className="flex justify-between items-center pb-4 border-b border-text-muted/10">
                   <span className="text-text-secondary">Round</span>
-                  <Badge variant="default">Round {nft.RoundNum}</Badge>
+                  <Link
+                    href={`/game/history/rounds/${nft.RoundNum}`}
+                    className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-md"
+                  >
+                    <Badge
+                      variant="default"
+                      className="cursor-pointer transition-colors hover:bg-primary/20"
+                    >
+                      Round {nft.RoundNum}
+                    </Badge>
+                  </Link>
                 </div>
 
                 <div className="flex justify-between items-center pb-4 border-b border-text-muted/10">
@@ -524,6 +571,38 @@ export default function NFTDetailPage({
                       again
                     </p>
                   )}
+                  {lastRoundRewardError ? (
+                    <p className="text-sm text-text-muted mt-3">
+                      Could not load last round staking rewards.
+                    </p>
+                  ) : loadingLastRoundReward ? (
+                    <p className="text-sm text-text-muted mt-3">
+                      Loading last round staking rewards…
+                    </p>
+                  ) : lastRoundRewardInfo &&
+                    lastRoundRewardInfo.ethPerStakedNft != null &&
+                    lastRoundRewardInfo.ethPerStakedNft > 0 ? (
+                    <p className="text-sm text-text-secondary mt-3 leading-relaxed">
+                      Last round, each staked NFT received{" "}
+                      <span className="text-text-primary font-medium tabular-nums">
+                        {lastRoundRewardInfo.ethPerStakedNft.toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 6,
+                          },
+                        )}{" "}
+                        ETH
+                      </span>{" "}
+                      in staking rewards.
+                    </p>
+                  ) : lastRoundRewardInfo &&
+                    lastRoundRewardInfo.ethPerStakedNft === 0 ? (
+                    <p className="text-sm text-text-muted mt-3">
+                      No staking reward distribution was recorded for the last
+                      round.
+                    </p>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>

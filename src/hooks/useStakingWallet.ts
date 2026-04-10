@@ -60,12 +60,13 @@ export function useStakingWalletCST() {
 				}),
 
 			/**
-			 * Check if NFT was already staked before
+			 * Mapping slot for “this NFT id was used for staking” (0 = never, nonzero = used).
+			 * Must match on-chain `usedNfts` (public mapping), not a fictional `wasNftUsed`.
 			 */
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
 					...contractConfig,
-					functionName: 'wasNftUsed',
+					functionName: 'usedNfts',
 					args: [nftId]
 				})
 		},
@@ -170,12 +171,13 @@ export function useStakingWalletRWLK() {
 				}),
 
 			/**
-			 * Check if NFT was already staked before
+			 * Mapping slot for “this NFT id was used for staking” (0 = never, nonzero = used).
+			 * Must match on-chain `usedNfts` (public mapping), not a fictional `wasNftUsed`.
 			 */
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
 					...contractConfig,
-					functionName: 'wasNftUsed',
+					functionName: 'usedNfts',
 					args: [nftId]
 				})
 		},

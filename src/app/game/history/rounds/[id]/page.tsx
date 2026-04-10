@@ -22,6 +22,29 @@ type RaffleNFTWinner = ApiRaffleNFTWinner;
 type RaffleETHDeposit = ApiRaffleDepositResponse;
 type RoundDetail = ApiRoundDetail;
 
+/**
+ * True round length in seconds. Prefers `cg_round_stats.round_duration_seconds` from the API.
+ * The old UI used `TimeoutTs - claimTxTime`, which is “time from claim to timeout” and is often ~0
+ * when the winner claimed at the deadline — not the length of the round.
+ */
+function getRoundDurationSeconds(round: ApiRoundDetail): number {
+  const rs = round.RoundStats;
+  if (typeof rs?.RoundDurationSeconds === "number" && rs.RoundDurationSeconds > 0) {
+    return Number(rs.RoundDurationSeconds);
+  }
+  const start = rs?.RoundStartTime ? Date.parse(String(rs.RoundStartTime)) : NaN;
+  const end = rs?.RoundEndTime ? Date.parse(String(rs.RoundEndTime)) : NaN;
+  if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+    return Math.floor((end - start) / 1000);
+  }
+  const timeoutTs = round.MainPrize?.TimeoutTs ?? 0;
+  const claimTs = round.ClaimPrizeTx?.Tx?.TimeStamp ?? 0;
+  if (timeoutTs > 0 && claimTs > 0 && timeoutTs >= claimTs) {
+    return timeoutTs - claimTs;
+  }
+  return 0;
+}
+
 export default function RoundDetailPage({
   params,
 }: {
@@ -132,7 +155,7 @@ export default function RoundDetailPage({
   }
 
   // Calculate derived values
-  const duration = round.MainPrize.TimeoutTs - (round.ClaimPrizeTx?.Tx?.TimeStamp || 0);
+  const durationSeconds = getRoundDurationSeconds(round);
   const totalPool = round.MainPrize.EthAmountEth + round.StakingDeposit.StakingDepositAmountEth + round.RoundStats.TotalRaffleEthDepositsEth;
 
   return (
@@ -159,7 +182,7 @@ export default function RoundDetailPage({
                 <h1 className="heading-xl mb-2">Round {round.RoundNum}</h1>
                 <p className="text-text-secondary">
                   Completed on {formatDate(new Date(safeTimestamp(round)))} •
-                  Duration: {formatDuration(duration * 1000)}
+                  Duration: {formatDuration(durationSeconds * 1000)}
                 </p>
               </div>
 
@@ -203,8 +226,8 @@ export default function RoundDetailPage({
             </div>
             <div className="text-center">
               <Clock size={24} className="text-primary mx-auto mb-2" />
-              <p className="font-mono text-2xl font-semibold text-text-primary">
-                {Math.floor(duration / 3600)}h
+              <p className="text-lg font-semibold text-text-primary px-1 leading-tight">
+                {formatDuration(durationSeconds * 1000)}
               </p>
               <p className="text-sm text-text-secondary">Duration</p>
             </div>
@@ -495,7 +518,7 @@ export default function RoundDetailPage({
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
                     <span className="text-text-secondary">Duration</span>
                     <span className="font-mono text-text-primary font-semibold">
-                      {formatDuration(duration * 1000)}
+                      {formatDuration(durationSeconds * 1000)}
                     </span>
                   </div>
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
