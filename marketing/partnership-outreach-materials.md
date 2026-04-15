@@ -219,7 +219,7 @@ Subject: Collection Listing Request -- Cosmic Signature NFT (Arbitrum)
 
 Hi [Marketplace] Team,
 
-We'd like to list the Cosmic Signature NFT (CSN) collection on
+We'd like to list the Cosmic Signature NFT collection on
 [Marketplace].
 
 Details:
@@ -227,7 +227,7 @@ Details:
 - Standard: ERC-721 (ERC721Enumerable)
 - Contract: [ADDRESS]
 - Collection name: Cosmic Signature
-- Symbol: CSN
+- Symbol: COSMIC
 - Description: Procedurally generated NFTs earned as prizes in the
   Cosmic Signature on-chain strategy game. Each NFT has a unique
   on-chain seed. Stakeable for ETH rewards.
@@ -251,7 +251,7 @@ Best,
 ### Template for DeFi Protocol Outreach
 
 ```
-Subject: Composability Opportunity -- Cosmic Signature (CST + CSN on Arbitrum)
+Subject: Composability Opportunity -- Cosmic Signature (CST + COSMIC NFT on Arbitrum)
 
 Hi [Protocol] Team,
 
@@ -263,13 +263,13 @@ includes two assets that could be interesting for [Protocol]:
    deflationary (burned on CST bids) with ongoing minting through
    gameplay.
 
-2. CSN (Cosmic Signature NFT) -- ERC-721Enumerable. Earned through
+2. Cosmic Signature NFT (ERC-721; symbol: COSMIC) -- ERC-721Enumerable. Earned through
    gameplay. Currently stakeable for ETH rewards in our staking contract.
 
 Potential integration ideas:
-- [For lending]: CST/CSN as collateral
+- [For lending]: CST/COSMIC NFT as collateral
 - [For DEX]: CST liquidity pool
-- [For NFT-fi]: CSN lending/borrowing
+- [For NFT-fi]: COSMIC NFT lending/borrowing
 - [For social]: Player profile integration
 
 Would you be interested in exploring composability between our

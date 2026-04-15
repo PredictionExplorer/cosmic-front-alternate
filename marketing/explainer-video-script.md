@@ -81,7 +81,7 @@
 4. Token (Last CST Bidder: NFT + 1,000 CST) -- violet glow
 5. Dice (ETH Raffle: 4% split among 3 random bidders) -- gold sparkle
 6. Gem (NFT Raffle: 10 random bidders + up to 10 RWLK stakers) -- cyan sparkle
-7. Stack (CSN Staking: 6% ETH to staked NFT holders) -- violet glow
+7. Stack (COSMIC NFT Staking: 6% ETH to staked NFT holders) -- violet glow
 8. Ethereum diamond (Protocol Guild: 7% to Ethereum devs) -- green glow
 9. Arrow (50% rolls to next round) -- subtle glow
 

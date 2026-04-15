@@ -144,7 +144,7 @@ COSMIC SIGNATURE
 | **Ambassador** | #FFB800 (Solar Gold) | Post in announcements-adjacent | Ambassador program |
 | **Endurance Champion** | #FFB800 (Solar Gold) | Custom name color | Won EC in any round |
 | **Chrono-Warrior** | #FF3D8A (Chrono Rose) | Custom name color | Won CW in any round |
-| **CSN Holder** | #00E5FF (Aurora Cyan) | Access to #nft-gallery | Verified via bot |
+| **COSMIC NFT Holder** | #00E5FF (Aurora Cyan) | Access to #nft-gallery | Verified via bot |
 | **RWLK Holder** | #00D68F (Impact Green) | Access to RWLK channels | Verified via bot |
 | **DAO Voter** | #6C3CE1 (Nebula Violet) | Access to governance channels | Voted in any DAO proposal |
 | **Bidder** | #F0EDFF (Stellar White) | Access to strategy channels | Placed any bid on-chain |
@@ -153,7 +153,7 @@ COSMIC SIGNATURE
 ### Bot Setup
 
 **1. Collab.Land or Guild.xyz** (Token-gating)
-- Verify CSN holdings for CSN Holder role
+- Verify COSMIC NFT holdings for COSMIC NFT Holder role
 - Verify RWLK holdings for RWLK Holder role
 - Verify CST holdings above threshold for DAO Voter role
 - Verify on-chain bid history for Bidder role
@@ -174,16 +174,16 @@ COSMIC SIGNATURE
     - Last CST Bidder: address
     - ETH Raffle: 3 winner addresses, ~1.33% ETH each
     - NFT Raffle: 10 bidder winners, up to 10 RWLK staker winners
-    - CSN Stakers: total 6% ETH deposited, number of staked NFTs, per-NFT amount
+    - COSMIC NFT Stakers: total 6% ETH deposited, number of staked NFTs, per-NFT amount
     - Protocol Guild: 7% ETH amount sent
     - Next round prize pool: ~50% ETH retained
-    - Total CST minted this round, total CSN minted
-  - CST and CSN mint events (major batches at round end)
+    - Total CST minted this round, total COSMIC NFTs minted
+  - CST and COSMIC NFT mint events (major batches at round end)
 - Data source: On-chain event listeners via WebSocket RPC on Arbitrum One
 - Contract events to monitor:
   - `BidPlaced` on CosmicSignatureGame
   - `MainPrizeClaimed` on CosmicSignatureGame
-  - `Transfer` events on CST and CSN contracts
+  - `Transfer` events on CST and COSMIC NFT contracts
   - `NftStaked` / `NftUnstaked` on staking wallets
   - `EthDeposited` on PrizesWallet
 

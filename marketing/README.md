@@ -12,8 +12,8 @@ Every Cosmic Signature NFT is a visualization of the **Three Body Problem** -- t
 
 - **Bidding**: Players bid with ETH (Dutch auction declining price, then ~1% incremental steps) or CST tokens (repeating Dutch auction, burned on use). Each bid extends the countdown timer by ~1 hour and earns the bidder 100 CST instantly.
 - **Champion Titles**: Endurance Champion (longest unbroken streak as last bidder) and Chrono-Warrior (longest reign as EC, earning 8% of the round's ETH) reward strategic timing over capital.
-- **Prize Distribution**: When a round ends, the game distributes 25% ETH (main prize), 8% (Chrono-Warrior), 4% (3 raffle winners), 6% (CSN stakers), and 7% (Protocol Guild), plus CST and Cosmic Signature NFTs to multiple winner categories. ~50% of ETH stays in the game contract for the next round.
-- **Staking**: Cosmic Signature NFTs earn passive ETH yield (6% per round, split pro-rata). Random Walk NFTs earn raffle eligibility (up to 10 CSN + CST winners per round).
+- **Prize Distribution**: When a round ends, the game distributes 25% ETH (main prize), 8% (Chrono-Warrior), 4% (3 raffle winners), 6% (COSMIC NFT stakers), and 7% (Protocol Guild), plus CST and Cosmic Signature NFTs to multiple winner categories. ~50% of ETH stays in the game contract for the next round.
+- **Staking**: Cosmic Signature NFTs earn passive ETH yield (6% per round, split pro-rata). Random Walk NFTs earn raffle eligibility (up to 10 winners per round, each receiving a COSMIC NFT + CST).
 - **Governance**: CST holders vote in the DAO (OpenZeppelin Governor, 100 CST proposal threshold, 2-week voting, 3% quorum) on prize percentages, public goods recipient, timer settings, and more.
 
 ### What Makes It Different
@@ -106,7 +106,7 @@ All numbers below are default values from `CosmicSignatureConstants.sol` and can
 | Main ETH prize | 25% of contract balance |
 | Chrono-Warrior ETH prize | 8% |
 | ETH raffle (3 winners) | 4% total |
-| CSN staking ETH reward | 6% |
+| COSMIC NFT staking ETH reward | 6% |
 | Protocol Guild allocation | 7% |
 | ETH retained for next round | ~50% |
 | Marketing wallet CST per round | 3,000 CST |

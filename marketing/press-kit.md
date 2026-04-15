@@ -12,7 +12,7 @@
 | **Category** | On-chain strategy game with NFT rewards, staking yield, and DAO governance |
 | **Network** | Arbitrum One (Ethereum L2) |
 | **Token** | CST (Cosmic Signature Token) -- ERC-20 with governance voting |
-| **NFT** | CSN (Cosmic Signature NFT) -- ERC-721 with unique on-chain generative seeds |
+| **NFT** | Cosmic Signature NFT (symbol: COSMIC) -- ERC-721 with unique on-chain generative seeds |
 | **Partner NFT** | RWLK (Random Walk NFT) -- 50% bid discount + staking raffle eligibility |
 | **License** | CC0 1.0 Universal (fully open source, public domain) |
 | **Security** | Certora formal verification, Slither static analysis, OpenZeppelin foundations |
@@ -63,7 +63,7 @@ Cosmic Signature was designed from the ground up so that **value flows to partic
 
 1. **Zero creator ETH extraction**: No team wallet receives ETH. The only non-participant allocation is CST (not ETH) to a marketing wallet for community growth. Every ETH wei that enters the game goes to players, stakers, or public goods.
 
-2. **10+ prize categories every round**: Main prize, last CST bidder, Endurance Champion, Chrono-Warrior, 3 ETH raffle winners, 10 NFT raffle winners (bidders), up to 10 NFT raffle winners (RWLK stakers), CSN staking ETH yield, plus 100 CST minted to every bidder on every bid. Multiple ways to win in every single round.
+2. **10+ prize categories every round**: Main prize, last CST bidder, Endurance Champion, Chrono-Warrior, 3 ETH raffle winners, 10 NFT raffle winners (bidders), up to 10 NFT raffle winners (RWLK stakers), COSMIC NFT staking ETH yield, plus 100 CST minted to every bidder on every bid. Multiple ways to win in every single round.
 
 3. **Growing prize pool**: 50% of the game's ETH balance is retained after each round. As new bids add ETH and only half leaves, the pool compounds over time. The longer the game runs, the bigger the prizes become.
 
@@ -103,15 +103,15 @@ At round end, the game takes a snapshot of its entire ETH balance and distribute
 
 | Recipient | ETH Share | CST | NFT | How Delivered |
 |-----------|----------|-----|-----|--------------|
-| **Main Prize** (last bidder / claimer) | 25% | 1,000 | 1 CSN | ETH sent directly; CST + NFT minted to address |
-| **Chrono-Warrior** | 8% | 1,000 | 1 CSN | ETH deposited in PrizesWallet; CST + NFT minted |
+| **Main Prize** (last bidder / claimer) | 25% | 1,000 | 1 COSMIC NFT | ETH sent directly; CST + NFT minted to address |
+| **Chrono-Warrior** | 8% | 1,000 | 1 COSMIC NFT | ETH deposited in PrizesWallet; CST + NFT minted |
 | **ETH Raffle** (3 random bidders) | 4% total | -- | -- | ETH deposited in PrizesWallet |
-| **CSN NFT Stakers** | 6% | -- | -- | ETH sent to staking contract, split pro-rata per NFT |
+| **COSMIC NFT Stakers** | 6% | -- | -- | ETH sent to staking contract, split pro-rata per NFT |
 | **Protocol Guild** (public goods) | 7% | -- | -- | ETH sent directly to charity address |
-| **Endurance Champion** | -- | 1,000 | 1 CSN | CST + NFT minted to address |
-| **Last CST Bidder** | -- | 1,000 | 1 CSN | CST + NFT minted to address |
-| **NFT Raffle -- Bidders** (10 random) | -- | 1,000 each | 1 CSN each | CST + NFT minted to addresses |
-| **NFT Raffle -- RWLK Stakers** (up to 10) | -- | 1,000 each | 1 CSN each | CST + NFT minted to addresses |
+| **Endurance Champion** | -- | 1,000 | 1 COSMIC NFT | CST + NFT minted to address |
+| **Last CST Bidder** | -- | 1,000 | 1 COSMIC NFT | CST + NFT minted to address |
+| **NFT Raffle -- Bidders** (10 random) | -- | 1,000 each | 1 COSMIC NFT each | CST + NFT minted to addresses |
+| **NFT Raffle -- RWLK Stakers** (up to 10) | -- | 1,000 each | 1 COSMIC NFT each | CST + NFT minted to addresses |
 | **Marketing Wallet** | -- | 3,000 | -- | CST minted |
 | **All Bidders** (every single bid) | -- | 100 | -- | CST minted instantly per bid |
 | **Next Round** (retained) | ~50% | -- | -- | Stays in game contract |
@@ -122,15 +122,15 @@ At round end, the game takes a snapshot of its entire ETH balance and distribute
 
 | Recipient | Amount |
 |-----------|--------|
-| Main Prize Winner | 2.5 ETH + 1 CSN + 1,000 CST |
-| Chrono-Warrior | 0.8 ETH + 1 CSN + 1,000 CST |
+| Main Prize Winner | 2.5 ETH + 1 COSMIC NFT + 1,000 CST |
+| Chrono-Warrior | 0.8 ETH + 1 COSMIC NFT + 1,000 CST |
 | 3 ETH Raffle Winners | ~0.133 ETH each |
-| CSN Stakers (20 NFTs staked) | 0.6 ETH total (0.03 ETH per NFT) |
+| COSMIC NFT Stakers (20 NFTs staked) | 0.6 ETH total (0.03 ETH per NFT) |
 | Protocol Guild | 0.7 ETH |
-| Endurance Champion | 1 CSN + 1,000 CST |
-| Last CST Bidder | 1 CSN + 1,000 CST |
-| 10 Bidder Raffle Winners | 1 CSN + 1,000 CST each |
-| Up to 10 RWLK Staker Raffle Winners | 1 CSN + 1,000 CST each |
+| Endurance Champion | 1 COSMIC NFT + 1,000 CST |
+| Last CST Bidder | 1 COSMIC NFT + 1,000 CST |
+| 10 Bidder Raffle Winners | 1 COSMIC NFT + 1,000 CST each |
+| Up to 10 RWLK Staker Raffle Winners | 1 COSMIC NFT + 1,000 CST each |
 | Marketing Wallet | 3,000 CST |
 | Rolling to next round | 5.0 ETH |
 
@@ -146,7 +146,7 @@ At round end, the game takes a snapshot of its entire ETH balance and distribute
 - **Governance**: Voting power in the DAO. Delegatable. Timestamp-based clock for snapshot compatibility.
 - **Supply**: No fixed cap. Dynamically managed by the game's mint/burn cycle. CST bidding creates deflationary pressure (burn > reward when bid price exceeds 100 CST).
 
-### Cosmic Signature NFT (CSN)
+### Cosmic Signature NFT
 
 - **Standard**: ERC-721 Enumerable
 - **Generation**: Each NFT has a unique on-chain seed derived from block data, base fees, and Arbitrum precompiles (ArbSys, ArbGasInfo). The seed is stored permanently on-chain.
@@ -159,7 +159,7 @@ At round end, the game takes a snapshot of its entire ETH balance and distribute
 ### Random Walk NFT (RWLK) Integration
 
 - **50% ETH bid discount**: Attach an unused RWLK to any ETH bid to pay half price. The NFT is not burned -- you keep it -- but it is marked as "used" for bidding permanently (one-time per NFT ID).
-- **Staking for raffle**: Stake RWLK NFTs for eligibility in the per-round CSN + CST raffle (up to 10 winners per round)
+- **Staking for raffle**: Stake RWLK NFTs for eligibility in the per-round COSMIC NFT + CST raffle (up to 10 winners per round)
 - **One-time staking**: Each RWLK ID can only be staked once. After unstaking, it cannot be restaked.
 - **External collection**: A separately deployed and independently operating NFT project that is integrated into Cosmic Signature for cross-ecosystem synergy
 
@@ -194,10 +194,10 @@ The game uses a modular, inheritance-based architecture centered on a single upg
 |----------|---------|
 | **CosmicSignatureGame** | Core game logic. UUPS upgradeable proxy. Inherits: Bidding, MainPrize, BidStatistics, SecondaryPrizes, SystemManagement, EthDonations, NftDonations. |
 | **CosmicSignatureToken (CST)** | ERC-20 with ERC20Votes, ERC20Permit, ERC20Burnable. Only the game can mint/burn. |
-| **CosmicSignatureNft (CSN)** | ERC-721 Enumerable. Only the game can mint. Each token has a unique on-chain random seed. |
+| **CosmicSignatureNft (symbol: COSMIC)** | ERC-721 Enumerable. Only the game can mint. Each token has a unique on-chain random seed. |
 | **PrizesWallet** | Escrow for secondary ETH prizes (chrono-warrior, raffle) and donated ERC-20/ERC-721 assets. 5-week withdrawal timeout. |
 | **DonatedTokenHolder** | Per-round holder for donated ERC-20 tokens. Created by PrizesWallet. |
-| **StakingWalletCosmicSignatureNft** | CSN staking with cumulative per-NFT ETH reward tracking. Game deposits 6% per round. |
+| **StakingWalletCosmicSignatureNft** | COSMIC NFT staking with cumulative per-NFT ETH reward tracking. Game deposits 6% per round. |
 | **StakingWalletRandomWalkNft** | RWLK staking with random picker for raffle winner selection. |
 | **CosmicSignatureDao** | OpenZeppelin Governor for on-chain governance. |
 | **CharityWallet** | Receives 7% ETH allocation. Forwards to designated public goods address. Anyone can trigger the forward. |
@@ -226,7 +226,7 @@ Player bids ETH
     ▼          ▼          ▼          ▼          ▼           ▼
   25% ETH   8% ETH     4% ETH    6% ETH     7% ETH     ~50% ETH
   Main      Chrono     Raffle    Staking    Charity     Retained
-  Prize     Warrior   (3 wins)   (CSN)     (Protocol    (Next
+  Prize     Warrior   (3 wins)   (NFT)     (Protocol    (Next
   (direct)  (escrow)  (escrow)  (deposit)   Guild)      Round)
 ```
 
@@ -290,7 +290,7 @@ For the complete technical documentation, see [art-algorithm-guide.md](art-algor
 | Total ETH to Protocol Guild (public goods) | [X] |
 | CST tokens in circulation | [X] |
 | Cosmic Signature NFTs minted | [X] |
-| CSN NFTs currently staked | [X] |
+| COSMIC NFTs currently staked | [X] |
 | RWLK NFTs currently staked | [X] |
 | Average prize pool per round | [X] |
 | Largest single main prize | [X] |
@@ -338,7 +338,7 @@ A: No. Cosmic Signature is a strategy game where players make active decisions: 
 A: Arbitrum One, an Ethereum Layer 2 rollup. Transactions are fast (sub-second finality) and affordable (typically a few cents per transaction), while being secured by Ethereum mainnet. This makes participation accessible regardless of bid size.
 
 **Q: Do I need to be the last bidder to win?**
-A: No. While the last bidder receives the main prize (25% ETH), there are many other ways to win: Endurance Champion (longest bidding streak), Chrono-Warrior (8% ETH for longest championship reign), ETH raffle (3 random bidders win), NFT raffle (10 random bidders + up to 10 RWLK stakers win CSN + CST), CSN staking (passive ETH yield from 6%), and every single bid earns 100 CST.
+A: No. While the last bidder receives the main prize (25% ETH), there are many other ways to win: Endurance Champion (longest bidding streak), Chrono-Warrior (8% ETH for longest championship reign), ETH raffle (3 random bidders win), NFT raffle (10 random bidders + up to 10 RWLK stakers win COSMIC NFT + CST), COSMIC NFT staking (passive ETH yield from 6%), and every single bid earns 100 CST.
 
 **Q: How does the 7% public goods funding work?**
 A: When `claimMainPrize()` is called at round end, 7% of the game contract's total ETH balance is automatically transferred to the designated public goods address. Currently this is Protocol Guild (protocolguild.org), which distributes to 170+ Ethereum core protocol contributors. The percentage is enforced by smart contract code -- it executes every round with no manual intervention. The public goods address can be updated via DAO governance.
@@ -356,7 +356,7 @@ A: Yes. All smart contracts are released under CC0 1.0 Universal -- the most per
 A: CST (Cosmic Signature Token) serves three purposes: (1) alternative bidding currency -- CST bids are burned, creating deflationary pressure; (2) DAO governance -- delegating CST gives voting power over game parameters and public goods recipient; (3) rewards -- 100 CST minted per bid, 1,000 CST per prize winner, 3,000 CST to marketing per round.
 
 **Q: How are Cosmic Signature NFTs generated?**
-A: Each CSN has a unique seed stored permanently on-chain, derived from mixing block hashes, base fees, and Arbitrum precompile data (ArbSys, ArbGasInfo). The visual art is generated by simulating the Three Body Problem -- three celestial bodies orbiting under Newtonian gravity using a 4th-order Yoshida symplectic integrator (from astrophysics research). 100,000 random orbits are evaluated and the most visually interesting one is selected via Borda rank aggregation. The chosen orbit's trails are rendered in the spectral domain (16 wavelength bins, 380-700 nm) with anti-aliased drawing, velocity-dependent HDR, and a full cinematic post-processing pipeline. The output is a 16-bit PNG and a 30-second H.265 video at 60 fps. Owners can also name their NFTs (up to 32 characters).
+A: Each COSMIC NFT has a unique seed stored permanently on-chain, derived from mixing block hashes, base fees, and Arbitrum precompile data (ArbSys, ArbGasInfo). The visual art is generated by simulating the Three Body Problem -- three celestial bodies orbiting under Newtonian gravity using a 4th-order Yoshida symplectic integrator (from astrophysics research). 100,000 random orbits are evaluated and the most visually interesting one is selected via Borda rank aggregation. The chosen orbit's trails are rendered in the spectral domain (16 wavelength bins, 380-700 nm) with anti-aliased drawing, velocity-dependent HDR, and a full cinematic post-processing pipeline. The output is a 16-bit PNG and a 30-second H.265 video at 60 fps. Owners can also name their NFTs (up to 32 characters).
 
 **Q: Is AI used to generate the art?**
 A: No. There are no neural networks, diffusion models, or training data anywhere in the pipeline. The entire system is deterministic numerical computation: gravitational physics, Fourier analysis for orbit quality assessment, spectral optics, and signal processing. The unpredictable beauty comes from the Three Body Problem itself -- one of the oldest unsolved problems in physics, where three gravitating bodies produce fundamentally chaotic trajectories.
@@ -368,7 +368,7 @@ A: Yes. The generation code is fully open-source under CC0 1.0 and the pipeline 
 A: The last bidder has a 1-day exclusive window to call `claimMainPrize()`. If they do not claim within that window, anyone can call the function and receive the main prize themselves. Secondary prizes in the PrizesWallet have a 5-week withdrawal window before they become claimable by anyone. Prizes are never permanently locked.
 
 **Q: How does staking work?**
-A: Two types of staking exist: (1) Cosmic Signature NFT (CSN) staking earns passive ETH yield. 6% of the game's ETH per round is deposited to the staking contract and split equally among all staked NFTs. (2) Random Walk NFT (RWLK) staking provides eligibility for a per-round raffle of CSN + CST prizes (up to 10 winners). Each NFT can only be staked once ever.
+A: Two types of staking exist: (1) Cosmic Signature NFT staking earns passive ETH yield. 6% of the game's ETH per round is deposited to the staking contract and split equally among all staked NFTs. (2) Random Walk NFT (RWLK) staking provides eligibility for a per-round raffle of COSMIC NFT + CST prizes (up to 10 winners). Each NFT can only be staked once ever.
 
 **Q: Can the game be upgraded? Is it safe?**
 A: The game contract uses UUPS (Universal Upgradeable Proxy Standard) and can be upgraded while preserving all state. Safeguards: upgrades can only happen during the inactive stage between rounds (no mid-game changes), and only the contract owner can authorize them. The owner can be set to the DAO or a community multisig for decentralized control.

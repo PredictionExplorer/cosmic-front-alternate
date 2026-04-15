@@ -34,8 +34,8 @@ Quest platforms (Galxe, Layer3, Zealy) drive verified on-chain actions by reward
 | 2 | **First Real Bid** | Place your first ETH bid on mainnet | On-chain: Bid event | 200 |
 | 3 | **Strategic Bidder** | Place 3+ bids across any rounds | On-chain: Bid count >= 3 | 300 |
 | 4 | **CST Citizen** | Hold 100+ CST | On-chain: CST balance >= 100 | 100 |
-| 5 | **NFT Collector** | Own a Cosmic Signature NFT | On-chain: CSN balance >= 1 | 200 |
-| 6 | **Staker** | Stake a CSN or RWLK NFT | On-chain: Staking contract interaction | 200 |
+| 5 | **NFT Collector** | Own a Cosmic Signature NFT | On-chain: COSMIC NFT balance >= 1 | 200 |
+| 6 | **Staker** | Stake a COSMIC NFT or RWLK NFT | On-chain: Staking contract interaction | 200 |
 | 7 | **DAO Voter** | Delegate your CST voting power | On-chain: Delegate tx | 150 |
 | 8 | **Genesis Completionist** | Complete all 7 quests above | Composite | 500 |
 
@@ -53,7 +53,7 @@ Layer3's format is more narrative-driven. Structure as a "learning path":
 | 2 | **The Bid** | Explanation of bidding mechanics. Task: Place an ETH bid on Arbitrum One. | On-chain: Bid event |
 | 3 | **Earn CST** | Explanation of CST rewards. Task: Verify you received CST. | On-chain: CST balance > 0 |
 | 4 | **The Champions** | Explanation of EC and CW. Quiz: "What is the Endurance Champion?" | Quiz: Correct answer |
-| 5 | **Stake and Earn** | Staking explanation. Task: Stake a CSN NFT (if owned) OR delegate CST. | On-chain: Either action |
+| 5 | **Stake and Earn** | Staking explanation. Task: Stake a COSMIC NFT (if owned) OR delegate CST. | On-chain: Either action |
 | 6 | **Govern the Game** | DAO explanation. Task: View a proposal on Tally. | Quiz confirmation |
 
 **Reward**: Layer3 Cube credential + featured on Layer3 homepage
@@ -91,7 +91,7 @@ Each month introduces a themed quest set:
 - Hold 1,000+ CST
 
 **Month 3: "The Stakeholder"**
-- Stake 2+ CSN NFTs simultaneously
+- Stake 2+ COSMIC NFTs simultaneously
 - Earn staking rewards from at least one round
 - Delegate CST to a governance address
 
@@ -101,7 +101,7 @@ Each month introduces a themed quest set:
 - Participate in a DAO vote
 
 **Month 5: "The Collector"**
-- Own 5+ unique CSN NFTs
+- Own 5+ unique COSMIC NFTs
 - Name at least 2 NFTs
 - Share NFT gallery on social media
 
@@ -122,7 +122,7 @@ Running Zealy leaderboard with XP earned from:
 
 | Rank | Reward |
 |------|--------|
-| #1 | Custom CSN NFT name + 5,000 CST + featured community spotlight |
+| #1 | Custom COSMIC NFT name + 5,000 CST + featured community spotlight |
 | #2-5 | 2,000 CST + community spotlight |
 | #6-20 | 1,000 CST |
 | #21-50 | 500 CST |
@@ -146,7 +146,7 @@ For Galxe and Layer3 to verify on-chain tasks, provide:
 2. **Event signatures** for verification
    - `BidPlaced(address indexed bidder, uint256 roundNum, int256 randomWalkNftId, int256 cstBidPrice, uint256 ethBidPrice, string message)` -- ETH and CST bids
    - `MainPrizeClaimed(uint256 roundNum, address indexed claimer)` -- round end
-   - `Transfer(address indexed from, address indexed to, uint256 indexed tokenId)` on CSN/RWLK -- NFT mint/transfer events
+   - `Transfer(address indexed from, address indexed to, uint256 indexed tokenId)` on COSMIC NFT / RWLK -- NFT mint/transfer events
    - `Transfer(address indexed from, address indexed to, uint256 value)` on CST -- token mint/burn
    - `NftStaked(address indexed staker, uint256 indexed nftId)` -- staking events
    - `NftUnstaked(address indexed staker, uint256 indexed nftId)` -- unstaking events
@@ -204,7 +204,7 @@ These quests test deeper understanding and strategic play:
 | **Dutch Auction Sniper** | Place an ETH bid during the Dutch auction phase (before any other bid) | On-chain: first bid in round | 300 |
 | **CST Strategist** | Place a CST bid when auction price < 100 CST (net CST gain) | On-chain: CST bid event + price check | 250 |
 | **RWLK Discounter** | Use a Random Walk NFT for a 50% ETH bid discount | On-chain: bid with RWLK parameter >= 0 | 200 |
-| **Multi-Staker** | Stake 3+ CSN NFTs simultaneously | On-chain: staking contract state query | 300 |
+| **Multi-Staker** | Stake 3+ COSMIC NFTs simultaneously | On-chain: staking contract state query | 300 |
 | **Claim Race** | Call claimMainPrize() successfully | On-chain: MainPrizeClaimed event | 500 |
 | **Governance Pioneer** | Create a DAO proposal | On-chain: ProposalCreated event | 400 |
 | **Full Voter** | Vote on 3+ different DAO proposals | On-chain: VoteCast events (3+) | 300 |

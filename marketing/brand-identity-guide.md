@@ -159,7 +159,7 @@ Cosmic Signature speaks like a **strategic advisor who genuinely cares** -- know
 | Endurance Champion | Winner, Victor | Bidder with the longest single unbroken streak as last bidder |
 | Chrono-Warrior | Runner-up | Bidder who held EC title for longest continuous period (earns 8% ETH) |
 | Claim | Cash out, Collect | Calling claimMainPrize() to trigger prize distribution |
-| Cosmic Signature NFT (CSN) | Token, Collectible | ERC-721 with unique on-chain seed, stakeable for 6% ETH yield |
+| Cosmic Signature NFT (symbol: COSMIC) | Token, Collectible | ERC-721 with unique on-chain seed, stakeable for 6% ETH yield |
 | Cosmic Signature Token (CST) | Coin, Currency | ERC-20 governance token: bid currency (burned), voting power, rewards (100 per bid) |
 | Random Walk NFT (RWLK) | Partner token | External ERC-721: 50% ETH bid discount (one-time) + staking raffle eligibility |
 | Prize pool | Bank, Treasury | The game contract's ETH balance at round end |
@@ -168,8 +168,8 @@ Cosmic Signature speaks like a **strategic advisor who genuinely cares** -- know
 | Dutch auction | Sale, Fixed price | Time-declining price: starts at ceiling, drops linearly to floor |
 | Incremental pricing | Escalating | After first bid: each ETH bid costs ~1% more than the previous one |
 | Timer increment | Countdown extension | ~1 hour added to deadline per bid (grows ~1% per round) |
-| Staking yield | Dividends, Interest | 6% of round ETH split pro-rata among all staked CSN NFTs |
-| Raffle eligibility | Lottery | RWLK stakers enter random drawings (up to 10 CSN + CST winners per round) |
+| Staking yield | Dividends, Interest | 6% of round ETH split pro-rata among all staked COSMIC NFTs |
+| Raffle eligibility | Lottery | RWLK stakers enter random drawings (up to 10 winners per round, each receiving a COSMIC NFT + CST) |
 | DAO governance | Voting | On-chain OpenZeppelin Governor (100 CST threshold, 2-week voting, 3% quorum) |
 | Zero creator ETH | No team tax | No team wallet receives ETH -- all goes to players, stakers, public goods |
 

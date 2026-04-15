@@ -35,7 +35,7 @@ Every round is a self-contained competition with its own set of winners, but the
 
 - **Network**: Arbitrum One (Ethereum L2) -- low gas fees, fast confirmations
 - **Bid currencies**: ETH (primary) and CST (alternative, burns on use)
-- **NFTs**: Cosmic Signature NFTs (CSN) minted as prizes; Random Walk NFTs (RWLK) unlock discounts and raffle eligibility
+- **NFTs**: Cosmic Signature NFTs minted as prizes; Random Walk NFTs (RWLK) unlock discounts and raffle eligibility
 - **Governance**: CST holders vote on the game's future through an on-chain DAO
 - **Public goods**: 7% of every round's ETH goes to Protocol Guild, funding Ethereum core development
 - **License**: Fully open-source under CC0 1.0 -- anyone can read, verify, and build on the code
@@ -129,7 +129,7 @@ This means if someone bids well before the deadline, the timer still extends fro
 
 | NFT | Symbol | Role in Cosmic Signature |
 |-----|--------|-------------------------|
-| **Cosmic Signature NFT** | CSN | Minted as prizes at the end of each round. Each has a unique on-chain seed that generates unique generative art. Owners can assign a name (up to 32 characters). Stake to earn passive ETH from the 6% staking allocation. ERC-721 Enumerable. |
+| **Cosmic Signature NFT** | COSMIC NFT | Minted as prizes at the end of each round. Each has a unique on-chain seed that generates unique generative art. Owners can assign a name (up to 32 characters). Stake to earn passive ETH from the 6% staking allocation. ERC-721 Enumerable. |
 | **Random Walk NFT** | RWLK | An existing, separately deployed collection. Attach to an ETH bid for a **50% discount** (one-time use per NFT ID). Stake for eligibility in the CS NFT + CST raffle (up to 10 winners per round). |
 
 ### 3.5 How the Art Is Generated
@@ -377,7 +377,7 @@ When `claimMainPrize()` is called, the game takes a snapshot of its total ETH ba
 | **Main Prize Winner** (last bidder or claimer) | **25%** | Sent directly to the wallet that calls `claimMainPrize()` |
 | **Chrono-Warrior** | **8%** | Deposited into PrizesWallet -- winner withdraws manually |
 | **ETH Raffle** (3 random bidders) | **4% total** | Split evenly (~1.33% each), deposited into PrizesWallet |
-| **Cosmic Signature NFT Stakers** | **6%** | Sent to the CSN staking contract, divided equally among all staked NFTs |
+| **Cosmic Signature NFT Stakers** | **6%** | Sent to the COSMIC NFT staking contract, divided equally among all staked NFTs |
 | **Protocol Guild (Public Goods)** | **7%** | Sent directly to the charity/public goods address |
 | **Retained for Next Round** | **~50%** | Stays in the game contract, growing the future prize pool |
 
@@ -401,14 +401,14 @@ Plus: **100 CST minted to every bidder on every bid** throughout the round.
 
 | Recipient | NFTs |
 |-----------|------|
-| Main Prize Winner | 1 CSN |
-| Last CST Bidder | 1 CSN |
-| Endurance Champion | 1 CSN |
-| Chrono-Warrior | 1 CSN |
-| 10 random bidders | 1 CSN each |
-| Up to 10 random RWLK stakers | 1 CSN each |
+| Main Prize Winner | 1 COSMIC NFT |
+| Last CST Bidder | 1 COSMIC NFT |
+| Endurance Champion | 1 COSMIC NFT |
+| Chrono-Warrior | 1 COSMIC NFT |
+| 10 random bidders | 1 COSMIC NFT each |
+| Up to 10 random RWLK stakers | 1 COSMIC NFT each |
 
-Each minted CSN has a unique on-chain random seed that determines its generative artwork. The same bidder can win multiple raffle slots if drawn more than once.
+Each COSMIC NFT minted has a unique on-chain random seed that determines its generative artwork. The same bidder can win multiple raffle slots if drawn more than once.
 
 If no one has staked Random Walk NFTs, the RWLK staker raffle simply produces zero winners for that round -- no NFTs are minted for that category.
 
@@ -420,7 +420,7 @@ If no one has staked Random Walk NFTs, the RWLK staker raffle simply produces ze
 | Main Prize Winner | 2.5 ETH |
 | Chrono-Warrior | 0.8 ETH |
 | 3 ETH Raffle Winners | ~0.133 ETH each (0.4 ETH total) |
-| CSN Stakers (say 20 staked NFTs) | 0.6 ETH total (0.03 ETH per NFT) |
+| COSMIC NFT Stakers (say 20 staked NFTs) | 0.6 ETH total (0.03 ETH per NFT) |
 | Protocol Guild | 0.7 ETH |
 | Retained for next round | ~5.0 ETH |
 
@@ -428,7 +428,7 @@ If no one has staked Random Walk NFTs, the RWLK staker raffle simply produces ze
 
 **CST minted at round end**: Up to ~27,000 CST (1,000 each to main winner, last CST bidder, EC, CW, up to 20 raffle winners, plus 3,000 to marketing)
 
-**CSN minted at round end**: Up to 24 NFTs (1 each to main winner, last CST bidder, EC, CW, 10 bidder raffle, up to 10 RWLK staker raffle)
+**COSMIC NFTs minted at round end**: Up to 24 NFTs (1 each to main winner, last CST bidder, EC, CW, 10 bidder raffle, up to 10 RWLK staker raffle)
 
 ### 6.5 Prize Claiming
 
@@ -484,11 +484,11 @@ Even with constant bid volume, the prize pool grows. With increasing participati
 
 ### 8.1 Cosmic Signature NFT Staking (Passive ETH Yield)
 
-**What it does**: Lock your CSN NFTs in the staking contract to earn a share of the **6% ETH allocation** that flows from the game to stakers at the end of each round.
+**What it does**: Lock your COSMIC NFTs in the staking contract to earn a share of the **6% ETH allocation** that flows from the game to stakers at the end of each round.
 
 **How rewards accumulate**:
 
-1. When a round ends and `claimMainPrize()` is called, 6% of the game's ETH balance is sent to the CSN staking contract.
+1. When a round ends and `claimMainPrize()` is called, 6% of the game's ETH balance is sent to the COSMIC NFT staking contract.
 2. This ETH is divided **equally among all staked NFTs** at that moment. Not per wallet -- per NFT. If you have 3 NFTs staked, you get 3 shares.
 3. Your accumulated reward is tracked on-chain. It grows each round that you remain staked.
 4. When you unstake, you receive all accumulated ETH rewards and get your NFT back.
@@ -500,40 +500,40 @@ rewardPerNft = depositAmount / numberOfStakedNfts
 yourReward = rewardPerNft × numberOfYourStakedNfts
 ```
 
-If there are 20 staked CSN and a round ends with 10 ETH in the contract:
+If there are 20 staked COSMIC NFTs and a round ends with 10 ETH in the contract:
 - Staking deposit = 10 ETH × 6% = 0.6 ETH
 - Per-NFT reward = 0.6 / 20 = 0.03 ETH per round
 - If you have 3 staked NFTs: 0.03 × 3 = 0.09 ETH earned that round
 
 **Important rules**:
-- Each CSN can only be staked **once ever**. After you unstake it, that specific NFT ID cannot be re-staked. Choose carefully when to unstake.
+- Each COSMIC NFT can only be staked **once ever**. After you unstake it, that specific NFT ID cannot be re-staked. Choose carefully when to unstake.
 - If zero NFTs are staked when a round ends, the 6% deposit to the staking contract is skipped (the ETH stays in the game contract). The contract owner can sweep any accumulated dust to charity if the staking wallet has ETH but no stakers.
 
 **Strategy considerations**:
 - **Stake early**: When fewer NFTs exist and fewer are staked, your share is larger.
 - **Timing unstake**: Consider the trade-off between continued staking yield and selling/using the NFT.
-- **Compound**: Win more CSN from prizes and raffle, stake those too for growing yield.
+- **Compound**: Win more COSMIC NFTs from prizes and raffle, stake those too for growing yield.
 
 ### 8.2 Random Walk NFT Staking (Raffle Eligibility)
 
-**What it does**: Stake your RWLK NFTs to become eligible for the **CSN + CST raffle** at the end of each round.
+**What it does**: Stake your RWLK NFTs to become eligible for the **COSMIC NFT + CST raffle** at the end of each round.
 
 **How the raffle works**:
 
 1. At round end, the game picks up to **10 random winners** from the pool of staked RWLK NFTs.
 2. Each winner receives 1 Cosmic Signature NFT + 1,000 CST.
 3. Selection is random with replacement -- the same staker address can win multiple times in one round if they have multiple NFTs staked.
-4. If no RWLK NFTs are staked, the raffle produces zero winners and no CSN are minted for this category.
+4. If no RWLK NFTs are staked, the raffle produces zero winners and no COSMIC NFTs are minted for this category.
 
 **Important rules**:
 - Each RWLK NFT ID can only be staked **once ever**. After unstaking, it cannot be restaked.
-- RWLK staking does **not** earn direct ETH yield (unlike CSN staking). The value comes from raffle prizes.
+- RWLK staking does **not** earn direct ETH yield (unlike COSMIC NFT staking). The value comes from raffle prizes.
 - A RWLK NFT that was used for a bid discount can still be staked (and vice versa -- but only one of each, and each only once).
 
 **Strategy considerations**:
 - More staked NFTs = higher probability of winning each round's raffle
 - This is probabilistic, not guaranteed -- treat it as a recurring lottery ticket
-- The CSN you win from the raffle can be staked for ETH yield, creating a compounding loop
+- The COSMIC NFTs you win from the raffle can be staked for ETH yield, creating a compounding loop
 
 ---
 
@@ -552,7 +552,7 @@ Random Walk NFTs hold special utility within Cosmic Signature. Each RWLK has two
 
 ### 9.2 Use 2: Staking for Raffle Eligibility
 
-- Stake your RWLK to enter the per-round raffle (up to 10 winners, each getting 1 CSN + 1,000 CST)
+- Stake your RWLK to enter the per-round raffle (up to 10 winners, each getting 1 COSMIC NFT + 1,000 CST)
 - The NFT is transferred to the staking contract while staked
 - You can unstake at any time to get it back
 
@@ -569,7 +569,7 @@ PATH A: Bid Discount
 PATH B: Staking for Raffle
 ├── Best when: You want ongoing raffle eligibility across multiple rounds
 ├── More NFTs staked = better odds per round
-└── Win CSN (stakeable for ETH yield) + CST (governance power)
+└── Win COSMIC NFTs (stakeable for ETH yield) + CST (governance power)
 ```
 
 **Can you do both?** Yes, but in sequence. You can use a RWLK for a bid discount first, then stake it for raffle eligibility afterward (or vice versa). But each action can only happen once per NFT ID.
@@ -600,7 +600,7 @@ The game contract's owner can adjust a wide range of parameters, and the DAO can
 - **Bid pricing**: Dutch auction durations, price increase rates, CST auction parameters.
 - **Timer settings**: Initial duration, increment per bid, increment growth rate per round.
 - **Marketing treasurer**: Who controls the Marketing Wallet's CST distribution.
-- **Raffle counts**: Number of ETH raffle winners (default 3), number of CSN raffle winners for bidders (default 10) and RWLK stakers (default 10).
+- **Raffle counts**: Number of ETH raffle winners (default 3), number of COSMIC NFT raffle winners for bidders (default 10) and RWLK stakers (default 10).
 - **Contract addresses**: References to token, NFT, staking, and wallet contracts.
 
 Most parameter changes can only happen during the **inactive stage** of a round (between rounds), ensuring no mid-game rule changes.
@@ -661,9 +661,9 @@ Think of Cosmic Signature as a portfolio of income streams:
 | Main Prize bidding | High | Very High (25% ETH) | Active | ETH per bid |
 | CST bidding (patient) | Low | Moderate (net CST gain possible) | Semi-active | CST (earned from bids) |
 | ETH Raffle (from bidding) | Medium | Medium (1.33% ETH per slot) | Automatic (each bid is an entry) | Same as bidding |
-| Endurance Champion | Medium | Medium (1 CSN + 1,000 CST) | Strategic timing | One well-timed bid |
-| Chrono-Warrior | Medium | High (8% ETH + CSN + CST) | Must achieve EC first | Timing + patience |
-| CSN Staking | Low | Steady (share of 6% ETH) | Passive | Own CSN NFTs |
+| Endurance Champion | Medium | Medium (1 COSMIC NFT + 1,000 CST) | Strategic timing | One well-timed bid |
+| Chrono-Warrior | Medium | High (8% ETH + COSMIC NFT + CST) | Must achieve EC first | Timing + patience |
+| COSMIC NFT Staking | Low | Steady (share of 6% ETH) | Passive | Own COSMIC NFTs |
 | RWLK Staking | Low-Medium | Variable (raffle-based) | Passive | Own RWLK NFTs |
 | CST Accumulation | Low | Governance + future | Automatic | Just bid |
 | Claim Race | Low | Very High (25% ETH if unclaimed) | Monitoring | Gas only |
@@ -671,10 +671,10 @@ Think of Cosmic Signature as a portfolio of income streams:
 ### 11.5 Multi-Round Compounding
 
 Because 50% of ETH rolls forward, early participation builds cumulative value:
-- **Round 1-10**: Accumulate CST and CSN at lower costs when fewer players compete.
-- **Stake CSN early**: Your per-NFT ETH yield is highest when the staker pool is small.
+- **Round 1-10**: Accumulate CST and COSMIC NFTs at lower costs when fewer players compete.
+- **Stake COSMIC NFTs early**: Your per-NFT ETH yield is highest when the staker pool is small.
 - **Build governance power**: CST earned early gives you voting influence before the supply grows.
-- **Win CSN from raffles, stake those too**: Each new NFT you stake compounds your yield.
+- **Win COSMIC NFTs from raffles, stake those too**: Each new NFT you stake compounds your yield.
 
 ---
 
@@ -730,12 +730,12 @@ The charity/public goods ETH transfer at round end is designed to **never block*
 | **Dutch Auction** | A pricing mechanism where the price starts high and declines over time until someone accepts |
 | **Incremental Pricing** | After the first ETH bid, each subsequent ETH bid costs ~1% more than the previous one |
 | **CST** | Cosmic Signature Token (ERC-20) -- governance token, alternative bid currency, burned on CST bids |
-| **CSN** | Cosmic Signature NFT (ERC-721) -- unique prize NFTs with on-chain generative seeds, stakeable for ETH yield |
+| **COSMIC NFT** | Cosmic Signature NFT (ERC-721) -- unique prize NFTs with on-chain generative seeds, stakeable for ETH yield |
 | **RWLK** | Random Walk NFT (ERC-721) -- partner collection providing 50% bid discount and staking raffle eligibility |
 | **Endurance Champion** | The bidder with the longest single continuous streak as last bidder in a round |
 | **Chrono-Warrior** | The bidder who held the Endurance Champion title for the longest continuous period in a round |
 | **PrizesWallet** | Escrow contract that holds secondary ETH prizes and donated assets for winners to withdraw |
-| **Staking** | Locking NFTs in a contract to earn rewards (ETH yield for CSN, raffle eligibility for RWLK) |
+| **Staking** | Locking NFTs in a contract to earn rewards (ETH yield for COSMIC NFTs, raffle eligibility for RWLK) |
 | **DAO** | Decentralized Autonomous Organization -- on-chain governance by CST holders using OpenZeppelin Governor |
 | **Timer Increment** | The duration added to the countdown with each new bid (starts at ~1 hour, grows ~1% per round) |
 | **Claim** | Calling `claimMainPrize()` to trigger prize distribution when the timer has expired |
@@ -778,9 +778,9 @@ This section provides exact values from the smart contracts for readers who want
 | `DEFAULT_CHRONO_WARRIOR_ETH_PRIZE_AMOUNT_PERCENTAGE` | 8% | ETH to Chrono-Warrior |
 | `DEFAULT_RAFFLE_TOTAL_ETH_PRIZE_AMOUNT_FOR_BIDDERS_PERCENTAGE` | 4% | Total ETH for bidder raffle |
 | `DEFAULT_NUM_RAFFLE_ETH_PRIZES_FOR_BIDDERS` | 3 | Number of ETH raffle winners |
-| `DEFAULT_NUM_RAFFLE_COSMIC_SIGNATURE_NFTS_FOR_BIDDERS` | 10 | Number of CSN raffle winners (bidders) |
-| `DEFAULT_NUM_RAFFLE_COSMIC_SIGNATURE_NFTS_FOR_RANDOMWALK_NFT_STAKERS` | 10 | Number of CSN raffle winners (RWLK stakers) |
-| `DEFAULT_COSMIC_SIGNATURE_NFT_STAKING_TOTAL_ETH_REWARD_AMOUNT_PERCENTAGE` | 6% | ETH to CSN stakers |
+| `DEFAULT_NUM_RAFFLE_COSMIC_SIGNATURE_NFTS_FOR_BIDDERS` | 10 | Number of COSMIC NFT raffle winners (bidders) |
+| `DEFAULT_NUM_RAFFLE_COSMIC_SIGNATURE_NFTS_FOR_RANDOMWALK_NFT_STAKERS` | 10 | Number of COSMIC NFT raffle winners (RWLK stakers) |
+| `DEFAULT_COSMIC_SIGNATURE_NFT_STAKING_TOTAL_ETH_REWARD_AMOUNT_PERCENTAGE` | 6% | ETH to COSMIC NFT stakers |
 | `DEFAULT_CHARITY_ETH_DONATION_AMOUNT_PERCENTAGE` | 7% | ETH to public goods address |
 | `DEFAULT_MARKETING_WALLET_CST_CONTRIBUTION_AMOUNT` | 3,000 CST | CST minted for marketing per round |
 
@@ -814,10 +814,10 @@ The game is composed of multiple contracts working together:
 |----------|------|
 | **CosmicSignatureGame** | Core game: bidding, timer, prize claims. UUPS upgradeable. Inherits Bidding, MainPrize, BidStatistics, SecondaryPrizes, SystemManagement, EthDonations. |
 | **CosmicSignatureToken (CST)** | ERC-20 with ERC20Votes, ERC20Permit, ERC20Burnable. Only the game can mint/burn. |
-| **CosmicSignatureNft (CSN)** | ERC-721 Enumerable. Only the game can mint. Each NFT has unique on-chain seed. |
+| **CosmicSignatureNft (symbol: COSMIC)** | ERC-721 Enumerable. Only the game can mint. Each NFT has unique on-chain seed. |
 | **RandomWalkNFT (RWLK)** | External ERC-721 collection (pre-existing). Used for discounts and staking. |
 | **PrizesWallet** | Escrow for secondary ETH prizes, donated ERC-20 tokens, and donated ERC-721 NFTs. |
-| **StakingWalletCosmicSignatureNft** | CSN staking with pro-rata ETH reward distribution. |
+| **StakingWalletCosmicSignatureNft** | COSMIC NFT staking with pro-rata ETH reward distribution. |
 | **StakingWalletRandomWalkNft** | RWLK staking with random picker for raffle winners. |
 | **MarketingWallet** | Holds CST for marketing distribution. Controlled by a treasurer (appointed by DAO). |
 | **CharityWallet** | Receives and forwards ETH to the designated charity/public goods address. |
