@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useApiData } from "@/contexts/ApiDataContext";
 import { explorer } from '@/lib/web3/chains';
@@ -10,12 +10,17 @@ import {
   BarChart3,
   Loader2,
   ExternalLink,
+  Gift,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { SystemModesTable } from "@/components/game/SystemModesTable";
+import {
+  BidDonationFlipCell,
+  bidRowHasDonation,
+} from "@/components/game/BidDonationFlipCell";
 import { api } from "@/services/api";
 import type {
   ApiDashboardData,
@@ -172,6 +177,11 @@ export default function StatisticsPage() {
     { enabled: data != null },
   );
   const currentRoundBids = (currentRoundBidsRaw ?? []) as Bid[];
+
+  const showDonationColumn = useMemo(
+    () => currentRoundBids.some((b) => bidRowHasDonation(b)),
+    [currentRoundBids],
+  );
 
   const { data: uniqueBiddersRaw } = useApiQuery(
     "stats-unique-bidders",
@@ -546,6 +556,19 @@ export default function StatisticsPage() {
                         <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                           Price
                         </th>
+                        {showDonationColumn && (
+                          <th
+                            className="w-14 px-1 py-4 text-center align-middle"
+                            title="Donated token preview"
+                          >
+                            <span className="sr-only">Donation</span>
+                            <Gift
+                              className="mx-auto h-4 w-4 text-text-muted/60"
+                              strokeWidth={1.75}
+                              aria-hidden
+                            />
+                          </th>
+                        )}
                         <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                           TX
                         </th>
@@ -583,6 +606,13 @@ export default function StatisticsPage() {
                               : `${(bid.CstPriceEth || 0).toFixed(2)} CST`
                             }
                           </td>
+                          {showDonationColumn && (
+                            <td className="w-14 px-1 py-3 align-middle text-center">
+                              {bidRowHasDonation(bid) ? (
+                                <BidDonationFlipCell bid={bid} />
+                              ) : null}
+                            </td>
+                          )}
                           <td className="px-6 py-4 text-center">
                             <a
                               href={explorer.tx(bid.TxHash)}

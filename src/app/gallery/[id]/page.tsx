@@ -38,6 +38,10 @@ function aggregateEthPerStakedNft(
 }
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useNotification } from "@/contexts/NotificationContext";
+import {
+  isUserRejection,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
+} from "@/lib/errorReporter";
 
 type NFTData = ApiCSTToken;
 
@@ -80,7 +84,7 @@ export default function NFTDetailPage({
   const [transferError, setTransferError] = useState("");
   const [isTransferring, setIsTransferring] = useState(false);
 
-  const { showSuccess, showError } = useNotification();
+  const { showSuccess, showError, showInfo } = useNotification();
 
   // Fetch name change history
   const { data: nameHistoryRaw, isLoading: loadingHistory, refetch: refetchNameHistory } = useApiQuery(
@@ -154,14 +158,18 @@ export default function NFTDetailPage({
   // Reset transfer state and show notification when transfer errors out (e.g. user rejection)
   useEffect(() => {
     if (nftContract.status.error && isTransferring) {
-      showError(
-        nftContract.status.error instanceof Error
-          ? nftContract.status.error.message
-          : "Transfer failed. Please try again."
-      );
+      if (isUserRejection(nftContract.status.error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(
+          nftContract.status.error instanceof Error
+            ? nftContract.status.error.message
+            : "Transfer failed. Please try again."
+        );
+      }
       setIsTransferring(false);
     }
-  }, [nftContract.status.error, isTransferring, showError]);
+  }, [nftContract.status.error, isTransferring, showError, showInfo]);
 
   // Refetch NFT data when transfer transaction is successful
   useEffect(() => {
@@ -250,7 +258,11 @@ export default function NFTDetailPage({
         refetchNameHistory();
       }, 2000);
     } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : "Failed to update NFT name");
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(error instanceof Error ? error.message : "Failed to update NFT name");
+      }
     }
   };
   
@@ -287,7 +299,11 @@ export default function NFTDetailPage({
       );
       // Success and errors are handled via useEffect watching nftContract.status
     } catch (error: unknown) {
-      showError(error instanceof Error ? error.message : "Failed to transfer NFT");
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(error instanceof Error ? error.message : "Failed to transfer NFT");
+      }
       setIsTransferring(false);
     }
   };
@@ -453,7 +469,8 @@ export default function NFTDetailPage({
                   {nftContract.status.isSuccess && (
                     <p className="text-xs text-status-success">Name updated successfully!</p>
                   )}
-                  {nftContract.status.error && (
+                  {nftContract.status.error &&
+                    !isUserRejection(nftContract.status.error) && (
                     <p className="text-xs text-status-error">Error: {nftContract.status.error.message}</p>
                   )}
                 </div>

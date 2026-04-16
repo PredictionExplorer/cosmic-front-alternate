@@ -185,8 +185,27 @@ export const chainConfig = {
 
 // ─── Network-aware explorer helpers ──────────────────────────────────────────
 
-const explorerBase: string =
-  defaultChain.blockExplorers?.default?.url ?? "https://arbiscan.io";
+/**
+ * Public block explorer (Arbiscan) for links in the UI.
+ * Do not use `defaultChain.blockExplorers` here: the local dev chain incorrectly
+ * pointed `blockExplorers` at the JSON-RPC URL, so `/tx/...` opened the RPC/API
+ * instead of a real explorer.
+ */
+function getArbiscanExplorerBaseUrl(): string {
+  switch (getDefaultNetwork()) {
+    case "mainnet":
+      return "https://arbiscan.io";
+    case "sepolia":
+      return "https://sepolia.arbiscan.io";
+    case "local":
+      // No chain explorer for anvil/local; use mainnet Arbiscan for link shape (prod parity).
+      return "https://arbiscan.io";
+    default:
+      return "https://arbiscan.io";
+  }
+}
+
+const explorerBase: string = getArbiscanExplorerBaseUrl();
 
 export const explorer = {
   tx: (hash: string) => `${explorerBase}/tx/${hash}`,

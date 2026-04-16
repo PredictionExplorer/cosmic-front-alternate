@@ -11,6 +11,7 @@ import {
   isUserRejection,
   reportError,
   getContractErrorMessage,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
 } from '@/lib/errorReporter';
 import { parseContractError } from '@/lib/web3/errorHandling';
 import { estimateContractGas } from '@/lib/web3/gasEstimation';
@@ -136,6 +137,9 @@ async function checkAndApproveERC20(
     await new Promise(resolve => setTimeout(resolve, 1000));
     return true;
   } catch (error) {
+    if (isUserRejection(error)) {
+      return false;
+    }
     const friendlyError = parseContractError(error);
     notifications.showError(`Token approval failed: ${friendlyError}`);
     return false;
@@ -186,6 +190,9 @@ async function checkAndApproveNFT(
     await new Promise(resolve => setTimeout(resolve, 1000));
     return true;
   } catch (error) {
+    if (isUserRejection(error)) {
+      return false;
+    }
     const friendlyError = parseContractError(error);
     notifications.showError(`NFT approval failed: ${friendlyError}`);
     return false;
@@ -354,6 +361,7 @@ export function usePlaceBid(): PlaceBidResult {
       return true;
     } catch (err) {
       if (isUserRejection(err)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
         return false;
       }
       reportError(err, 'placeEthBid');
@@ -495,7 +503,10 @@ export function usePlaceBid(): PlaceBidResult {
       showSuccess('Bid placed successfully!');
       return true;
     } catch (err) {
-      if (isUserRejection(err)) return false;
+      if (isUserRejection(err)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        return false;
+      }
       reportError(err, 'placeCstBid');
       const friendlyError =
         getContractErrorMessage(err) || parseContractError(err);

@@ -19,14 +19,78 @@ export function isEthProviderError(err: unknown): err is EthProviderError {
   return typeof err === "object" && err !== null && "data" in err;
 }
 
-/** Returns true when the user explicitly rejected a wallet transaction (code 4001). */
+/**
+ * Shown when the user closes the wallet or rejects signing (EIP-1193 code 4001).
+ * Use with `showInfo` for a neutral tone; avoid "failed" wording.
+ */
+export const WALLET_TRANSACTION_CANCELLED_MESSAGE =
+  "Transaction not sent — you cancelled it in your wallet.";
+
+/**
+ * Returns true when the user dismissed MetaMask / rejected signing (EIP-1193 4001).
+ * Walks viem `cause` chains and `UserRejectedRequestError` — rejection is often nested.
+ */
 export function isUserRejection(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: number }).code === 4001
-  );
+  if (err == null) return false;
+  const seen = new WeakSet<object>();
+
+  function walk(e: unknown): boolean {
+    if (e == null || typeof e !== "object") return false;
+    if (seen.has(e as object)) return false;
+    seen.add(e as object);
+
+    const o = e as Record<string, unknown>;
+
+    const code = o.code;
+    if (code === 4001 || code === "ACTION_REJECTED") return true;
+
+    const name = typeof o.name === "string" ? o.name : "";
+    if (name === "UserRejectedRequestError") return true;
+
+    const msg =
+      typeof o.message === "string" ? o.message.toLowerCase() : "";
+    const short =
+      typeof (o as { shortMessage?: string }).shortMessage === "string"
+        ? (o as { shortMessage: string }).shortMessage.toLowerCase()
+        : "";
+    const combined = `${msg} ${short}`;
+    if (
+      combined.includes("user rejected") ||
+      combined.includes("user denied") ||
+      combined.includes("rejected the request") ||
+      combined.includes("denied transaction") ||
+      combined.includes("denied the transaction") ||
+      combined.includes("user cancelled") ||
+      combined.includes("user canceled") ||
+      combined.includes("request rejected") ||
+      combined.includes("rejected this request")
+    ) {
+      return true;
+    }
+
+    if (o.cause) return walk(o.cause);
+
+    const walkFn = (o as { walk?: (fn: (e: Error) => boolean) => Error }).walk;
+    if (typeof walkFn === "function") {
+      try {
+        const inner = walkFn.call(o, (child: Error) => {
+          const c = child as unknown as Record<string, unknown>;
+          return (
+            child.name === "UserRejectedRequestError" ||
+            c.code === 4001 ||
+            c.code === "ACTION_REJECTED"
+          );
+        });
+        if (inner) return true;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return false;
+  }
+
+  return walk(err);
 }
 
 /**

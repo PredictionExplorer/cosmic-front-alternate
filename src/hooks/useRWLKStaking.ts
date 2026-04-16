@@ -14,20 +14,14 @@ import { wagmiConfig } from "@/lib/web3/config";
 import { getBufferedEip1559Fees } from "@/lib/web3/transactionFees";
 import StakingWalletRWLKABI from "@/contracts/StakingWalletRandomWalkNft.json";
 import RandomWalkNFTABI from "@/contracts/RandomWalkNFT.json";
+import {
+  isUserRejection,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
+} from "@/lib/errorReporter";
 
 async function getFeesWithBuffer() {
   const fees = await getBufferedEip1559Fees(wagmiConfig);
   return fees ?? {};
-}
-
-function isUserRejection(error: unknown): boolean {
-  const msg = (error as Error)?.message || "";
-  return (
-    msg.includes("User denied") ||
-    msg.includes("User rejected") ||
-    msg.includes("user rejected") ||
-    msg.includes("rejected the request")
-  );
 }
 
 export function useRWLKStaking() {
@@ -270,7 +264,9 @@ export function useRWLKStaking() {
       !rwlkStakingContract.status.isConfirming &&
       (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
     ) {
-      if (!isUserRejection(rwlkStakingContract.status.error)) {
+      if (isUserRejection(rwlkStakingContract.status.error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
         showError((rwlkStakingContract.status.error as Error)?.message || "Transaction failed");
       }
       processedTxRef.current = null;
@@ -286,6 +282,7 @@ export function useRWLKStaking() {
     isStakingMultiple,
     unstakingActionId,
     showError,
+    showInfo,
   ]);
 
   const handleApprove = useCallback(async (): Promise<boolean> => {
@@ -312,7 +309,9 @@ export function useRWLKStaking() {
       return true;
     } catch (error: unknown) {
       console.error("RWLK Approval failed:", error);
-      if (!isUserRejection(error)) {
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
         showError((error as Error)?.message || "Failed to approve. Please try again.");
       }
       return false;
@@ -367,7 +366,9 @@ export function useRWLKStaking() {
         showInfo("Transaction submitted! Waiting for confirmation...");
       } catch (error: unknown) {
         console.error("RWLK Staking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
         }
         setStakingTokenId(null);
@@ -429,7 +430,9 @@ export function useRWLKStaking() {
         showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
       } catch (error: unknown) {
         console.error("RWLK Multi-staking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
         }
         setIsStakingMultiple(false);
@@ -467,7 +470,9 @@ export function useRWLKStaking() {
         showInfo(`Transaction submitted! Unstaking token #${tokenId}...`);
       } catch (error: unknown) {
         console.error("RWLK Unstaking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
         }
         setUnstakingActionId(null);
@@ -511,7 +516,9 @@ export function useRWLKStaking() {
         showInfo(`Transaction submitted! Unstaking ${stakeActionIds.length} NFTs...`);
       } catch (error: unknown) {
         console.error("RWLK Unstake selected failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
         }
         setIsStakingMultiple(false);
