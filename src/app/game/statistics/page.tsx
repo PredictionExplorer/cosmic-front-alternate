@@ -3,24 +3,15 @@
 import { useState, useMemo } from "react";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useApiData } from "@/contexts/ApiDataContext";
-import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  BarChart3,
-  Loader2,
-  ExternalLink,
-  Gift,
-} from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { SystemModesTable } from "@/components/game/SystemModesTable";
-import {
-  BidDonationFlipCell,
-  bidRowHasDonation,
-} from "@/components/game/BidDonationFlipCell";
+import { BidHistoryTable } from "@/components/game/BidHistoryTable";
 import { api } from "@/services/api";
 import type {
   ApiDashboardData,
@@ -32,9 +23,12 @@ import type {
   ApiCTBalanceDistribution,
   ApiDonatedTokenDistribution,
   ApiCSTBidData,
+  ApiUniqueStakerRWalk,
+  ApiStakedRWLKToken,
 } from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
 import type { SystemModeChange } from "@/contexts/SystemModeContext";
+import { useTimeOffset } from "@/contexts/TimeOffsetContext";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -48,6 +42,16 @@ type CSTDistribution = ApiCSTDistribution;
 type CTBalanceDistribution = ApiCTBalanceDistribution;
 type DonatedTokenDistribution = ApiDonatedTokenDistribution;
 type CSTBidData = ApiCSTBidData;
+
+/** Dashboard `MainStats.DonatedTokenDistribution` uses `ContractAddr` / `NumDonatedTokens` (Go `CGDonatedTokenDistrRec`). */
+function donatedTokenDistrRow(item: DonatedTokenDistribution): {
+  contractAddr: string;
+  numDonated: number;
+} {
+  const contractAddr = item.ContractAddr ?? item.NftAddr ?? "";
+  const numDonated = Number(item.NumDonatedTokens ?? item.NumDonations ?? 0);
+  return { contractAddr, numDonated };
+}
 
 interface DashboardData extends ApiDashboardData {
   TsRoundStart: number;
@@ -81,10 +85,7 @@ interface DashboardData extends ApiDashboardData {
     SumWithdrawals: number;
     TotalEthDonatedAmountEth: number;
     NumWinnersWithPendingRaffleWithdrawal: number;
-    DonatedTokenDistribution: Array<{
-      NftAddr: string;
-      NumDonations: number;
-    }>;
+    DonatedTokenDistribution: ApiDonatedTokenDistribution[];
     StakeStatisticsCST: {
       NumActiveStakers: number;
       NumDeposits: number;
@@ -143,6 +144,21 @@ const convertTimestampToDateTime = (
   return date.toLocaleDateString();
 };
 
+/**
+ * @param prizeTimeSec Main prize time in seconds, comparable to `Date.now()/1000`
+ *   (use `applyOffset(CurRoundPrizeTime)` from `getPrizeTime()` for local testnet).
+ */
+function formatPrizeClaimStatus(prizeTimeSec: number): string {
+  if (prizeTimeSec === 0) {
+    return "Not set yet";
+  }
+  const nowSec = Date.now() / 1000;
+  if (prizeTimeSec > nowSec) {
+    return convertTimestampToDateTime(prizeTimeSec, true);
+  }
+  return "Bidding exhausted, waiting for last bidder to claimPrize()";
+}
+
 interface StatItemProps {
   title: string;
   value: React.ReactNode;
@@ -161,14 +177,18 @@ const StatItem = ({ title, value }: StatItemProps) => (
 
 export default function StatisticsPage() {
   const [activeTab, setActiveTab] = useState<"cst" | "rwlk">("cst");
-
-  // Pagination for bid history
-  const [bidHistoryPage, setBidHistoryPage] = useState(1);
-  const bidsPerPage = 20;
+  const { applyOffset } = useTimeOffset();
 
   // Dashboard data from global context
   const { dashboardData, isLoading: loading } = useApiData();
   const data = dashboardData as unknown as DashboardData | null;
+
+  /** Same source as game/play: contract main prize time (`rounds/current/time` → CurRoundPrizeTime). */
+  const { data: curRoundPrizeTimeRaw } = useApiQuery<number | null>(
+    "prize-time",
+    () => api.getPrizeTime(),
+    { refetchInterval: 10000 },
+  );
 
   // Fetch current round bids (depends on dashboard data)
   const { data: currentRoundBidsRaw } = useApiQuery(
@@ -177,11 +197,6 @@ export default function StatisticsPage() {
     { enabled: data != null },
   );
   const currentRoundBids = (currentRoundBidsRaw ?? []) as Bid[];
-
-  const showDonationColumn = useMemo(
-    () => currentRoundBids.some((b) => bidRowHasDonation(b)),
-    [currentRoundBids],
-  );
 
   const { data: uniqueBiddersRaw } = useApiQuery(
     "stats-unique-bidders",
@@ -214,10 +229,26 @@ export default function StatisticsPage() {
     "stats-unique-rwlk-stakers",
     async () => {
       const stakers = await api.getUniqueStakersRWLK();
-      return (stakers as unknown as UniqueStaker[]).sort((a, b) => b.TotalRewardEth - a.TotalRewardEth);
+      return (stakers as unknown as ApiUniqueStakerRWalk[]).sort(
+        (a, b) => (b.TotalTokensMinted ?? 0) - (a.TotalTokensMinted ?? 0),
+      );
     },
   );
   const uniqueRWLKStakers = uniqueRWLKStakersRaw ?? [];
+
+  /** Live list — distinct stakers; dashboard `NumActiveStakers` can lag `cg_stake_stats_rwalk`. */
+  const { data: rwlkStakedAllRaw, isLoading: rwlkStakedAllLoading } = useApiQuery(
+    "stats-rwlk-staked-all",
+    () => api.getStakedRWLKTokens(),
+    { refetchInterval: 60_000 },
+  );
+  const rwlkDistinctStakerCount = useMemo(() => {
+    const list = rwlkStakedAllRaw as ApiStakedRWLKToken[] | null | undefined;
+    if (list === undefined || list === null) return null;
+    return new Set(
+      list.map((t) => (t.UserAddr || "").toLowerCase()).filter(Boolean),
+    ).size;
+  }, [rwlkStakedAllRaw]);
 
   const { data: uniqueDonorsRaw } = useApiQuery(
     "stats-unique-donors",
@@ -285,6 +316,21 @@ export default function StatisticsPage() {
     );
   }
 
+  // Main prize time: dashboard PrizeClaimTs is often unset; use rounds/current/time (matches cginfo MainPrizeTime).
+  const prizeTimeFromRoundEndpoint =
+    curRoundPrizeTimeRaw != null &&
+    !Number.isNaN(Number(curRoundPrizeTimeRaw)) &&
+    Number(curRoundPrizeTimeRaw) > 0
+      ? applyOffset(Number(curRoundPrizeTimeRaw))
+      : 0;
+  const prizeClaimSeconds =
+    prizeTimeFromRoundEndpoint > 0
+      ? prizeTimeFromRoundEndpoint
+      : data.PrizeClaimTs > 0
+        ? data.PrizeClaimTs
+        : 0;
+  const prizeClaimDisplay = formatPrizeClaimStatus(prizeClaimSeconds);
+
   // Current Round Statistics
   const currentRoundStats = [
     { title: "Current Round", value: data.CurRoundNum },
@@ -330,10 +376,7 @@ export default function StatisticsPage() {
     { title: "Prize Amount", value: formatEthValue(data.PrizeAmountEth) },
     {
       title: "Prize Claim Date",
-      value:
-        data.PrizeClaimTs === 0
-          ? "Round isn't started yet."
-          : convertTimestampToDateTime(data.PrizeClaimTs, true),
+      value: prizeClaimDisplay,
     },
     {
       title: "Last Bidder",
@@ -540,157 +583,11 @@ export default function StatisticsPage() {
               </p>
             )}
           </div>
-          {currentRoundBids.length > 0 ? (
-            <>
-              <Card glass className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-background-elevated border-b border-text-muted/10">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
-                          Date & Time
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
-                          Bidder
-                        </th>
-                        <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                          Price
-                        </th>
-                        {showDonationColumn && (
-                          <th
-                            className="w-14 px-1 py-4 text-center align-middle"
-                            title="Donated token preview"
-                          >
-                            <span className="sr-only">Donation</span>
-                            <Gift
-                              className="mx-auto h-4 w-4 text-text-muted/60"
-                              strokeWidth={1.75}
-                              aria-hidden
-                            />
-                          </th>
-                        )}
-                        <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                          TX
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentRoundBids
-                        .slice((bidHistoryPage - 1) * bidsPerPage, bidHistoryPage * bidsPerPage)
-                        .map((bid: Bid, index: number) => (
-                        <tr
-                          key={bid.EvtLogId}
-                          className={`border-b border-text-muted/5 ${
-                            index % 2 === 0 ? "bg-background-surface/30" : ""
-                          }`}
-                        >
-                          <td className="px-6 py-4 text-sm text-text-secondary">
-                            {convertTimestampToDateTime(bid.TimeStamp, true)}
-                          </td>
-                          <td className="px-6 py-4">
-                            <Link 
-                              href={`/user/${bid.BidderAddr}`}
-                              className="hover:underline"
-                            >
-                              <AddressDisplay
-                                address={bid.BidderAddr}
-                                shorten={true}
-                                chars={6}
-                                showCopy={false}
-                              />
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
-                            {bid.BidType === 0 
-                              ? `${bid.BidPriceEth?.toFixed(6)} ETH`
-                              : `${(bid.CstPriceEth || 0).toFixed(2)} CST`
-                            }
-                          </td>
-                          {showDonationColumn && (
-                            <td className="w-14 px-1 py-3 align-middle text-center">
-                              {bidRowHasDonation(bid) ? (
-                                <BidDonationFlipCell bid={bid} />
-                              ) : null}
-                            </td>
-                          )}
-                          <td className="px-6 py-4 text-center">
-                            <a
-                              href={explorer.tx(bid.TxHash)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center text-primary hover:text-primary/80"
-                            >
-                              <ExternalLink size={14} />
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-              
-              {/* Pagination Controls */}
-              {currentRoundBids.length > bidsPerPage && (
-                <div className="mt-6 flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => setBidHistoryPage(prev => Math.max(1, prev - 1))}
-                    disabled={bidHistoryPage === 1}
-                    className="px-4 py-2 rounded-lg border border-text-muted/20 bg-background-elevated hover:bg-background-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Previous
-                  </button>
-                  
-                  <div className="flex items-center gap-1">
-                    {Array.from(
-                      { length: Math.ceil(currentRoundBids.length / bidsPerPage) },
-                      (_, i) => i + 1
-                    )
-                      .filter(page => {
-                        // Show first page, last page, current page, and pages around current
-                        const totalPages = Math.ceil(currentRoundBids.length / bidsPerPage);
-                        return (
-                          page === 1 ||
-                          page === totalPages ||
-                          Math.abs(page - bidHistoryPage) <= 1
-                        );
-                      })
-                      .map((page, index, array) => (
-                        <div key={page} className="flex items-center gap-1">
-                          {index > 0 && array[index - 1] !== page - 1 && (
-                            <span className="px-2 text-text-muted">...</span>
-                          )}
-                          <button
-                            onClick={() => setBidHistoryPage(page)}
-                            className={`min-w-[40px] px-3 py-2 rounded-lg border transition-colors ${
-                              bidHistoryPage === page
-                                ? "border-primary bg-primary/10 text-primary font-semibold"
-                                : "border-text-muted/20 bg-background-elevated hover:bg-background-surface"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                  
-                  <button
-                    onClick={() => setBidHistoryPage(prev => 
-                      Math.min(Math.ceil(currentRoundBids.length / bidsPerPage), prev + 1)
-                    )}
-                    disabled={bidHistoryPage >= Math.ceil(currentRoundBids.length / bidsPerPage)}
-                    className="px-4 py-2 rounded-lg border border-text-muted/20 bg-background-elevated hover:bg-background-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <Card glass className="p-8 text-center">
-              <p className="text-text-secondary">No bids in current round yet</p>
-            </Card>
-          )}
+          <BidHistoryTable
+            key={data?.CurRoundNum ?? 0}
+            bids={currentRoundBids}
+            emptyMessage="No bids in current round yet"
+          />
         </Container>
       </section>
 
@@ -749,6 +646,7 @@ export default function StatisticsPage() {
                                 shorten={true}
                                 chars={8}
                                 showCopy={false}
+                                showLink={false}
                               />
                             </Link>
                           </td>
@@ -805,6 +703,7 @@ export default function StatisticsPage() {
                                 shorten={true}
                                 chars={8}
                                 showCopy={false}
+                                showLink={false}
                               />
                             </Link>
                           </td>
@@ -861,6 +760,7 @@ export default function StatisticsPage() {
                                 shorten={true}
                                 chars={8}
                                 showCopy={false}
+                                showLink={false}
                               />
                             </Link>
                           </td>
@@ -904,25 +804,32 @@ export default function StatisticsPage() {
                         </thead>
                         <tbody>
                           {data.MainStats.DonatedTokenDistribution.map(
-                            (item: DonatedTokenDistribution, index: number) => (
-                              <tr
-                                key={item.NftAddr}
-                                className={`border-b border-text-muted/5 ${
-                                  index % 2 === 0 ? "bg-background-surface/30" : ""
-                                }`}
-                              >
-                                <td className="px-6 py-4">
-                                  <AddressDisplay
-                                    address={item.NftAddr}
-                                    shorten={true}
-                                    chars={10}
-                                  />
-                                </td>
-                                <td className="px-6 py-4 text-right font-mono text-text-primary">
-                                  {item.NumDonations}
-                                </td>
-                              </tr>
-                            )
+                            (item: DonatedTokenDistribution, index: number) => {
+                              const { contractAddr, numDonated } = donatedTokenDistrRow(item);
+                              return (
+                                <tr
+                                  key={`${contractAddr}-${index}`}
+                                  className={`border-b border-text-muted/5 ${
+                                    index % 2 === 0 ? "bg-background-surface/30" : ""
+                                  }`}
+                                >
+                                  <td className="px-6 py-4">
+                                    {contractAddr ? (
+                                      <AddressDisplay
+                                        address={contractAddr}
+                                        shorten={true}
+                                        chars={10}
+                                      />
+                                    ) : (
+                                      <span className="text-text-muted">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-6 py-4 text-right font-mono text-text-primary">
+                                    {numDonated}
+                                  </td>
+                                </tr>
+                              );
+                            },
                           )}
                         </tbody>
                       </table>
@@ -968,6 +875,7 @@ export default function StatisticsPage() {
                                   shorten={true}
                                   chars={8}
                                   showCopy={false}
+                                  showLink={false}
                                 />
                               </Link>
                             </td>
@@ -1020,6 +928,7 @@ export default function StatisticsPage() {
                                   shorten={true}
                                   chars={8}
                                   showCopy={false}
+                                  showLink={false}
                                 />
                               </Link>
                             </td>
@@ -1089,7 +998,14 @@ export default function StatisticsPage() {
                 />
                 <StatItem
                   title="Total Tokens Staked"
-                  value={data.MainStats.StakeStatisticsCST.TotalTokensStaked}
+                  value={
+                    <Link
+                      href="/game/statistics/cst-staked-tokens"
+                      className="text-primary hover:underline"
+                    >
+                      {data.MainStats.StakeStatisticsCST.TotalTokensStaked}
+                    </Link>
+                  }
                 />
                 <StatItem
                   title="Unclaimed Staking Rewards"
@@ -1133,11 +1049,12 @@ export default function StatisticsPage() {
                                   shorten={true}
                                   chars={8}
                                   showCopy={false}
+                                  showLink={false}
                                 />
                               </Link>
                             </td>
                             <td className="px-6 py-3 text-right font-mono text-text-primary text-sm">
-                              {staker.TotalRewardEth.toFixed(4)} ETH
+                              {(Number(staker.TotalRewardEth) || 0).toFixed(4)} ETH
                             </td>
                           </tr>
                         ))}
@@ -1155,7 +1072,13 @@ export default function StatisticsPage() {
               <div className="space-y-4 mb-8">
                 <StatItem
                   title="Number of Active Stakers"
-                  value={data.MainStats.StakeStatisticsRWalk.NumActiveStakers}
+                  value={
+                    rwlkStakedAllLoading && rwlkStakedAllRaw === undefined
+                      ? "…"
+                      : rwlkDistinctStakerCount !== null
+                        ? rwlkDistinctStakerCount
+                        : data.MainStats.StakeStatisticsRWalk.NumActiveStakers
+                  }
                 />
                 <StatItem
                   title="Total Tokens Minted"
@@ -1181,12 +1104,12 @@ export default function StatisticsPage() {
                             Address
                           </th>
                           <th className="px-6 py-3 text-right text-sm font-semibold text-text-primary">
-                            Total Reward
+                            Token rewards
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {uniqueRWLKStakers.slice(0, 50).map((staker: UniqueStaker, index: number) => (
+                        {uniqueRWLKStakers.slice(0, 50).map((staker: ApiUniqueStakerRWalk, index: number) => (
                           <tr
                             key={staker.StakerAddr}
                             className={`border-b border-text-muted/5 ${
@@ -1203,11 +1126,13 @@ export default function StatisticsPage() {
                                   shorten={true}
                                   chars={8}
                                   showCopy={false}
+                                  showLink={false}
                                 />
                               </Link>
                             </td>
                             <td className="px-6 py-3 text-right font-mono text-text-primary text-sm">
-                              {staker.TotalRewardEth.toFixed(4)} ETH
+                              {Number(staker.TotalTokensMinted ?? 0).toLocaleString()} NFT
+                              {Number(staker.TotalTokensMinted ?? 0) !== 1 ? "s" : ""}
                             </td>
                           </tr>
                         ))}

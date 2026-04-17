@@ -745,9 +745,9 @@ export default function PlayPage() {
                         </p>
                       </div>
 
-                      {/* Max Price Protection */}
+                      {/* Max Price Protection — narrow: CST amounts are short */}
                       {cstBidPrice > 0 && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 max-w-[min(100%,18rem)]">
                           <label className="text-sm text-text-secondary">
                             Maximum Price (Slippage Protection)
                           </label>
@@ -757,7 +757,7 @@ export default function PlayPage() {
                             onChange={(e) => setMaxCstPrice(e.target.value)}
                             placeholder={`Leave empty for auto (${(cstBidPrice * 1.1).toFixed(2)} CST)`}
                             disabled={isTransactionPending}
-                            className="w-full px-4 py-3 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+                            className="w-full px-3 py-2.5 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all tabular-nums"
                           />
                           <p className="text-xs text-text-secondary">
                             Your bid will revert if the price increases above
@@ -910,71 +910,75 @@ export default function PlayPage() {
                           </p>
                         </div>
 
-                        {/* NFT Donation Fields */}
+                        {/* NFT Donation Fields — compact row: address + token id */}
                         {donationType === "nft" && (
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <label className="text-sm text-text-secondary">
-                                NFT Contract Address
-                              </label>
-                              <input
-                                type="text"
-                                value={donationNftAddress}
-                                onChange={(e) => setDonationNftAddress(e.target.value)}
-                                placeholder="0x..."
-                                disabled={isTransactionPending}
-                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm text-text-secondary">
-                                NFT Token ID
-                              </label>
-                              <input
-                                type="text"
-                                value={donationNftTokenId}
-                                onChange={(e) => setDonationNftTokenId(e.target.value)}
-                                placeholder="0"
-                                disabled={isTransactionPending}
-                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                              />
+                          <div className="max-w-xl space-y-3">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_7.5rem] sm:items-end">
+                              <div className="space-y-2 min-w-0">
+                                <label className="text-sm text-text-secondary">
+                                  NFT Contract Address
+                                </label>
+                                <input
+                                  type="text"
+                                  value={donationNftAddress}
+                                  onChange={(e) => setDonationNftAddress(e.target.value)}
+                                  placeholder="0x..."
+                                  disabled={isTransactionPending}
+                                  className="w-full min-w-0 px-3 py-2.5 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2 sm:max-w-[7.5rem]">
+                                <label className="text-sm text-text-secondary">
+                                  NFT Token ID
+                                </label>
+                                <input
+                                  type="text"
+                                  value={donationNftTokenId}
+                                  onChange={(e) => setDonationNftTokenId(e.target.value)}
+                                  placeholder="0"
+                                  disabled={isTransactionPending}
+                                  className="w-full px-3 py-2.5 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm tabular-nums"
+                                />
+                              </div>
                             </div>
                           </div>
                         )}
 
-                        {/* ERC20 Token Donation Fields */}
+                        {/* ERC20 Token Donation Fields — same compact pattern as NFT */}
                         {donationType === "token" && (
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <label className="text-sm text-text-secondary">
-                                Token Contract Address
-                              </label>
-                              <input
-                                type="text"
-                                value={donationTokenAddress}
-                                onChange={(e) => setDonationTokenAddress(e.target.value)}
-                                placeholder="0x..."
-                                disabled={isTransactionPending}
-                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
-                              />
+                          <div className="max-w-xl space-y-3">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,11rem)] sm:items-end">
+                              <div className="space-y-2 min-w-0">
+                                <label className="text-sm text-text-secondary">
+                                  Token Contract Address
+                                </label>
+                                <input
+                                  type="text"
+                                  value={donationTokenAddress}
+                                  onChange={(e) => setDonationTokenAddress(e.target.value)}
+                                  placeholder="0x..."
+                                  disabled={isTransactionPending}
+                                  className="w-full min-w-0 px-3 py-2.5 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm"
+                                />
+                              </div>
+                              <div className="space-y-2 sm:max-w-[11rem]">
+                                <label className="text-sm text-text-secondary">
+                                  Token Amount
+                                </label>
+                                <input
+                                  type="text"
+                                  value={donationTokenAmount}
+                                  onChange={(e) => setDonationTokenAmount(e.target.value)}
+                                  placeholder="0.0"
+                                  disabled={isTransactionPending}
+                                  className="w-full px-3 py-2.5 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono text-sm tabular-nums"
+                                />
+                              </div>
                             </div>
-                            <div className="space-y-2">
-                              <label className="text-sm text-text-secondary">
-                                Token Amount
-                              </label>
-                              <input
-                                type="text"
-                                value={donationTokenAmount}
-                                onChange={(e) => setDonationTokenAmount(e.target.value)}
-                                placeholder="0.0"
-                                disabled={isTransactionPending}
-                                className="w-full px-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all font-mono"
-                              />
-                              <p className="text-xs text-text-muted">
-                                Enter the amount in token&apos;s base unit
-                                (e.g., 1.5 for 1.5 tokens)
-                              </p>
-                            </div>
+                            <p className="text-xs text-text-muted">
+                              Enter the amount in token&apos;s base unit
+                              (e.g., 1.5 for 1.5 tokens)
+                            </p>
                           </div>
                         )}
                       </div>
