@@ -23,7 +23,7 @@ export const NAV_LINKS = [
 // Social Media Links Configuration
 
 export const SOCIAL_LINKS = {
-  twitter: "https://x.com/CosmicSignatureNFT",
+  twitter: "https://x.com/CosmicSignature",
   discord: "https://discord.gg/bGnPn96Qwt",
   github: "https://github.com/PredictionExplorer/Cosmic-Signature",
   githubMain: "https://github.com/PredictionExplorer/Cosmic-Signature/tree/main",
