@@ -19,19 +19,14 @@ import { useCSTStaking } from "@/hooks/useCSTStaking";
 import { useRWLKStaking } from "@/hooks/useRWLKStaking";
 import { useStakingRewards } from "@/hooks/useStakingRewards";
 import { useEffect } from "react";
+import { getAssetsUrl, getRWLKImageUrl } from "@/services/api";
 
 const PLACEHOLDER_IMAGE = "/nfts/placeholder.svg";
 
 function getCSTImageUrl(seed: string): string {
   if (!seed) return PLACEHOLDER_IMAGE;
   const hex = seed.startsWith("0x") ? seed : `0x${seed}`;
-  return `https://nfts.cosmicsignature.com/images/new/cosmicsignature/${hex}.png`;
-}
-
-function getRWLKImageUrl(tokenId: number, thumb = true): string {
-  const padded = tokenId.toString().padStart(6, "0");
-  const suffix = thumb ? "_black_thumb.jpg" : "_black.jpg";
-  return `https://nfts.cosmicsignature.com/images/randomwalk/${padded}${suffix}`;
+  return getAssetsUrl(`cosmicsignature/${hex}.png`);
 }
 
 function RWLKNFTImage({ tokenId, alt, className }: { tokenId: number; alt: string; className?: string }) {

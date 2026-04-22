@@ -405,7 +405,7 @@ export default function AboutPage() {
 								</a>
 							</Button>
 							<Button size="lg" variant="outline" asChild>
-								<a href="https://x.com/CosmicSignatureNFT" target="_blank" rel="noopener noreferrer">
+								<a href="https://x.com/CosmicSignature" target="_blank" rel="noopener noreferrer">
 									Follow on X
 								</a>
 							</Button>

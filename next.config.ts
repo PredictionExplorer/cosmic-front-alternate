@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
         hostname: "nfts.cosmicsignature.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "nfts-sepolia.cosmicsignature.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "nfts-local.cosmicsignature.com",
+        pathname: "/**",
+      },
     ],
   },
 };

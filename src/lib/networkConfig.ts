@@ -103,6 +103,35 @@ export function getDefaultChainId(): number {
 }
 
 /**
+ * NFT CDN + cosmictokens API origin (same hosts as blue `config/networks.ts` `nftApiUrl`).
+ * Not the Cosmic Game JSON API (`NEXT_PUBLIC_API_URL`).
+ */
+const NFT_API_BASE_BY_NETWORK: Record<NetworkType, string> = {
+  mainnet: "https://nfts.cosmicsignature.com/",
+  sepolia: "https://nfts-sepolia.cosmicsignature.com/",
+  local: "https://nfts-local.cosmicsignature.com/",
+};
+
+/**
+ * Base URL for NFT static files and NFT-server routes (`cosmicgame_tokens`, `ban_bid`, …), with trailing slash.
+ * Override: `NEXT_PUBLIC_NFT_API_URL` or legacy `NEXT_PUBLIC_ASSETS_BASE_URL` (must include path prefix if your server expects it).
+ */
+export function getNftApiBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_NFT_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_ASSETS_BASE_URL?.trim();
+  if (raw) {
+    return raw.endsWith("/") ? raw : `${raw}/`;
+  }
+  return NFT_API_BASE_BY_NETWORK[getDefaultNetwork()];
+}
+
+/** Same as {@link getNftApiBaseUrl} but no trailing slash (for joining `/images/...`). */
+export function getNftCdnOrigin(): string {
+  return getNftApiBaseUrl().replace(/\/+$/, "");
+}
+
+/**
  * Get network configuration by chain ID
  */
 export function getNetworkByChainId(chainId: number): NetworkType | null {

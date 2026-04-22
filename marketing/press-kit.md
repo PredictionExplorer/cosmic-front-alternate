@@ -17,7 +17,7 @@
 | **License** | CC0 1.0 Universal (fully open source, public domain) |
 | **Security** | Certora formal verification, Slither static analysis, OpenZeppelin foundations |
 | **Website** | cosmicsignature.com |
-| **Twitter/X** | @CosmicSignatureNFT |
+| **Twitter/X** | @CosmicSignature |
 | **Discord** | discord.gg/cosmicsignature |
 | **GitHub** | github.com/cosmic-signature |
 | **Contract** | [Arbitrum One address -- to be filled post-deployment] |
@@ -384,7 +384,7 @@ A: Random numbers are generated on-chain by mixing multiple unpredictable source
 
 **General inquiries**: [hello@cosmicsignature.com]
 
-**Social**: @CosmicSignatureNFT on X/Twitter
+**Social**: @CosmicSignature on X/Twitter
 
 **Response time**: We aim to respond to all press inquiries within 24 hours.
 

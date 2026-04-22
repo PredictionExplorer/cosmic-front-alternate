@@ -20,7 +20,7 @@ export function Footer() {
 							</p>
 							<div className="flex space-x-5">
 								<a
-									href="https://x.com/CosmicSignatureNFT"
+									href="https://x.com/CosmicSignature"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-text-muted hover:text-primary transition-colors duration-500"

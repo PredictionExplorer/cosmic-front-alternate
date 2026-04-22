@@ -175,7 +175,7 @@ All numbers below are default values from `CosmicSignatureConstants.sol` and can
 | Marketing site | https://cosmicsignature.com |
 | dApp | https://app.cosmicsignature.com |
 | Art gallery | https://cosmicsignature.art |
-| Twitter/X | https://twitter.com/CosmicSignatureNFT |
+| Twitter/X | https://x.com/CosmicSignature |
 | Discord | https://discord.gg/cosmicsignature |
 | GitHub | https://github.com/cosmic-signature |
 | Protocol Guild | https://www.protocolguild.org/ |

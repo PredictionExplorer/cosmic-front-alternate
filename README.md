@@ -304,6 +304,12 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 
 # Optional
 # NEXT_PUBLIC_SENTRY_DSN=
+# Override NFT CDN + cosmictokens API base (defaults follow NEXT_PUBLIC_NETWORK, same as blue):
+#   mainnet → https://nfts.cosmicsignature.com/
+#   sepolia → https://nfts-sepolia.cosmicsignature.com/
+#   local   → https://nfts-local.cosmicsignature.com/
+# NEXT_PUBLIC_NFT_API_URL=https://custom-nfts.example.com/
+# Legacy alias (same effect as NEXT_PUBLIC_NFT_API_URL):
 # NEXT_PUBLIC_ASSETS_BASE_URL=https://nfts.cosmicsignature.com/
 ```
 
