@@ -32,6 +32,7 @@ import {
   isUserRejection,
   getEthErrorMessage,
   getContractErrorMessage,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
 } from "@/lib/errorReporter";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import type { ApiDonatedNFT, ApiDonatedERC20, ApiStakingRewardDeposit } from "@/services/apiTypes";
@@ -83,6 +84,9 @@ function getErrorMessageFallback(error: unknown): string {
 }
 
 function getErrorMessage(error: unknown): string {
+  if (isUserRejection(error)) {
+    return WALLET_TRANSACTION_CANCELLED_MESSAGE;
+  }
   return (
     getContractErrorMessage(error) ||
     getEthErrorMessage(error, "Transaction failed. Please try again.") ||
@@ -311,9 +315,12 @@ export default function MyWinningsPage() {
       !prizesWallet.isTransactionPending &&
       prizesWallet.write.status.error
     ) {
-      const errorMessage = getErrorMessage(prizesWallet.write.status.error);
-      showError(errorMessage);
-      
+      if (isUserRejection(prizesWallet.write.status.error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(getErrorMessage(prizesWallet.write.status.error));
+      }
+
       // Reset claiming states
       if (pendingClaim.type === 'eth') {
         setClaiming((prev) => ({ ...prev, eth: false }));
@@ -330,6 +337,7 @@ export default function MyWinningsPage() {
     prizesWallet.isTransactionPending,
     prizesWallet.write.status.error,
     showError,
+    showInfo,
   ]);
 
   // Watch for successful staking wallet transactions
@@ -360,8 +368,11 @@ export default function MyWinningsPage() {
       !stakingWallet.status.isPending &&
       stakingWallet.status.error
     ) {
-      const errorMessage = getErrorMessage(stakingWallet.status.error);
-      showError(errorMessage);
+      if (isUserRejection(stakingWallet.status.error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(getErrorMessage(stakingWallet.status.error));
+      }
       setPendingClaim({ type: null });
     }
   }, [
@@ -369,6 +380,7 @@ export default function MyWinningsPage() {
     stakingWallet.status.isPending,
     stakingWallet.status.error,
     showError,
+    showInfo,
   ]);
 
   // Claim all ETH (raffle prizes)
@@ -409,6 +421,7 @@ export default function MyWinningsPage() {
       setPendingClaim({ type: 'eth', data: { amount: totalEthToClaim } });
     } catch (error) {
       if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
         setClaiming((prev) => ({ ...prev, eth: false }));
         return;
       }
@@ -444,6 +457,7 @@ export default function MyWinningsPage() {
       setPendingClaim({ type: 'nft', data: { nftIndex } });
     } catch (error) {
       if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
         setClaiming((prev) => ({ ...prev, nft: null }));
         return;
       }
@@ -481,7 +495,10 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'nft-all', data: { count: unclaimedNFTs.length } });
     } catch (error) {
-      if (isUserRejection(error)) return;
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        return;
+      }
       reportError(error, "handleClaimAllNFTs");
       showError(getErrorMessage(error));
     }
@@ -521,6 +538,7 @@ export default function MyWinningsPage() {
       setPendingClaim({ type: 'erc20', data: { symbol: token.TokenAddr } });
     } catch (error) {
       if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
         setClaiming((prev) => ({ ...prev, erc20: null }));
         return;
       }
@@ -562,7 +580,10 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'erc20-all', data: { count: unclaimedTokens.length } });
     } catch (error) {
-      if (isUserRejection(error)) return;
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        return;
+      }
       reportError(error, "handleClaimAllERC20");
       showError(getErrorMessage(error));
     }
@@ -611,7 +632,10 @@ export default function MyWinningsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       setPendingClaim({ type: 'staking-all', data: { count: allActionIds.length } });
     } catch (error) {
-      if (isUserRejection(error)) return;
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        return;
+      }
       reportError(error, "handleClaimAllStaking");
       showError(getErrorMessage(error));
     }

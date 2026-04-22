@@ -35,7 +35,7 @@ Target for sustained campaign, strategy content, and ecosystem alignment.
 | 9 | **Ignas** (@DefiIgnas) | X | 200K+ X | DeFi research | Deep analytical content. Tokenomics breakdowns. | $3K-8K (thread) |
 | 10 | **Olimpio** (@OlimpioCrypto) | X | 120K+ X | Arbitrum ecosystem | Arbitrum-focused. Direct ecosystem alignment. | $2K-5K (thread) |
 | 11 | **Westie** (@WestieCapital) | X | 100K+ X | L2 ecosystem, alpha | L2 focused audience. Arbitrum expertise. | $2K-5K (thread) |
-| 12 | **Sandra** (@sandraaleow) | X | 80K+ X | NFT, web3 gaming | NFT and gaming intersection. Perfect for CSN angle. | $2K-5K (thread) |
+| 12 | **Sandra** (@sandraaleow) | X | 80K+ X | NFT, web3 gaming | NFT and gaming intersection. Perfect for COSMIC NFT angle. | $2K-5K (thread) |
 | 13 | **Rancune** (@RancuneS) | X | 90K+ X | Arbitrum, DeFi | Deep Arbitrum ecosystem coverage. | $2K-4K (thread) |
 | 14 | **Arjun Chand** (@araborjunchand) | X, Blog | 60K+ X | DeFi research | Thorough analytical pieces. Great for deep dives. | $1K-3K (article) |
 | 15 | **The DeFi Edge** (@thedefiedge) | X, Newsletter | 180K+ X | DeFi strategy | Strategy-focused content perfectly aligned with game theory angle. | $3K-8K (thread + newsletter) |
@@ -190,7 +190,7 @@ Provide these accurate, contract-sourced details to all influencer partners. Eve
 - 2.5 ETH to the last bidder (25%)
 - 0.8 ETH to the Chrono-Warrior (8%)
 - 0.4 ETH split among 3 random bidders (4%)
-- 0.6 ETH to CSN NFT stakers (6%, split pro-rata per staked NFT)
+- 0.6 ETH to COSMIC NFT stakers (6%, split pro-rata per staked NFT)
 - 0.7 ETH to Protocol Guild (7%)
 - 5.0 ETH stays for the next round (~50%)
 - Plus: up to 24 Cosmic Signature NFTs minted and thousands of CST distributed

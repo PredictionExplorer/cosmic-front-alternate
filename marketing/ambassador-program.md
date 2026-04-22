@@ -200,7 +200,7 @@ Ambassadors must understand every game mechanic to represent the project accurat
 - **Endurance Champion**: longest single unbroken streak as last bidder in the round. Not cumulative -- one continuous stretch.
 - **Chrono-Warrior**: longest continuous reign as Endurance Champion. When EC changes hands, the outgoing EC's "chrono interval" is measured. Longest chrono wins.
 - EC prize: 1 Cosmic Signature NFT + 1,000 CST
-- CW prize: **8% of round's ETH** + 1 CSN + 1,000 CST (most lucrative secondary prize)
+- CW prize: **8% of round's ETH** + 1 COSMIC NFT + 1,000 CST (most lucrative secondary prize)
 - Both titles reward strategic timing, not just capital
 - Final evaluation happens at claim time -- current EC/CW standings can change at the last moment
 
@@ -208,19 +208,19 @@ Ambassadors must understand every game mechanic to represent the project accurat
 - 25% ETH: Main prize (direct to claimer)
 - 8% ETH: Chrono-Warrior (PrizesWallet)
 - 4% ETH: 3 random bidders (PrizesWallet)
-- 6% ETH: CSN stakers (staking contract, pro-rata per NFT)
+- 6% ETH: COSMIC NFT stakers (staking contract, pro-rata per NFT)
 - 7% ETH: Protocol Guild (direct transfer, non-reverting)
 - ~50% ETH: Retained in game contract for next round
 - CST: 1,000 each to main winner, last CST bidder, EC, CW, 10 bidder raffle, up to 10 RWLK staker raffle
-- CSN NFTs: 1 each to same categories above (up to 24 per round)
+- COSMIC NFTs: 1 each to same categories above (up to 24 per round)
 - 3,000 CST to marketing wallet
 - Claim timeout: last bidder has 1-day exclusive window; then anyone can claim
 - Secondary prize timeout: 5 weeks in PrizesWallet before anyone can withdraw
 
 **Module 6: Staking (10 min)**
-- CSN Staking: lock NFTs in staking contract. 6% of round ETH split equally per staked NFT. Cumulative rewards paid on unstake. Each NFT stakeable only once ever.
-- RWLK Staking: lock NFTs for raffle eligibility. Up to 10 winners per round get 1 CSN + 1,000 CST. Each RWLK stakeable only once ever.
-- Key distinction: CSN staking = passive ETH yield. RWLK staking = raffle eligibility (no direct ETH).
+- COSMIC NFT Staking: lock NFTs in staking contract. 6% of round ETH split equally per staked NFT. Cumulative rewards paid on unstake. Each NFT stakeable only once ever.
+- RWLK Staking: lock NFTs for raffle eligibility. Up to 10 winners per round get 1 COSMIC NFT + 1,000 CST. Each RWLK stakeable only once ever.
+- Key distinction: COSMIC NFT staking = passive ETH yield. RWLK staking = raffle eligibility (no direct ETH).
 
 **Module 7: DAO Governance (10 min)**
 - OpenZeppelin Governor with GovernorVotes, GovernorCountingSimple, GovernorSettings
@@ -239,7 +239,7 @@ Ambassadors must understand every game mechanic to represent the project accurat
 - Claim race: unclaimed main prizes after 1 day are open to anyone (opportunity for alert players)
 
 **Module 9: Art Generation -- The Three Body Problem (15 min)**
-- Every CSN NFT has a unique on-chain seed. The seed is the sole input to a deterministic art generation pipeline.
+- Every COSMIC NFT has a unique on-chain seed. The seed is the sole input to a deterministic art generation pipeline.
 - The art visualizes the **Three Body Problem**: three massive celestial bodies orbiting under Newtonian gravity. Unlike two bodies (neat ellipses), three bodies produce fundamentally chaotic trajectories.
 - **Pipeline stages (simplified)**: Seed -> SHA3-256 RNG -> 100,000 three-body simulations -> Borda selection (best orbit) -> spectral rendering (16 wavelength bins) -> cinematic post-processing -> 16-bit PNG + 30s video
 - **Physics**: 4th-order Yoshida symplectic integrator (from astrophysics research). Preserves energy over millions of timesteps. G = 9.8. Bodies have mass 100-300, positions in 3D space.

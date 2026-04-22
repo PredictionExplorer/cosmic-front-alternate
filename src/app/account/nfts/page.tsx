@@ -24,6 +24,10 @@ import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import type { ApiCSTToken, ApiStakedCSTToken } from "@/services/apiTypes";
+import {
+  isUserRejection,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
+} from "@/lib/errorReporter";
 
 type NFTData = Pick<ApiCSTToken, 'TokenId' | 'Seed' | 'Tx' | 'TokenName' | 'RoundNum' | 'Staked' | 'WasUnstaked'>;
 
@@ -95,11 +99,15 @@ export default function MyNFTsPage() {
       return true;
     } catch (error: unknown) {
       console.error("Approval error:", error);
-      showError(
-        error instanceof Error
-          ? error.message
-          : "Failed to approve. Please try again."
-      );
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(
+          error instanceof Error
+            ? error.message
+            : "Failed to approve. Please try again."
+        );
+      }
       return false;
     }
   };
@@ -145,9 +153,13 @@ export default function MyNFTsPage() {
       }, 2000);
     } catch (error: unknown) {
       console.error("Staking error:", error);
-      showError(
-        error instanceof Error ? error.message : "Failed to stake NFT"
-      );
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
+        showError(
+          error instanceof Error ? error.message : "Failed to stake NFT"
+        );
+      }
     } finally {
       setStakingTokenId(null);
     }

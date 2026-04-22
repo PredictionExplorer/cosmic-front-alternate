@@ -66,8 +66,8 @@
 | Mon | Discord | Role update | Enable wallet verification for RWLK holders. Announce in #announcements. |
 | Tue | X | Thread (8 tweets) | "How the Art Works" thread -- Three Body Problem explainer (see Art Deep-Dive section below) |
 | Tue | Blog | Article | "The Art of Cosmic Signature: How Physics Becomes Light" -- blog version of the art algorithm overview |
-| Wed | X | Thread (5 tweets) | "Staking in Cosmic Signature: Two strategies, one goal" (CSN staking vs RWLK staking) |
-| Wed | Telegram | Announcement | "Did you know? You can stake your CSN NFTs for ETH rewards every round." |
+| Wed | X | Thread (5 tweets) | "Staking in Cosmic Signature: Two strategies, one goal" (COSMIC NFT staking vs RWLK staking) |
+| Wed | Telegram | Announcement | "Did you know? You can stake your COSMIC NFTs for ETH rewards every round." |
 | Thu | X | Single post | "7% of every round is allocated to Protocol Guild. Automatically. No manual transfers. Just code that gives back." + Impact Green visual |
 | Thu | Discord | Discussion | #public-goods-nominations: "Which public goods initiatives should the DAO consider? Start nominating!" |
 | Fri | X | Thread (6 tweets) | "Random Walk NFT holders: Here's what your NFTs can do in Cosmic Signature" (discount bids + staking) |
@@ -192,12 +192,12 @@
 | Mon | X | Thread | "Your Cosmic Signature NFTs are yield-bearing. Here's the staking math." |
 | Mon | Blog | Article | "Staking Guide: How to Earn Passive ETH with Your Cosmic Signature NFTs" |
 | Tue | X | Visual | NFT gallery: "The first 50 Cosmic Signature NFTs" (showcase unique art) |
-| Tue | Discord | Gallery | #nft-gallery: Community shares their favorite CSN NFTs and names |
+| Tue | Discord | Gallery | #nft-gallery: Community shares their favorite COSMIC NFTs and names |
 | Wed | X | Thread | "Random Walk NFT holders: Your complete playbook for Cosmic Signature" |
-| Thu | X | Data | Staking stats: "X CSN staked. Y RWLK staked. Z ETH distributed to stakers." |
-| Fri | X | Strategy | "Hold vs Stake vs Sell: The CSN decision framework" |
+| Thu | X | Data | Staking stats: "X COSMIC NFTs staked. Y RWLK staked. Z ETH distributed to stakers." |
+| Fri | X | Strategy | "Hold vs Stake vs Sell: The COSMIC NFT decision framework" |
 | Fri | Newsletter | Issue #4 | NFT showcase, staking stats, community gallery |
-| Sat | X | Contest | "Best CSN name contest: Share your favorite NFT name" |
+| Sat | X | Contest | "Best COSMIC NFT name contest: Share your favorite NFT name" |
 | Sun | X | Preview | Weekly round preview with staking reward projections |
 
 ### Week 10: DAO and Governance
@@ -351,7 +351,7 @@ These educational threads and posts explain specific game mechanics with contrac
 5. The DAO can adjust prize percentages, timer settings, public goods recipient
 6. Active bidders naturally accumulate governance power
 
-### Thread: "How CSN Staking Yield Works" (5 tweets)
+### Thread: "How COSMIC NFT Staking Yield Works" (5 tweets)
 1. 6% of the game's ETH balance is sent to the staking contract every round
 2. That ETH is split equally among ALL staked Cosmic Signature NFTs
 3. Your reward accumulates until you unstake (you get ETH + your NFT back)

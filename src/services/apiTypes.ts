@@ -429,6 +429,16 @@ export interface ApiUniqueStaker {
   UnclaimedRewardEth: number;
 }
 
+/** RWalk unique stakers: rewards are minted NFTs, not ETH (`CGUniqueStakerRWalk`). */
+export interface ApiUniqueStakerRWalk {
+  StakerAid: number;
+  StakerAddr: string;
+  TotalTokensStaked: number;
+  NumStakeActions: number;
+  NumUnstakeActions: number;
+  TotalTokensMinted: number;
+}
+
 // ── Token distributions ─────────────────────────────────────────────────
 
 export interface ApiCSTDistribution {
@@ -444,9 +454,13 @@ export interface ApiCTBalanceDistribution {
   PercentOfSupply: number;
 }
 
+/** Matches `CGDonatedTokenDistrRec` from the dashboard API (`MainStats.DonatedTokenDistribution`). */
 export interface ApiDonatedTokenDistribution {
-  NftAddr: string;
-  NumDonations: number;
+  ContractAddr: string;
+  NumDonatedTokens: number;
+  /** Legacy / mistaken client field names — ignore unless present in older payloads */
+  NftAddr?: string;
+  NumDonations?: number;
 }
 
 export interface ApiCSTBidData {

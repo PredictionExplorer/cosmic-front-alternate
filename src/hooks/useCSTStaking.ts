@@ -14,6 +14,10 @@ import { wagmiConfig } from "@/lib/web3/config";
 import { getBufferedEip1559Fees } from "@/lib/web3/transactionFees";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
+import {
+  isUserRejection,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
+} from "@/lib/errorReporter";
 
 async function getAvailableCSTTokensByUser(address: string): Promise<ApiCSTToken[]> {
   const tokens = await api.getCSTTokensByUser(address);
@@ -23,16 +27,6 @@ async function getAvailableCSTTokensByUser(address: string): Promise<ApiCSTToken
 async function getFeesWithBuffer() {
   const fees = await getBufferedEip1559Fees(wagmiConfig);
   return fees ?? {};
-}
-
-function isUserRejection(error: unknown): boolean {
-  const msg = (error as Error)?.message || "";
-  return (
-    msg.includes("User denied") ||
-    msg.includes("User rejected") ||
-    msg.includes("user rejected") ||
-    msg.includes("rejected the request")
-  );
 }
 
 export function useCSTStaking() {
@@ -172,7 +166,9 @@ export function useCSTStaking() {
       !stakingContract.status.isConfirming &&
       (stakingTokenId !== null || isStakingMultiple || unstakingActionId !== null)
     ) {
-      if (!isUserRejection(stakingContract.status.error)) {
+      if (isUserRejection(stakingContract.status.error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
         showError((stakingContract.status.error as Error)?.message || "Transaction failed");
       }
       processedTxRef.current = null;
@@ -188,6 +184,7 @@ export function useCSTStaking() {
     isStakingMultiple,
     unstakingActionId,
     showError,
+    showInfo,
   ]);
 
   const handleApprove = useCallback(async (): Promise<boolean> => {
@@ -214,7 +211,9 @@ export function useCSTStaking() {
       return true;
     } catch (error: unknown) {
       console.error("Approval failed:", error);
-      if (!isUserRejection(error)) {
+      if (isUserRejection(error)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+      } else {
         showError((error as Error)?.message || "Failed to approve. Please try again.");
       }
       return false;
@@ -258,7 +257,9 @@ export function useCSTStaking() {
         showInfo("Transaction submitted! Waiting for confirmation...");
       } catch (error: unknown) {
         console.error("Staking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to stake NFT. Please try again.");
         }
         setStakingTokenId(null);
@@ -310,7 +311,9 @@ export function useCSTStaking() {
         showInfo(`Transaction submitted! Staking ${tokenIds.length} NFTs...`);
       } catch (error: unknown) {
         console.error("Multi-staking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to stake NFTs. Please try again.");
         }
         setIsStakingMultiple(false);
@@ -348,7 +351,9 @@ export function useCSTStaking() {
         showInfo(`Transaction submitted! Unstaking token #${_tokenId} and claiming rewards...`);
       } catch (error: unknown) {
         console.error("Unstaking failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to unstake NFT. Please try again.");
         }
         setUnstakingActionId(null);
@@ -392,7 +397,9 @@ export function useCSTStaking() {
         showInfo(`Transaction submitted! Unstaking ${stakeActionIds.length} NFTs and claiming rewards...`);
       } catch (error: unknown) {
         console.error("Unstake selected failed:", error);
-        if (!isUserRejection(error)) {
+        if (isUserRejection(error)) {
+          showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        } else {
           showError((error as Error)?.message || "Failed to unstake NFTs. Please try again.");
         }
         setIsStakingMultiple(false);

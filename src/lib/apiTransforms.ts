@@ -29,8 +29,11 @@ export interface ComponentBidData {
   CSTRewardEth?: number;
   NFTDonationTokenId?: number;
   NFTDonationTokenAddr?: string;
+  NFTTokenURI?: string;
+  ImageURL?: string;
   DonatedERC20TokenAddr?: string;
   DonatedERC20TokenAmount?: string;
+  DonatedERC20TokenAmountEth?: number;
   NumCSTTokensEth?: number;
 }
 
@@ -58,8 +61,11 @@ export function transformBidData(apiBid: ApiBidResponse): ComponentBidData {
     CSTRewardEth: apiBid.CSTRewardEth,
     NFTDonationTokenId: apiBid.NFTDonationTokenId,
     NFTDonationTokenAddr: apiBid.NFTDonationTokenAddr,
+    NFTTokenURI: apiBid.NFTTokenURI,
+    ImageURL: apiBid.ImageURL,
     DonatedERC20TokenAddr: apiBid.DonatedERC20TokenAddr,
     DonatedERC20TokenAmount: apiBid.DonatedERC20TokenAmount,
+    DonatedERC20TokenAmountEth: apiBid.DonatedERC20TokenAmountEth,
     NumCSTTokensEth: apiBid.NumCSTTokensEth,
   };
 }

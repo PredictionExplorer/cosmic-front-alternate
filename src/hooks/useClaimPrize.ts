@@ -10,6 +10,7 @@ import {
   isUserRejection,
   reportError,
   getContractErrorMessage,
+  WALLET_TRANSACTION_CANCELLED_MESSAGE,
 } from '@/lib/errorReporter';
 import { parseContractError } from '@/lib/web3/errorHandling';
 import { estimateContractGas } from '@/lib/web3/gasEstimation';
@@ -89,14 +90,15 @@ export function useClaimPrize(): ClaimPrizeResult {
       showSuccess('Main Prize claimed successfully! Congratulations!');
       return true;
     } catch (err) {
-      if (isUserRejection(err)) return false;
+      if (isUserRejection(err)) {
+        showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
+        return false;
+      }
       reportError(err, 'claimMainPrize');
       const friendlyError =
         getContractErrorMessage(err) || parseContractError(err);
-      if (friendlyError && !friendlyError.includes('Transaction was rejected')) {
-        setError(friendlyError);
-        showError(friendlyError);
-      }
+      setError(friendlyError);
+      showError(friendlyError);
       return false;
     } finally {
       setIsSubmitting(false);

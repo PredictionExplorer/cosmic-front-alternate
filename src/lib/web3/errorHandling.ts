@@ -5,6 +5,10 @@
  * Maps technical error messages to human-readable explanations.
  */
 
+import {
+	isUserRejection,
+	WALLET_TRANSACTION_CANCELLED_MESSAGE,
+} from '@/lib/errorReporter';
 import { decodeContractError } from './errorDecoder';
 
 /**
@@ -45,11 +49,11 @@ export const CONTRACT_ERRORS = {
  * @returns User-friendly error message
  */
 export function parseContractError(error: unknown): string {
-	// User rejected transaction
-	const errorObj = error as Record<string, unknown>;
-	if (errorObj?.code === 4001 || errorObj?.code === 'ACTION_REJECTED') {
-		return 'Transaction was rejected';
+	if (isUserRejection(error)) {
+		return WALLET_TRANSACTION_CANCELLED_MESSAGE;
 	}
+
+	const errorObj = error as Record<string, unknown>;
 
 	// Try to decode the error using the ABI first (most accurate)
 	const decodedMessage = decodeContractError(error);
@@ -183,12 +187,7 @@ export function parseContractError(error: unknown): string {
  * @returns True if user rejected transaction
  */
 export function isUserRejectionError(error: unknown): boolean {
-	const errorObj = error as Record<string, unknown>;
-	return (
-		errorObj?.code === 4001 ||
-		errorObj?.code === 'ACTION_REJECTED' ||
-		(typeof errorObj?.message === 'string' && errorObj.message.includes('user rejected'))
-	);
+	return isUserRejection(error);
 }
 
 /**

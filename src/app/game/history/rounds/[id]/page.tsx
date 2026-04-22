@@ -12,15 +12,55 @@ import { Badge } from "@/components/ui/Badge";
 import { Breadcrumbs } from "@/components/features/Breadcrumbs";
 import { AddressDisplay } from "@/components/features/AddressDisplay";
 import { ElegantTable } from "@/components/data/ElegantTable";
+import { BidHistoryTable } from "@/components/game/BidHistoryTable";
 import { formatDate, formatDuration, safeTimestamp } from "@/lib/utils";
 import api from "@/services/api";
-import { reportError } from "@/lib/errorReporter";
-import type { ApiCurRoundStats, ApiRaffleNFTWinner, ApiRaffleDepositResponse, ApiRoundDetail } from "@/services/apiTypes";
+import type { ApiRaffleNFTWinner, ApiRaffleDepositResponse, ApiRoundDetail } from "@/services/apiTypes";
 import type { ComponentBidData } from "@/lib/apiTransforms";
 
 type RaffleNFTWinner = ApiRaffleNFTWinner;
 type RaffleETHDeposit = ApiRaffleDepositResponse;
 type RoundDetail = ApiRoundDetail;
+
+/**
+ * True round length in seconds. Prefers `cg_round_stats.round_duration_seconds` from the API.
+ * The old UI used `TimeoutTs - claimTxTime`, which is “time from claim to timeout” and is often ~0
+ * when the winner claimed at the deadline — not the length of the round.
+ */
+function getRoundDurationSeconds(round: ApiRoundDetail): number {
+  const rs = round.RoundStats;
+  if (typeof rs?.RoundDurationSeconds === "number" && rs.RoundDurationSeconds > 0) {
+    return Number(rs.RoundDurationSeconds);
+  }
+  const start = rs?.RoundStartTime ? Date.parse(String(rs.RoundStartTime)) : NaN;
+  const end = rs?.RoundEndTime ? Date.parse(String(rs.RoundEndTime)) : NaN;
+  if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+    return Math.floor((end - start) / 1000);
+  }
+  const timeoutTs = round.MainPrize?.TimeoutTs ?? 0;
+  const claimTs = round.ClaimPrizeTx?.Tx?.TimeStamp ?? 0;
+  if (timeoutTs > 0 && claimTs > 0 && timeoutTs >= claimTs) {
+    return timeoutTs - claimTs;
+  }
+  return 0;
+}
+
+function formatRaffleEthAmount(eth: RaffleETHDeposit): string {
+  const raw = eth.Amount;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return `${raw.toFixed(4)} ETH`;
+  }
+  return "—";
+}
+
+function raffleNftPrizeDescription(w: RaffleNFTWinner): string {
+  const id = w.TokenId ?? 0;
+  const cst = w.CstAmountEth;
+  if (typeof cst === "number" && cst > 0) {
+    return `Cosmic Signature #${id} · ${cst.toFixed(2)} CST`;
+  }
+  return `Cosmic Signature #${id}`;
+}
 
 export default function RoundDetailPage({
   params,
@@ -42,20 +82,10 @@ export default function RoundDetailPage({
 
   const { data: bidsData, isLoading: isLoadingBids } = useApiQuery(
     "bids-round-" + roundNum,
-    async () => {
-      const bidsData = await api.getBidListByRound(round!.RoundNum, "desc");
-      return bidsData.map((bid: ComponentBidData) => ({
-        id: bid.EvtLogId || 0,
-        bidder: bid.BidderAddr || "0x0",
-        bidType: bid.BidType === 0 ? "ETH" : "CST",
-        amount: bid.BidPriceEth || 0,
-        timestamp: bid.TimeStamp || 0,
-        message: bid.Message || undefined,
-      }));
-    },
+    () => api.getBidListByRound(round!.RoundNum, "desc"),
     { enabled: !!round },
   );
-  const bids = bidsData ?? [];
+  const bids = (bidsData ?? []) as ComponentBidData[];
 
   const { data: donationsData, isLoading: isLoadingDonations } = useApiQuery(
     "donations-round-" + roundNum,
@@ -132,7 +162,7 @@ export default function RoundDetailPage({
   }
 
   // Calculate derived values
-  const duration = round.MainPrize.TimeoutTs - (round.ClaimPrizeTx?.Tx?.TimeStamp || 0);
+  const durationSeconds = getRoundDurationSeconds(round);
   const totalPool = round.MainPrize.EthAmountEth + round.StakingDeposit.StakingDepositAmountEth + round.RoundStats.TotalRaffleEthDepositsEth;
 
   return (
@@ -159,7 +189,7 @@ export default function RoundDetailPage({
                 <h1 className="heading-xl mb-2">Round {round.RoundNum}</h1>
                 <p className="text-text-secondary">
                   Completed on {formatDate(new Date(safeTimestamp(round)))} •
-                  Duration: {formatDuration(duration * 1000)}
+                  Duration: {formatDuration(durationSeconds * 1000)}
                 </p>
               </div>
 
@@ -203,8 +233,8 @@ export default function RoundDetailPage({
             </div>
             <div className="text-center">
               <Clock size={24} className="text-primary mx-auto mb-2" />
-              <p className="font-mono text-2xl font-semibold text-text-primary">
-                {Math.floor(duration / 3600)}h
+              <p className="text-lg font-semibold text-text-primary px-1 leading-tight">
+                {formatDuration(durationSeconds * 1000)}
               </p>
               <p className="text-sm text-text-secondary">Duration</p>
             </div>
@@ -466,14 +496,208 @@ export default function RoundDetailPage({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-lg bg-background-elevated">
-                  <p className="text-sm text-text-secondary mb-2">
-                    Raffle Winners
-                  </p>
-                  <p className="text-text-primary">
-                    {round.RaffleETHDeposits?.length || 0} ETH winners +{" "}
-                    {round.RaffleNFTWinners?.length || 0} NFT winners
-                  </p>
+                <div className="space-y-8 rounded-lg bg-background-elevated p-4 border border-text-muted/10">
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary mb-3">
+                      Raffle winners
+                    </p>
+                    <p className="text-xs text-text-secondary mb-4">
+                      ETH raffles, bidder-pool NFT raffles, and staking (Random Walk) NFT raffles for this round.
+                    </p>
+
+                    {(round.RaffleETHDeposits?.length ?? 0) > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-medium text-text-secondary mb-2">
+                          ETH raffle ({round.RaffleETHDeposits!.length})
+                        </h4>
+                        <div className="overflow-x-auto rounded-lg border border-text-muted/10">
+                          <table className="w-full text-sm">
+                            <thead className="bg-background-surface border-b border-text-muted/10">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Winner
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Prize
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Slot
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Status
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-text-muted/10">
+                              {round.RaffleETHDeposits!.map((row, i) => (
+                                <tr key={`eth-${row.RecordId ?? i}-${row.WinnerIndex ?? i}`}>
+                                  <td className="px-3 py-2">
+                                    {row.WinnerAddr ? (
+                                      <Link
+                                        href={`/user/${row.WinnerAddr}`}
+                                        className="hover:underline"
+                                      >
+                                        <AddressDisplay
+                                          address={row.WinnerAddr}
+                                          shorten
+                                          chars={8}
+                                          showCopy={false}
+                                          showLink={false}
+                                        />
+                                      </Link>
+                                    ) : (
+                                      <span className="text-text-muted">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-text-primary">
+                                    {formatRaffleEthAmount(row)}
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-text-secondary">
+                                    {row.WinnerIndex ?? "—"}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {row.Claimed ? (
+                                      <Badge variant="success">Claimed</Badge>
+                                    ) : (
+                                      <Badge variant="default">Unclaimed</Badge>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {(round.RaffleNFTWinners?.length ?? 0) > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-sm font-medium text-text-secondary mb-2">
+                          NFT raffle — bidders ({round.RaffleNFTWinners!.length})
+                        </h4>
+                        <div className="overflow-x-auto rounded-lg border border-text-muted/10">
+                          <table className="w-full text-sm">
+                            <thead className="bg-background-surface border-b border-text-muted/10">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Winner
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Prize
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Slot
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-text-muted/10">
+                              {round.RaffleNFTWinners!.map((w, i) => (
+                                <tr key={`nft-bid-${w.RecordId ?? i}-${w.WinnerIndex ?? i}`}>
+                                  <td className="px-3 py-2">
+                                    {w.WinnerAddr ? (
+                                      <Link
+                                        href={`/user/${w.WinnerAddr}`}
+                                        className="hover:underline"
+                                      >
+                                        <AddressDisplay
+                                          address={w.WinnerAddr}
+                                          shorten
+                                          chars={8}
+                                          showCopy={false}
+                                          showLink={false}
+                                        />
+                                      </Link>
+                                    ) : (
+                                      <span className="text-text-muted">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-text-primary">
+                                    <Link
+                                      href={`/gallery/${w.TokenId}`}
+                                      className="font-mono text-primary hover:underline"
+                                    >
+                                      {raffleNftPrizeDescription(w)}
+                                    </Link>
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-text-secondary">
+                                    {w.WinnerIndex ?? "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {(round.StakingNFTWinners?.length ?? 0) > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-text-secondary mb-2">
+                          NFT raffle — staking (Random Walk) ({round.StakingNFTWinners!.length})
+                        </h4>
+                        <div className="overflow-x-auto rounded-lg border border-text-muted/10">
+                          <table className="w-full text-sm">
+                            <thead className="bg-background-surface border-b border-text-muted/10">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Winner
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Prize
+                                </th>
+                                <th className="px-3 py-2 text-left font-semibold text-text-primary">
+                                  Slot
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-text-muted/10">
+                              {round.StakingNFTWinners!.map((w, i) => (
+                                <tr key={`nft-stk-${w.RecordId ?? i}-${w.WinnerIndex ?? i}`}>
+                                  <td className="px-3 py-2">
+                                    {w.WinnerAddr ? (
+                                      <Link
+                                        href={`/user/${w.WinnerAddr}`}
+                                        className="hover:underline"
+                                      >
+                                        <AddressDisplay
+                                          address={w.WinnerAddr}
+                                          shorten
+                                          chars={8}
+                                          showCopy={false}
+                                          showLink={false}
+                                        />
+                                      </Link>
+                                    ) : (
+                                      <span className="text-text-muted">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-text-primary">
+                                    <span className="font-mono">
+                                      Random Walk #{w.TokenId}
+                                      {typeof w.CstAmountEth === "number" && w.CstAmountEth > 0
+                                        ? ` · ${w.CstAmountEth.toFixed(2)} CST`
+                                        : ""}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 font-mono text-text-secondary">
+                                    {w.WinnerIndex ?? "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {(round.RaffleETHDeposits?.length ?? 0) === 0 &&
+                      (round.RaffleNFTWinners?.length ?? 0) === 0 &&
+                      (round.StakingNFTWinners?.length ?? 0) === 0 && (
+                        <p className="text-sm text-text-muted">
+                          No raffle prizes recorded for this round.
+                        </p>
+                      )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -495,7 +719,7 @@ export default function RoundDetailPage({
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
                     <span className="text-text-secondary">Duration</span>
                     <span className="font-mono text-text-primary font-semibold">
-                      {formatDuration(duration * 1000)}
+                      {formatDuration(durationSeconds * 1000)}
                     </span>
                   </div>
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
@@ -575,92 +799,12 @@ export default function RoundDetailPage({
                     <p className="text-text-secondary">Loading bids...</p>
                   </div>
                 </Card>
-              ) : bids.length > 0 ? (
-                <ElegantTable
-                  data={bids}
-                  mode="table"
-                  columns={[
-                    {
-                      key: "bidder",
-                      label: "Bidder",
-                      render: (_value, item) => (
-                        <AddressDisplay
-                          address={item.bidder as string}
-                          showCopy={false}
-                        />
-                      ),
-                    },
-                    {
-                      key: "bidType",
-                      label: "Type",
-                      render: (value) => (
-                        <Badge
-                          variant={
-                            value === "ETH"
-                              ? "default"
-                              : value === "CST"
-                              ? "info"
-                              : "success"
-                          }
-                        >
-                          {String(value)}
-                        </Badge>
-                      ),
-                    },
-                    {
-                      key: "amount",
-                      label: "Amount",
-                      sortable: true,
-                      render: (value, item) => (
-                        <span className="font-mono text-primary font-semibold">
-                          {typeof value === "number"
-                            ? value.toFixed(6)
-                            : "0.000000"}{" "}
-                          {item.bidType === "CST" ? "CST" : "ETH"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "timestamp",
-                      label: "Time",
-                      sortable: true,
-                      render: (value) => (
-                        <span className="text-text-secondary text-sm">
-                          {typeof value === "number"
-                            ? formatDate(new Date(value * 1000))
-                            : "Unknown"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "message",
-                      label: "Message",
-                      render: (value) => (
-                        <span className="text-text-secondary italic text-sm truncate max-w-xs block">
-                          {value ? String(value) : "—"}
-                        </span>
-                      ),
-                    },
-                    {
-                      key: "id",
-                      label: "Details",
-                      render: (value) => (
-                        <Link href={`/game/history/bids/${value}`}>
-                          <Button variant="outline" size="sm">
-                            View
-                          </Button>
-                        </Link>
-                      ),
-                    },
-                  ]}
+              ) : (
+                <BidHistoryTable
+                  key={round.RoundNum}
+                  bids={bids}
                   emptyMessage="No bids found for this round."
                 />
-              ) : (
-                <Card glass className="p-12 text-center">
-                  <p className="text-text-secondary">
-                    No bids found for this round.
-                  </p>
-                </Card>
               )}
             </div>
           )}
