@@ -8,7 +8,12 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from "axios";
-import { getCosmicApiBaseUrl, getDefaultChainId } from "@/lib/networkConfig";
+import {
+  getCosmicApiBaseUrl,
+  getDefaultChainId,
+  getNftApiBaseUrl,
+  getNftCdnOrigin,
+} from "@/lib/networkConfig";
 import { reportError } from "@/lib/errorReporter";
 import { transformBidList, transformRaffleDepositList } from "@/lib/apiTransforms";
 import type {
@@ -110,10 +115,6 @@ function unwrapApiResponse<T = Record<string, unknown>>(
 function getApiBaseUrl(): string {
   return getCosmicApiBaseUrl();
 }
-
-const ASSETS_BASE_URL =
-  process.env.NEXT_PUBLIC_ASSETS_BASE_URL ||
-  "https://nfts.cosmicsignature.com/";
 
 // ── Per-request chain resolution ────────────────────────────────────────
 //
@@ -378,7 +379,7 @@ class CosmicSignatureAPI {
    * Throws on failure (callers must handle).
    */
   async createNFTAssets(tokenId: number, count: number) {
-    const { data } = await axios.post(`${ASSETS_BASE_URL}cosmicgame_tokens`, {
+    const { data } = await axios.post(`${getNftApiBaseUrl()}cosmicgame_tokens`, {
       token_id: tokenId,
       count,
     });
@@ -694,12 +695,12 @@ class CosmicSignatureAPI {
   // ==================== ADMIN / ASSETS SERVER ====================
 
   async getBannedBids() {
-    const { data } = await axios.get(`${ASSETS_BASE_URL}get_banned_bids`);
+    const { data } = await axios.get(`${getNftApiBaseUrl()}get_banned_bids`);
     return data || [];
   }
 
   async banBid(bidId: number, userAddr: string) {
-    const { data } = await axios.post(`${ASSETS_BASE_URL}ban_bid`, {
+    const { data } = await axios.post(`${getNftApiBaseUrl()}ban_bid`, {
       bid_id: bidId,
       user_addr: userAddr,
     });
@@ -707,7 +708,7 @@ class CosmicSignatureAPI {
   }
 
   async unbanBid(bidId: number) {
-    const { data } = await axios.post(`${ASSETS_BASE_URL}unban_bid`, {
+    const { data } = await axios.post(`${getNftApiBaseUrl()}unban_bid`, {
       bid_id: bidId,
     });
     return data;
@@ -725,8 +726,21 @@ export const api = new CosmicSignatureAPI();
 export default api;
 
 /**
- * Helper function to get assets URL
+ * CST / static NFT file URL on the CDN (same rules as blue `getAssetsUrl`).
+ * Pass either `cosmicsignature/0x….png` or a path already starting with `images/…`.
  */
 export function getAssetsUrl(path: string): string {
-  return `${ASSETS_BASE_URL}${path}`;
+  const origin = getNftCdnOrigin();
+  const p = path.replace(/^\/+/, "");
+  if (p.startsWith("images/")) {
+    return `${origin}/${p}`;
+  }
+  return `${origin}/images/new/${p}`;
+}
+
+/** RandomWalk thumbnail/full image on the NFT CDN (same layout as blue). */
+export function getRWLKImageUrl(tokenId: number, thumb = true): string {
+  const padded = tokenId.toString().padStart(6, "0");
+  const suffix = thumb ? "_black_thumb.jpg" : "_black.jpg";
+  return `${getNftCdnOrigin()}/images/randomwalk/${padded}${suffix}`;
 }
