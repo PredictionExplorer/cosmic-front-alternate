@@ -311,6 +311,9 @@ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id_here
 # NEXT_PUBLIC_NFT_API_URL=https://custom-nfts.example.com/
 # Legacy alias (same effect as NEXT_PUBLIC_NFT_API_URL):
 # NEXT_PUBLIC_ASSETS_BASE_URL=https://nfts.cosmicsignature.com/
+
+# Footer shows git short SHA + branch on Preview/local; hidden on Vercel Production unless:
+# NEXT_PUBLIC_SHOW_BUILD_COMMIT=1
 ```
 
 ### Network Options
