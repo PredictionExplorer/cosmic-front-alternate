@@ -35,7 +35,7 @@ export function Header() {
                   <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                   <p className="text-sm font-medium">
                     {currentMode === 1
-                      ? "The system will enter maintenance mode as soon as the prize claim transaction is executed. The administrator will adjust system parameters before gameplay resumes."
+                      ? "The system will enter maintenance mode as soon as the allocation claim transaction is executed. The administrator will adjust system parameters before gameplay resumes."
                       : "The system is currently in maintenance mode. The administrator is adjusting system parameters. Gameplay will resume shortly."}
                   </p>
                 </div>

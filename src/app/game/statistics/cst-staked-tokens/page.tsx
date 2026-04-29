@@ -33,7 +33,7 @@ function resolveTxHash(staked: ApiStakedCSTToken, stakeTxByActionId: Map<number,
 
 export default function CstGloballyStakedTokensPage() {
   const { data, isLoading, error } = useApiQuery(
-    "stats-global-staked-cst-tokens",
+    "stats-global-anchored-cst-tokens",
     async () => {
       const [staked, actions] = await Promise.all([
         api.getStakedCSTTokens(),
@@ -69,14 +69,14 @@ export default function CstGloballyStakedTokensPage() {
             items={[
               { label: "Game", href: "/game/play" },
               { label: "Statistics", href: "/game/statistics" },
-              { label: "Globally staked CST" },
+              { label: "Globally anchored CST" },
             ]}
           />
-          <h1 className="heading-xl mb-2">Globally staked Cosmic Signature NFTs</h1>
+          <h1 className="heading-xl mb-2">Globally anchored Cosmic Signature NFTs</h1>
           <p className="body-lg text-text-secondary mb-8 max-w-3xl">
             All tokens currently locked in the CST staking contract. Data comes from the same API as{" "}
             <code className="text-xs font-mono bg-background-elevated px-1.5 py-0.5 rounded">
-              staking/cst/staked_tokens/all
+              anchoring/cst/staked_tokens/all
             </code>
             .
           </p>
@@ -84,14 +84,14 @@ export default function CstGloballyStakedTokensPage() {
           {isLoading && (
             <Card glass className="p-12 text-center">
               <Loader2 className="animate-spin mx-auto mb-4 text-primary" size={48} />
-              <p className="text-text-secondary">Loading staked tokens…</p>
+              <p className="text-text-secondary">Loading anchored tokens…</p>
             </Card>
           )}
 
           {error && (
             <Card glass className="p-8 border border-status-error/30">
               <p className="text-status-error text-sm">
-                {error instanceof Error ? error.message : "Failed to load staked tokens."}
+                {error instanceof Error ? error.message : "Failed to load anchored tokens."}
               </p>
             </Card>
           )}
@@ -106,14 +106,14 @@ export default function CstGloballyStakedTokensPage() {
               </div>
               {rows.length === 0 ? (
                 <div className="p-12 text-center text-text-secondary text-sm">
-                  No CST tokens are staked right now.
+                  No CST tokens are anchored right now.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-background-elevated border-b border-text-muted/10 sticky top-0">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-text-primary">Staker</th>
+                        <th className="px-4 py-3 text-left font-semibold text-text-primary">Anchor-holder</th>
                         <th className="px-4 py-3 text-left font-semibold text-text-primary">Token ID</th>
                         <th className="px-4 py-3 text-left font-semibold text-text-primary">
                           Stake transaction
@@ -126,7 +126,7 @@ export default function CstGloballyStakedTokensPage() {
                         const tokenId = staked.TokenInfo?.TokenId;
                         const txHash = resolveTxHash(staked, stakeTxByActionId);
                         return (
-                          <tr key={`${staked.StakeActionId}-${tokenId}`} className="hover:bg-background-elevated/40">
+                          <tr key={`${anchored.StakeActionId}-${tokenId}`} className="hover:bg-background-elevated/40">
                             <td className="px-4 py-3 align-top">
                               {addr ? (
                                 <Link

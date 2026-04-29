@@ -54,13 +54,13 @@ export default function StakePage() {
   const [showRWalkHowItWorks, setShowRWalkHowItWorks] = useState(false);
   const [showFAQ, setShowFAQ] = useState(false);
 
-  // ── CST Staking Hook ────────────────────────────────────────────────
+  // ── CST Anchoring Hook ────────────────────────────────────────────────
   const cst = useCSTStaking();
 
-  // ── RWLK Staking Hook ──────────────────────────────────────────────
+  // ── RWLK Anchoring Hook ──────────────────────────────────────────────
   const rwlk = useRWLKStaking();
 
-  // ── Staking Rewards ─────────────────────────────────────────────────
+  // ── Anchoring Rewards ─────────────────────────────────────────────────
   const stakingRewards = useStakingRewards(cst.stakedTokens.length);
 
   // ── CST Pagination & Selection ──────────────────────────────────────
@@ -77,7 +77,7 @@ export default function StakePage() {
   const [selectedRWLKTokenIds, setSelectedRWLKTokenIds] = useState<Set<number>>(new Set());
   const [selectedStakedRWLKIds, setSelectedStakedRWLKIds] = useState<Set<number>>(new Set());
 
-  // ── Staking percentage ──────────────────────────────────────────────
+  // ── Anchoring percentage ──────────────────────────────────────────────
   const [stakingPercentage, setStakingPercentage] = useState<number>(
     Number(
       dashboardData?.StakingPercentage ||
@@ -198,7 +198,7 @@ export default function StakePage() {
 
   const handleStakedPageChange = (page: number) => {
     setStakedCurrentPage(page);
-    const section = document.getElementById("staked-nfts-section");
+    const section = document.getElementById("anchored-nfts-section");
     if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -254,16 +254,16 @@ export default function StakePage() {
 
       {activeTab === "cosmic" && (
         <>
-          {/* Staking Header */}
+          {/* Anchoring header */}
           <section className="py-12 bg-background-surface/50 border-b border-text-muted/10">
             <Container>
               <div className="max-w-3xl">
                 <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
-                  Stake NFTs,
+                  Anchor NFTs,
                   <span className="text-gradient block">Earn Rewards</span>
                 </h1>
                 <p className="text-lg text-text-secondary leading-relaxed">
-                  Lock your NFTs to earn a share of {stakingPercentage}% of each round&apos;s prize pool. Withdraw anytime with accumulated rewards.
+                  Lock your NFTs to earn a share of {stakingPercentage}% of each cycle&apos;s allocation pool. Withdraw anytime with accumulated rewards.
                 </p>
               </div>
             </Container>
@@ -280,7 +280,7 @@ export default function StakePage() {
                   className="h-full"
                 />
                 <StatCard
-                  label="Currently Staked"
+                  label="Currently Anchored"
                   value={cst.isLoading ? "..." : yourStakedCount}
                   icon={Award}
                   className="h-full"
@@ -313,7 +313,7 @@ export default function StakePage() {
                   className="gap-2"
                 >
                   <HelpCircle size={18} />
-                  {showHowItWorks ? 'Hide' : 'Show'} How Staking Works
+                  {showHowItWorks ? 'Hide' : 'Show'} How Anchoring Works
                   <ChevronDown 
                     size={18} 
                     className={`transition-transform ${showHowItWorks ? 'rotate-180' : ''}`}
@@ -325,7 +325,7 @@ export default function StakePage() {
                 <Card glass className="p-8 md:p-12">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="font-serif text-2xl font-semibold text-text-primary">
-                      How Staking Works
+                      How Anchoring Works
                     </h2>
                     <button
                       onClick={() => setShowHowItWorks(false)}
@@ -341,19 +341,19 @@ export default function StakePage() {
                   {[
                     {
                       step: "1",
-                      title: "Stake Your NFTs",
+                      title: "Anchor Your NFTs",
                       description:
-                        "Transfer your Cosmic Signature NFTs to the staking contract. They remain your property.",
+                        "Transfer your Cosmic Signature NFTs to the anchoring contract. They remain your property.",
                     },
                     {
                       step: "2",
-                      title: "Earn Every Round",
+                      title: "Earn Every Cycle",
                       description:
-                        `${stakingPercentage}% of each round's prize pool is distributed proportionally among all staked NFTs.`,
+                        `${stakingPercentage}% of each cycle's allocation pool is distributed proportionally among all anchored NFTs.`,
                     },
                     {
                       step: "3",
-                      title: "Unstake Anytime",
+                      title: "Release Anytime",
                       description:
                         "Withdraw your NFTs and claim accumulated rewards whenever you want. No lock period.",
                     },
@@ -389,7 +389,7 @@ export default function StakePage() {
                       </div>
                       <div>
                         <p className="text-xs text-text-secondary">
-                          Total NFTs Staked (Globally)
+                          Total NFTs Anchored (Globally)
                         </p>
                         <p className="font-mono text-2xl font-semibold text-primary">
                           {totalStaked}
@@ -397,7 +397,7 @@ export default function StakePage() {
                       </div>
                     </div>
                     <p className="text-xs text-text-muted">
-                      Total number of NFTs staked by all users across the network
+                      Total number of NFTs anchored by all users across the network
                     </p>
                   </div>
 
@@ -416,19 +416,19 @@ export default function StakePage() {
                       </div>
                     </div>
                     <p className="text-xs text-text-muted">
-                      Estimated reward per staked NFT based on current round
+                      Estimated reward per anchored NFT based on current cycle
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
                   <p className="text-xs text-text-secondary">
-                    💡 <strong>How rewards work:</strong> Rewards update after each round ends. 
-                    The more rounds that pass while you&apos;re staked, the more you earn. 
-                    Rewards are distributed proportionally - if you stake 10 NFTs out of 
-                    {totalStaked > 0 ? ` ${totalStaked}` : ' 100'} total staked, you earn 
-                    {totalStaked > 0 ? ` ${((10 / totalStaked) * 100).toFixed(1)}%` : ' 10%'} of 
-                    the staking pool each round.
+                    💡 <strong>How rewards work:</strong> Rewards update after each cycle ends.
+                    The more cycles that pass while your NFTs are anchored, the more you earn.
+                    Rewards are distributed proportionally — if you anchor 10 NFTs out of
+                    {totalStaked > 0 ? ` ${totalStaked}` : " 100"} total anchored, you earn
+                    {totalStaked > 0 ? ` ${((10 / totalStaked) * 100).toFixed(1)}%` : " 10%"} of the
+                    anchoring reward pool each cycle.
                   </p>
                 </div>
               </Card>
@@ -436,7 +436,7 @@ export default function StakePage() {
             </Container>
           </section>
 
-          {/* Your Unstaked NFTs */}
+          {/* Available NFTs (not connected) */}
           {!isConnected && (
             <section className="py-12">
               <Container>
@@ -444,8 +444,7 @@ export default function StakePage() {
                   <div className="text-center py-12">
                     <Gem size={48} className="text-text-muted mx-auto mb-4" />
                     <p className="text-text-secondary mb-6">
-                      Connect your wallet to view and stake your Cosmic
-                      Signature NFTs
+                      Connect your wallet to view and anchor your Cosmic Signature NFTs.
                     </p>
                   </div>
                 </Card>
@@ -509,8 +508,8 @@ export default function StakePage() {
                       }
                     >
                       {cst.isStakingMultiple
-                        ? "Staking..."
-                        : `Stake Selected ${
+                        ? "Anchoring..."
+                        : `Anchor Selected ${
                             selectedTokenIds.size > 0
                               ? `(${selectedTokenIds.size})`
                               : ""
@@ -571,7 +570,7 @@ export default function StakePage() {
                                 {token.TokenName || `Token #${token.TokenId}`}
                               </p>
                               <p className="text-xs text-text-secondary mb-3">
-                                Round {token.RoundNum}
+                                Cycle {token.RoundNum}
                               </p>
                               <Button
                                 size="sm"
@@ -583,8 +582,8 @@ export default function StakePage() {
                                 }
                               >
                                 {cst.stakingTokenId === token.TokenId
-                                  ? "Staking..."
-                                  : "Stake NFT"}
+                                  ? "Anchoring..."
+                                  : "Anchor NFT"}
                         </Button>
                       </div>
                     </Card>
@@ -665,7 +664,7 @@ export default function StakePage() {
             </section>
           )}
 
-          {/* Staked NFTs */}
+          {/* Anchored NFTs */}
           {isConnected && yourStakedCount > 0 && (
             <section
               id="staked-nfts-section"
@@ -675,7 +674,7 @@ export default function StakePage() {
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center justify-between">
                   <h2 className="font-serif text-2xl font-semibold text-text-primary">
-                    Your Staked NFTs
+                    Your Anchored NFTs
                   </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-text-secondary">
@@ -703,7 +702,7 @@ export default function StakePage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-text-secondary mb-1">
-                          NFTs Staked
+                          NFTs Anchored
                         </p>
                         <p className="font-mono text-2xl font-semibold text-text-primary">
                           {yourStakedCount}
@@ -757,8 +756,8 @@ export default function StakePage() {
                           disabled={cst.isSubmitting}
                         >
                           {cst.isStakingMultiple
-                            ? "Unstaking..."
-                            : `Unstake Selected & Claim (${selectedStakedIds.size})`}
+                            ? "Releasing..."
+                            : `Release Selected & Claim (${selectedStakedIds.size})`}
                         </Button>
                       )}
                     </div>
@@ -803,10 +802,10 @@ export default function StakePage() {
                               Token ID
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
-                              Stake Action ID
+                              Anchor Action ID
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
-                              Staked On
+                              Anchored On
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
                               Rewards Earned
@@ -824,7 +823,7 @@ export default function StakePage() {
                             
                             return (
                               <tr
-                                key={`staked-${actionId}-${token.TokenId}`}
+                                key={`anchored-${actionId}-${token.TokenId}`}
                                 className={`hover:bg-background-elevated/50 transition-colors ${
                                   isSelected ? "bg-primary/5" : ""
                                 }`}
@@ -928,8 +927,8 @@ export default function StakePage() {
                                     }
                                   >
                                     {cst.unstakingActionId === actionId
-                                      ? "Unstaking..."
-                                      : "Unstake"}
+                                      ? "Releasing..."
+                                      : "Release"}
                                 </Button>
                               </td>
                             </tr>
@@ -1027,26 +1026,26 @@ export default function StakePage() {
                 <div className="max-w-3xl">
                   <h1 className="text-4xl font-serif font-bold text-text-primary mb-4">
                     Random Walk
-                    <span className="text-gradient block">NFT Staking</span>
+                    <span className="text-gradient block">NFT Anchoring</span>
                   </h1>
                   <p className="text-lg text-text-secondary leading-relaxed">
-                    Stake Random Walk NFTs to become eligible for raffle prize drawings each round.
+                    Anchor Random Walk NFTs to become eligible for stellar selection allocation drawings each cycle.
                   </p>
                 </div>
 
                 <div className="flex flex-wrap gap-4 lg:flex-shrink-0">
                   <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
                     <p className="text-2xl font-mono font-bold text-primary">{totalRwlkStaked}</p>
-                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Globally Staked</p>
+                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Globally Anchored</p>
                   </div>
                   <div className="px-5 py-3 rounded-xl bg-background-elevated border border-text-muted/10 text-center min-w-[110px]">
                     <p className="text-2xl font-mono font-bold text-primary">{totalRwlkActiveStakers}</p>
-                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Active Stakers</p>
+                    <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Active Anchor-holders</p>
                   </div>
                   {isConnected && (
                     <div className="px-5 py-3 rounded-xl bg-primary/10 border border-primary/20 text-center min-w-[110px]">
                       <p className="text-2xl font-mono font-bold text-primary">{rwlk.stakedTokens.length}</p>
-                      <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Your Staked</p>
+                      <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Your Anchored</p>
                     </div>
                   )}
                   {isConnected && rwlk.availableTokens.length > 0 && (
@@ -1060,7 +1059,7 @@ export default function StakePage() {
             </Container>
           </section>
 
-          {/* Random Walk NFT Staking */}
+          {/* Random Walk NFT anchoring (how-it-works) */}
           <section className="py-12">
             <Container size="lg">
               {!rwlk.isLoading && isConnected && rwlk.availableTokens.length === 0 && rwlk.stakedTokens.length === 0 && (
@@ -1071,7 +1070,7 @@ export default function StakePage() {
                       No Random Walk NFTs
                     </h3>
                     <p className="text-text-secondary mb-6">
-                      You don&apos;t have anything staked at the moment. You need to own Random Walk NFTs to stake them for raffle eligibility.
+                      You don&apos;t have anything anchored at the moment. You need to own Random Walk NFTs and anchor them for stellar selection eligibility.
                     </p>
                   </div>
                 </Card>
@@ -1085,7 +1084,7 @@ export default function StakePage() {
                       Connect Your Wallet
                     </h3>
                     <p className="text-text-secondary">
-                      Connect your wallet to view and stake your Random Walk NFTs.
+                      Connect your wallet to view and anchor your Random Walk NFTs.
                     </p>
                   </div>
                 </Card>
@@ -1100,7 +1099,7 @@ export default function StakePage() {
                       className="gap-2"
                     >
                       <HelpCircle size={18} />
-                      {showRWalkHowItWorks ? 'Hide' : 'Show'} How Random Walk Staking Works
+                      {showRWalkHowItWorks ? 'Hide' : 'Show'} How Random Walk Anchoring Works
                       <ChevronDown 
                         size={18} 
                         className={`transition-transform ${showRWalkHowItWorks ? 'rotate-180' : ''}`}
@@ -1112,7 +1111,7 @@ export default function StakePage() {
                     <Card glass className="p-8 md:p-12 mb-8">
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="font-serif text-2xl font-semibold text-text-primary">
-                          Random Walk NFT Staking
+                          Random Walk NFT Anchoring
                         </h2>
                         <button
                           onClick={() => setShowRWalkHowItWorks(false)}
@@ -1131,27 +1130,27 @@ export default function StakePage() {
                       <li className="flex items-start space-x-2">
                         <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
                         <span className="text-sm leading-relaxed">
-                          Stake your Random Walk NFTs to enter the raffle pool
+                          Anchor your Random Walk NFTs to enter the stellar selection pool
                         </span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
                         <span className="text-sm leading-relaxed">
-                          Each round, 4 Cosmic Signature NFTs are randomly
-                          awarded to stakers
+                          Each cycle, 4 Cosmic Signature NFTs are randomly
+                          awarded to anchor-holders
                         </span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
                         <span className="text-sm leading-relaxed">
-                          The more NFTs you stake, the higher your odds of
+                          The more NFTs you anchor, the higher your odds of
                           winning
                         </span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary mt-2" />
                         <span className="text-sm leading-relaxed">
-                          Unstake anytime - no ETH rewards, just raffle
+                          Release anytime - no ETH rewards, just stellar selection
                           eligibility
                         </span>
                       </li>
@@ -1171,11 +1170,11 @@ export default function StakePage() {
                           />
                           <div className="text-sm text-text-secondary">
                             <p className="font-semibold text-text-primary mb-1">
-                              One-Time Staking Only
+                              One-Time Anchoring Only
                             </p>
                             <p>
-                              Once a Random Walk NFT is staked, it can NEVER be
-                              staked again, even after unstaking. This is
+                              Once a Random Walk NFT is anchored, it can NEVER be
+                              anchored again, even after releasing. This is
                               permanent.
                             </p>
                           </div>
@@ -1193,9 +1192,9 @@ export default function StakePage() {
                               No ETH Rewards
                             </p>
                             <p>
-                              Unlike Cosmic Signature NFT staking, Random Walk
-                              staking does not earn ETH rewards. The benefit is
-                              raffle eligibility only.
+                              Unlike Cosmic Signature NFT anchoring, Random Walk
+                              anchoring does not earn ETH rewards. The benefit is
+                              stellar selection eligibility only.
                             </p>
                           </div>
                         </div>
@@ -1209,11 +1208,11 @@ export default function StakePage() {
                           />
                           <div className="text-sm text-text-secondary">
                             <p className="font-semibold text-text-primary mb-1">
-                              Cannot Stake After Bidding
+                              Cannot Anchor After Gesturing
                             </p>
                             <p>
-                              If you&apos;ve used a Random Walk NFT for bidding
-                              (to get the 50% discount), you cannot stake it.
+                              If you&apos;ve used a Random Walk NFT for gesturing
+                              (to get the 50% discount), you cannot anchor it.
                               Used NFTs are permanently consumed.
                             </p>
                           </div>
@@ -1292,8 +1291,8 @@ export default function StakePage() {
                       }
                     >
                       {rwlk.isStakingMultiple
-                        ? "Staking..."
-                        : `Stake Selected ${
+                        ? "Anchoring..."
+                        : `Anchor Selected ${
                             selectedRWLKTokenIds.size > 0
                               ? `(${selectedRWLKTokenIds.size})`
                               : ""
@@ -1373,8 +1372,8 @@ export default function StakePage() {
                                   }
                                 >
                                   {rwlk.stakingTokenId === token.TokenId
-                                    ? "Staking..."
-                                    : "Stake NFT"}
+                                    ? "Anchoring..."
+                                    : "Anchor NFT"}
                                 </Button>
                               </div>
                             </Card>
@@ -1470,7 +1469,7 @@ export default function StakePage() {
             </section>
           )}
 
-          {/* Staked Random Walk NFTs */}
+          {/* Anchored Random Walk NFTs */}
           {isConnected && rwlk.stakedTokens.length > 0 && (
             <section
               id="staked-rwlk-nfts-section"
@@ -1480,7 +1479,7 @@ export default function StakePage() {
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex items-center justify-between">
                     <h2 className="font-serif text-2xl font-semibold text-text-primary">
-                      Your Staked Random Walk NFTs
+                      Your Anchored Random Walk NFTs
                     </h2>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-text-secondary">
@@ -1562,8 +1561,8 @@ export default function StakePage() {
                           disabled={rwlk.isSubmitting}
                         >
                           {rwlk.isStakingMultiple
-                            ? "Unstaking..."
-                            : `Unstake Selected (${selectedStakedRWLKIds.size})`}
+                            ? "Releasing..."
+                            : `Release Selected (${selectedStakedRWLKIds.size})`}
                         </Button>
                       )}
                     </div>
@@ -1615,10 +1614,10 @@ export default function StakePage() {
                               Token ID
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
-                              Stake Action ID
+                              Anchor Action ID
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
-                              Staked On
+                              Anchored On
                             </th>
                             <th className="p-4 text-sm font-medium text-text-secondary">
                               Action
@@ -1638,7 +1637,7 @@ export default function StakePage() {
 
                               return (
                                 <tr
-                                  key={`staked-rwlk-${actionId}-${stakedToken.TokenId}`}
+                                  key={`anchored-rwlk-${actionId}-${stakedToken.TokenId}`}
                                   className={`hover:bg-background-elevated/50 transition-colors ${
                                     isSelected ? "bg-primary/5" : ""
                                   }`}
@@ -1725,8 +1724,8 @@ export default function StakePage() {
                                       }
                                     >
                                       {rwlk.unstakingActionId === actionId
-                                        ? "Unstaking..."
-                                        : "Unstake"}
+                                        ? "Releasing..."
+                                        : "Release"}
                                     </Button>
                                   </td>
                                 </tr>
@@ -1838,7 +1837,7 @@ export default function StakePage() {
               className="gap-2"
             >
               <HelpCircle size={18} />
-              {showFAQ ? 'Hide' : 'Show'} Staking FAQ
+              {showFAQ ? 'Hide' : 'Show'} Anchoring FAQ
               <ChevronDown 
                 size={18} 
                 className={`transition-transform ${showFAQ ? 'rotate-180' : ''}`}
@@ -1849,7 +1848,7 @@ export default function StakePage() {
           {showFAQ && (
             <Card glass className="p-8 md:p-12">
               <div className="flex items-center justify-between mb-8">
-                <h2 className="heading-md">Staking FAQ</h2>
+                <h2 className="heading-md">Anchoring FAQ</h2>
                 <button
                   onClick={() => setShowFAQ(false)}
                   className="p-2 hover:bg-background-elevated rounded-lg transition-colors"
@@ -1862,28 +1861,28 @@ export default function StakePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
-                q: "When do I receive staking rewards?",
-                a: "Rewards accumulate automatically after each round ends. You can claim them whenever you unstake your NFTs.",
+                q: "When do I receive anchoring rewards?",
+                a: "Rewards accumulate automatically after each cycle ends. You can claim them whenever you release your NFTs.",
               },
               {
-                q: "Can I stake and unstake multiple times?",
-                a: "No, each NFT can only be staked once, ever.",
+                q: "Can I anchor and release multiple times?",
+                a: "No, each NFT can only be anchored once, ever.",
               },
               {
                 q: "How are rewards calculated?",
-                a: "Rewards are distributed proportionally. If you have 10 staked NFTs out of 100 total staked, you earn 10% of the staking reward pool each round.",
+                a: "Rewards are distributed proportionally. If you have 10 anchored NFTs out of 100 total anchored, you earn 10% of the anchoring reward pool each cycle.",
               },
               {
-                q: "Is there a minimum staking period?",
-                a: "No. You can unstake at any time and claim your accumulated rewards. There are no lock periods or penalties.",
+                q: "Is there a minimum anchoring period?",
+                a: "No. You can release at any time and claim your accumulated rewards. There are no lock periods or penalties.",
               },
               {
-                q: "What happens if no one stakes?",
-                a: `If there are no Cosmic Signature NFTs staked when a round ends, the ${stakingPercentage}% staking allocation is added to the charity donation instead.`,
+                q: "What happens if no one anchors?",
+                a: `If there are no Cosmic Signature NFTs anchored when a cycle ends, the ${stakingPercentage}% anchoring allocation is added to the public goods contribution instead.`,
               },
               {
-                q: "Can staked NFTs be traded?",
-                a: "No. While your NFTs are staked, they are held by the staking contract and cannot be transferred or sold. You must unstake first.",
+                q: "Can anchored NFTs be traded?",
+                a: "No. While your NFTs are anchored, they are held by the anchoring contract and cannot be transferred or sold. You must release first.",
               },
             ].map((faq, index) => (
               <motion.div

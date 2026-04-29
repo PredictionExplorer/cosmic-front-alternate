@@ -156,7 +156,7 @@ function formatPrizeClaimStatus(prizeTimeSec: number): string {
   if (prizeTimeSec > nowSec) {
     return convertTimestampToDateTime(prizeTimeSec, true);
   }
-  return "Bidding exhausted, waiting for last bidder to claimPrize()";
+  return "Gesturing exhausted, waiting for last participant to claimPrize()";
 }
 
 interface StatItemProps {
@@ -185,21 +185,21 @@ export default function StatisticsPage() {
 
   /** Same source as game/play: contract main prize time (`rounds/current/time` → CurRoundPrizeTime). */
   const { data: curRoundPrizeTimeRaw } = useApiQuery<number | null>(
-    "prize-time",
+    "allocation-time",
     () => api.getPrizeTime(),
     { refetchInterval: 10000 },
   );
 
   // Fetch current round bids (depends on dashboard data)
   const { data: currentRoundBidsRaw } = useApiQuery(
-    "stats-current-bids-" + (data?.CurRoundNum ?? ""),
+    "stats-current-gestures-" + (data?.CurRoundNum ?? ""),
     () => api.getBidListByRound(data!.CurRoundNum, "desc"),
     { enabled: data != null },
   );
   const currentRoundBids = (currentRoundBidsRaw ?? []) as Bid[];
 
   const { data: uniqueBiddersRaw } = useApiQuery(
-    "stats-unique-bidders",
+    "stats-unique-participants",
     async () => {
       const bidders = await api.getUniqueBidders();
       return (bidders as unknown as UniqueBidder[]).sort((a, b) => b.NumBids - a.NumBids);
@@ -208,7 +208,7 @@ export default function StatisticsPage() {
   const uniqueBidders = uniqueBiddersRaw ?? [];
 
   const { data: uniqueWinnersRaw } = useApiQuery(
-    "stats-unique-winners",
+    "stats-unique-recipients",
     async () => {
       const winners = await api.getUniqueWinners();
       return (winners as unknown as UniqueWinner[]).sort((a, b) => b.PrizesCount - a.PrizesCount);
@@ -217,7 +217,7 @@ export default function StatisticsPage() {
   const uniqueWinners = uniqueWinnersRaw ?? [];
 
   const { data: uniqueCSTStakersRaw } = useApiQuery(
-    "stats-unique-cst-stakers",
+    "stats-unique-cst-anchor-holders",
     async () => {
       const stakers = await api.getUniqueStakersCST();
       return (stakers as unknown as UniqueStaker[]).sort((a, b) => b.TotalRewardEth - a.TotalRewardEth);
@@ -226,7 +226,7 @@ export default function StatisticsPage() {
   const uniqueCSTStakers = uniqueCSTStakersRaw ?? [];
 
   const { data: uniqueRWLKStakersRaw } = useApiQuery(
-    "stats-unique-rwlk-stakers",
+    "stats-unique-rwlk-anchor-holders",
     async () => {
       const stakers = await api.getUniqueStakersRWLK();
       return (stakers as unknown as ApiUniqueStakerRWalk[]).sort(
@@ -238,7 +238,7 @@ export default function StatisticsPage() {
 
   /** Live list — distinct stakers; dashboard `NumActiveStakers` can lag `cg_stake_stats_rwalk`. */
   const { data: rwlkStakedAllRaw, isLoading: rwlkStakedAllLoading } = useApiQuery(
-    "stats-rwlk-staked-all",
+    "stats-rwlk-anchored-all",
     () => api.getStakedRWLKTokens(),
     { refetchInterval: 60_000 },
   );
@@ -251,7 +251,7 @@ export default function StatisticsPage() {
   }, [rwlkStakedAllRaw]);
 
   const { data: uniqueDonorsRaw } = useApiQuery(
-    "stats-unique-donors",
+    "stats-unique-contributors",
     async () => {
       const donors = await api.getUniqueDonors();
       return donors as unknown as UniqueDonor[];
@@ -333,56 +333,56 @@ export default function StatisticsPage() {
 
   // Current Round Statistics
   const currentRoundStats = [
-    { title: "Current Round", value: data.CurRoundNum },
+    { title: "Current Cycle", value: data.CurRoundNum },
     {
-      title: "Round Start Date",
+      title: "Cycle Start Date",
       value:
         data.LastBidderAddr === ZERO_ADDRESS
-          ? "Round isn't started yet."
+          ? "Cycle isn't started yet."
           : convertTimestampToDateTime(data.TsRoundStart, true),
     },
-    { title: "Current Bid Price", value: formatEthValue(data.BidPriceEth) },
+    { title: "Current Gesture Price", value: formatEthValue(data.BidPriceEth) },
     {
-      title: "Current Bid Price using RandomWalk",
+      title: "Current Gesture Price using RandomWalk",
       value: formatEthValue(data.BidPriceEth / 2),
     },
     {
-      title: "Current Bid Price using CST",
+      title: "Current Gesture Price using CST",
       value:
         parseFloat(cstBidData.CSTPrice) > 0
           ? formatCSTValue(parseFloat(cstBidData.CSTPrice) / 1e18)
           : "FREE",
     },
     {
-      title: "CST Auction Elapsed Time",
+      title: "CST Elapsed Time",
       value: formatSeconds(cstBidData.SecondsElapsed),
     },
     {
-      title: "CST Auction Duration",
+      title: "CST Duration",
       value: formatSeconds(cstBidData.AuctionDuration),
     },
     {
-      title: "Number of Bids Since Round Start",
+      title: "Number of Gestures Since Cycle Start",
       value: data.CurNumBids,
     },
     {
-      title: "Total Donated NFTs",
+      title: "Total Contributed NFTs",
       value: data.CurRoundStats.TotalDonatedNFTs,
     },
     {
-      title: "Total Donated ETH",
+      title: "Total Contributed ETH",
       value: formatEthValue(data.CurRoundStats.TotalDonatedAmountEth),
     },
-    { title: "Prize Amount", value: formatEthValue(data.PrizeAmountEth) },
+    { title: "Allocation Amount", value: formatEthValue(data.PrizeAmountEth) },
     {
-      title: "Prize Claim Date",
+      title: "Allocation Claim Date",
       value: prizeClaimDisplay,
     },
     {
-      title: "Last Bidder",
+      title: "Last Participant",
       value:
         data.LastBidderAddr === ZERO_ADDRESS
-          ? "Round isn't started yet."
+          ? "Cycle isn't started yet."
           : data.LastBidderAddr,
     },
   ];
@@ -394,19 +394,19 @@ export default function StatisticsPage() {
       value: formatEthValue(data.CosmicGameBalanceEth),
     },
     {
-      title: "Num Prizes Given",
+      title: "Num Allocations Given",
       value: data.TotalPrizes,
     },
     {
-      title: "Total Cosmic Signature Tokens minted",
+      title: "Total Cosmic Signature Tokens imprinted",
       value: data.MainStats.NumCSTokenMints,
     },
     {
-      title: "Total Amount Paid in Main Prizes",
+      title: "Total Amount Paid in Main Allocations",
       value: formatEthValue(data.TotalPrizesPaidAmountEth),
     },
     {
-      title: "Total Amount Paid in ETH Raffles",
+      title: "Total Amount Paid in ETH Stellar Selections",
       value: formatEthValue(data.MainStats.TotalRaffleEthDeposits),
     },
     {
@@ -422,7 +422,7 @@ export default function StatisticsPage() {
       value: data.MainStats.NumMktRewards,
     },
     {
-      title: "Amount of ETH collected by the winners from raffles",
+      title: "Amount of ETH collected by the recipients from stellar selections",
       value: formatEthValue(data.MainStats.TotalRaffleEthWithdrawn),
     },
     {
@@ -430,27 +430,27 @@ export default function StatisticsPage() {
       value: data.NumRwalkTokensUsed,
     },
     {
-      title: "Charity Balance",
+      title: "Public Goods Balance",
       value: formatEthValue(data.CharityBalanceEth),
     },
     {
-      title: "Number of Bids with CST",
+      title: "Number of Gestures with CST",
       value: data.MainStats.NumBidsCST,
     },
     {
-      title: "Number of Unique Bidders",
+      title: "Number of Unique Participants",
       value: data.MainStats.NumUniqueBidders,
     },
     {
-      title: "Number of Unique Winners",
+      title: "Number of Unique Recipients",
       value: data.MainStats.NumUniqueWinners,
     },
     {
-      title: "Number of Unique ETH Donors",
+      title: "Number of Unique ETH Contributors",
       value: data.MainStats.NumUniqueDonors,
     },
     {
-      title: "Number of Donated NFTs",
+      title: "Number of Contributed NFTs",
       value: data.NumDonatedNFTs,
     },
     {
@@ -458,15 +458,15 @@ export default function StatisticsPage() {
       value: data.MainStats.TotalNamedTokens,
     },
     {
-      title: "Number of Unique CST Stakers",
+      title: "Number of Unique CST Anchor-holders",
       value: data.MainStats.NumUniqueStakersCST,
     },
     {
-      title: "Number of Unique Random Walk Stakers",
+      title: "Number of Unique Random Walk Anchor-holders",
       value: data.MainStats.NumUniqueStakersRWalk,
     },
     {
-      title: "Total Bids",
+      title: "Total Gestures",
       value: data.MainStats.TotalBids,
     },
   ];
@@ -474,8 +474,8 @@ export default function StatisticsPage() {
   // Add conditional stats
   if (data.MainStats.NumWinnersWithPendingRaffleWithdrawal > 0) {
     overallStats.push({
-      title: "Winners with Pending Raffle Withdrawal",
-      value: `${data.MainStats.NumWinnersWithPendingRaffleWithdrawal} winners (${formatEthValue(
+      title: "Recipients with Pending Stellar Selection Withdrawal",
+      value: `${data.MainStats.NumWinnersWithPendingRaffleWithdrawal} recipients (${formatEthValue(
         data.MainStats.TotalRaffleEthDeposits - data.MainStats.TotalRaffleEthWithdrawn
       )})`,
     });
@@ -483,19 +483,19 @@ export default function StatisticsPage() {
 
   if (data.MainStats.NumCosmicGameDonations > 0) {
     overallStats.push({
-      title: "Number of Cosmic Game Donations",
+      title: "Number of Cosmic Game Contributions",
       value: data.MainStats.NumCosmicGameDonations,
     });
     overallStats.push({
-      title: "Sum of Cosmic Game Donations",
+      title: "Sum of Cosmic Game Contributions",
       value: formatEthValue(data.MainStats.SumCosmicGameDonationsEth),
     });
   }
 
   if (data.SumVoluntaryDonationsEth > 0) {
     overallStats.push({
-      title: "Voluntary Donations Received",
-      value: `${data.NumVoluntaryDonations} donations totaling ${formatEthValue(
+      title: "Voluntary Contributions Received",
+      value: `${data.NumVoluntaryDonations} contributions totaling ${formatEthValue(
         data.SumVoluntaryDonationsEth
       )}`,
     });
@@ -503,18 +503,18 @@ export default function StatisticsPage() {
 
   if (data.MainStats.NumWithdrawals > 0) {
     overallStats.push({
-      title: "Withdrawals from Charity Wallet",
+      title: "Withdrawals from Public Goods Wallet",
       value: data.MainStats.NumWithdrawals,
     });
   }
 
   overallStats.push({
-    title: "Total amount withdrawn from Charity Wallet",
+    title: "Total amount withdrawn from Public Goods Wallet",
     value: formatEthValue(data.MainStats.SumWithdrawals),
   });
 
   overallStats.push({
-    title: "Total Donated ETH",
+    title: "Total Contributed ETH",
     value: formatEthValue(data.MainStats.TotalEthDonatedAmountEth),
   });
 
@@ -556,9 +556,9 @@ export default function StatisticsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h2 className="heading-md mb-2">Current Round Statistics</h2>
+            <h2 className="heading-md mb-2">Current Cycle Statistics</h2>
             <p className="text-text-secondary">
-              Live metrics for Round {data.CurRoundNum}
+              Live metrics for Cycle {data.CurRoundNum}
             </p>
           </motion.div>
 
@@ -572,21 +572,21 @@ export default function StatisticsPage() {
         </Container>
       </section>
 
-      {/* Current Round Bid History */}
+      {/* Current Cycle Gesture History */}
       <section className="py-12 bg-background-surface/50">
         <Container>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="heading-md">Bid History for Current Round</h2>
+            <h2 className="heading-md">Gesture History for Current Cycle</h2>
             {currentRoundBids.length > 0 && (
               <p className="text-sm text-text-secondary">
-                Total: {currentRoundBids.length} bids
+                Total: {currentRoundBids.length} gestures
               </p>
             )}
           </div>
           <BidHistoryTable
             key={data?.CurRoundNum ?? 0}
-            bids={currentRoundBids}
-            emptyMessage="No bids in current round yet"
+            gestures={currentRoundBids}
+            emptyMessage="No gestures in current cycle yet"
           />
         </Container>
       </section>
@@ -624,7 +624,7 @@ export default function StatisticsPage() {
                           Address
                         </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                          Bids
+                          Gestures
                         </th>
                       </tr>
                     </thead>
@@ -738,7 +738,7 @@ export default function StatisticsPage() {
                           Address
                         </th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                          Donations
+                          Contributions
                         </th>
                       </tr>
                     </thead>
@@ -787,7 +787,7 @@ export default function StatisticsPage() {
               data.MainStats.DonatedTokenDistribution.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Donated Token Distribution per Contract Address
+                    Contributed Token Distribution per Contract Address
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -798,7 +798,7 @@ export default function StatisticsPage() {
                               Contract Address
                             </th>
                             <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
-                              Number of Donations
+                              Number of Contributions
                             </th>
                           </tr>
                         </thead>
@@ -950,7 +950,7 @@ export default function StatisticsPage() {
       {/* Staking Statistics */}
       <section className="py-12 bg-background-surface/50">
         <Container>
-          <h2 className="heading-md mb-6">Staking Statistics</h2>
+          <h2 className="heading-md mb-6">Anchoring Statistics</h2>
 
           {/* Staking Tabs */}
           <div className="flex gap-2 mb-6">
@@ -962,7 +962,7 @@ export default function StatisticsPage() {
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              Cosmic Signature Staking
+              Cosmic Signature Anchoring
             </button>
             <button
               onClick={() => setActiveTab("rwlk")}
@@ -972,7 +972,7 @@ export default function StatisticsPage() {
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              RandomWalk Staking
+              RandomWalk Anchoring
             </button>
           </div>
 
@@ -981,23 +981,23 @@ export default function StatisticsPage() {
             <Card glass className="p-8">
               <div className="space-y-4 mb-8">
                 <StatItem
-                  title="Number of Active Stakers"
+                  title="Number of Active Anchor-holders"
                   value={data.MainStats.StakeStatisticsCST.NumActiveStakers}
                 />
                 <StatItem
-                  title="Number of Staking Rewards Deposits"
+                  title="Number of Anchoring Rewards Deposits"
                   value={data.MainStats.StakeStatisticsCST.NumDeposits}
                 />
                 <StatItem
-                  title="Total Staking Rewards"
+                  title="Total Anchoring Rewards"
                   value={formatEthValue(data.MainStats.StakeStatisticsCST.TotalRewardEth)}
                 />
                 <StatItem
-                  title="Total Tokens Minted"
+                  title="Total Tokens Imprinted"
                   value={data.MainStats.StakeStatisticsCST.TotalTokensMinted}
                 />
                 <StatItem
-                  title="Total Tokens Staked"
+                  title="Total Tokens Anchored"
                   value={
                     <Link
                       href="/game/statistics/cst-staked-tokens"
@@ -1008,7 +1008,7 @@ export default function StatisticsPage() {
                   }
                 />
                 <StatItem
-                  title="Unclaimed Staking Rewards"
+                  title="Unclaimed Anchoring Rewards"
                   value={formatEthValue(data.MainStats.StakeStatisticsCST.UnclaimedRewardEth)}
                 />
               </div>
@@ -1071,7 +1071,7 @@ export default function StatisticsPage() {
             <Card glass className="p-8">
               <div className="space-y-4 mb-8">
                 <StatItem
-                  title="Number of Active Stakers"
+                  title="Number of Active Anchor-holders"
                   value={
                     rwlkStakedAllLoading && rwlkStakedAllRaw === undefined
                       ? "…"
@@ -1081,11 +1081,11 @@ export default function StatisticsPage() {
                   }
                 />
                 <StatItem
-                  title="Total Tokens Minted"
+                  title="Total Tokens Imprinted"
                   value={data.MainStats.StakeStatisticsRWalk.TotalTokensMinted}
                 />
                 <StatItem
-                  title="Total Tokens Staked"
+                  title="Total Tokens Anchored"
                   value={data.MainStats.StakeStatisticsRWalk.TotalTokensStaked}
                 />
               </div>
@@ -1158,17 +1158,17 @@ export default function StatisticsPage() {
           >
             <div className="mb-6">
               <h2 className="font-serif text-2xl md:text-3xl font-semibold text-text-primary mb-2">
-                Round Activations
+                Cycle Activations
               </h2>
               <p className="text-text-secondary text-sm">
-                History of system mode changes and round activation events.
+                History of system mode changes and cycle activation events.
               </p>
             </div>
 
             {systemModeChanges === null ? (
               <Card glass className="p-8 text-center">
                 <Loader2 className="animate-spin mx-auto mb-3 text-primary" size={28} />
-                <p className="text-text-secondary text-sm">Loading round activations...</p>
+                <p className="text-text-secondary text-sm">Loading cycle activations...</p>
               </Card>
             ) : (
               <SystemModesTable list={systemModeChanges} />

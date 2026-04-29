@@ -391,7 +391,7 @@ export default function UserStatisticsPage() {
                 You haven&apos;t participated in Cosmic Signature yet.
               </p>
               <Button asChild>
-                <Link href="/game/play">Place Your First Bid</Link>
+                <Link href="/game/play">Place Your First Gesture</Link>
               </Button>
             </Card>
           </Container>
@@ -558,7 +558,7 @@ export default function UserStatisticsPage() {
       {/* Staking Statistics */}
       <section className="py-12 bg-background-surface/50">
         <Container>
-          <h2 className="heading-md mb-6">Staking Statistics</h2>
+          <h2 className="heading-md mb-6">Anchoring Statistics</h2>
 
           {/* Staking Tabs */}
           <div className="flex gap-2 mb-6">
@@ -570,7 +570,7 @@ export default function UserStatisticsPage() {
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              Cosmic Signature Staking
+              Cosmic Signature Anchoring
             </button>
             <button
               onClick={() => setStakingTab("rwlk")}
@@ -580,7 +580,7 @@ export default function UserStatisticsPage() {
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              RandomWalk Staking
+              RandomWalk Anchoring
             </button>
           </div>
 
@@ -589,8 +589,8 @@ export default function UserStatisticsPage() {
             <div className="space-y-6">
               <Card glass className="p-8">
                 <div className="text-center py-12">
-                  <p className="text-text-secondary mb-2">CST staking statistics are not available from the API</p>
-                  <p className="text-sm text-text-muted">Please check the staking actions table below for details</p>
+                  <p className="text-text-secondary mb-2">CST anchoring statistics are not available from the API</p>
+                  <p className="text-sm text-text-muted">Please check the anchoring actions table below for details</p>
                 </div>
               </Card>
 
@@ -598,7 +598,7 @@ export default function UserStatisticsPage() {
               {stakingCSTActions.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Stake / Unstake Actions
+                    Stake / Release Actions
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -615,7 +615,7 @@ export default function UserStatisticsPage() {
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              # NFTs Staked
+                              # NFTs Anchored
                             </th>
                           </tr>
                         </thead>
@@ -634,7 +634,7 @@ export default function UserStatisticsPage() {
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
-                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
+                                  {action.ActionType === 1 ? "Release" : "Anchor"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center">
@@ -666,7 +666,7 @@ export default function UserStatisticsPage() {
               {cstStakingRewards.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Staking Rewards by Token
+                    Anchoring Rewards by Token
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -732,7 +732,7 @@ export default function UserStatisticsPage() {
               {collectedCstStakingRewards.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Collected Staking Rewards
+                    Collected Anchoring Rewards
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -743,10 +743,10 @@ export default function UserStatisticsPage() {
                               Date
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Cycle
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Tokens Staked
+                              Tokens Anchored
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                               Collected
@@ -809,11 +809,11 @@ export default function UserStatisticsPage() {
                 <Card glass className="p-8">
                   <div className="space-y-1">
                     <StatItem
-                      title="Number of Active Stakers"
+                      title="Number of Active Anchor-holders"
                       value={userInfo.StakingStatisticsRWalk.NumActiveStakers}
                     />
                     <StatItem
-                      title="Total Number of Stake Actions"
+                      title="Total Number of Anchor Actions"
                       value={userInfo.StakingStatisticsRWalk.TotalNumStakeActions}
                     />
                     <StatItem
@@ -825,7 +825,7 @@ export default function UserStatisticsPage() {
                       value={userInfo.StakingStatisticsRWalk.TotalTokensMinted}
                     />
                     <StatItem
-                      title="Total Tokens Staked"
+                      title="Total Tokens Anchored"
                       value={userInfo.StakingStatisticsRWalk.TotalTokensStaked}
                     />
                   </div>
@@ -833,7 +833,7 @@ export default function UserStatisticsPage() {
               ) : (
                 <Card glass className="p-8">
                   <div className="text-center py-12">
-                    <p className="text-text-secondary">No RandomWalk staking statistics available</p>
+                    <p className="text-text-secondary">No RandomWalk anchoring statistics available</p>
                   </div>
                 </Card>
               )}
@@ -842,7 +842,7 @@ export default function UserStatisticsPage() {
               {stakingRWLKActions.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Stake / Unstake Actions
+                    Stake / Release Actions
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -859,7 +859,7 @@ export default function UserStatisticsPage() {
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              # NFTs Staked
+                              # NFTs Anchored
                             </th>
                           </tr>
                         </thead>
@@ -878,7 +878,7 @@ export default function UserStatisticsPage() {
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
-                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
+                                  {action.ActionType === 1 ? "Release" : "Anchor"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center font-mono text-text-primary">
@@ -906,7 +906,7 @@ export default function UserStatisticsPage() {
               {rwlkMints.length > 0 && (
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Staking Reward Tokens
+                    Anchoring Reward Tokens
                   </h3>
                   <Card glass className="overflow-hidden">
                     <div className="overflow-x-auto">
@@ -920,7 +920,7 @@ export default function UserStatisticsPage() {
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Cycle
                             </th>
                           </tr>
                         </thead>
@@ -970,7 +970,7 @@ export default function UserStatisticsPage() {
       {bidHistory.length > 0 && (
         <section className="py-12">
           <Container>
-            <h2 className="heading-md mb-6">Bid History</h2>
+            <h2 className="heading-md mb-6">Gesture History</h2>
             <Card glass className="overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -980,7 +980,7 @@ export default function UserStatisticsPage() {
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Type
@@ -1088,7 +1088,7 @@ export default function UserStatisticsPage() {
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
                         Type
@@ -1156,7 +1156,7 @@ export default function UserStatisticsPage() {
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Reward (CST)
@@ -1203,7 +1203,7 @@ export default function UserStatisticsPage() {
         <section className="py-12">
           <Container>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="heading-md">Donated NFTs You Won</h2>
+              <h2 className="heading-md">Contributed NFTs You Won</h2>
               {unclaimedNFTs.length > 0 && (
                 <Button
                   onClick={handleClaimAllNFTs}
@@ -1240,7 +1240,7 @@ export default function UserStatisticsPage() {
                   </div>
                   <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">Round</span>
+                      <span className="text-text-secondary">Cycle</span>
                       <span className="text-text-primary">{nft.RoundNum}</span>
                     </div>
                     <div className="flex justify-between">
@@ -1280,7 +1280,7 @@ export default function UserStatisticsPage() {
         <section className="py-12 bg-background-surface/50">
           <Container>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="heading-md">Donated ERC20 Tokens</h2>
+              <h2 className="heading-md">Contributed ERC20 Tokens</h2>
               {unclaimedERC20.length > 0 && (
                 <Button 
                   onClick={handleClaimAllERC20}

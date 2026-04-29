@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(process.cwd()),
   },
+  async redirects() {
+    return [
+      { source: "/donations", destination: "/contributions", permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [
       {

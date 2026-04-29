@@ -118,7 +118,7 @@ export default function AboutPage() {
 											Public Goods Funding
 										</h3>
 										<p className="text-sm text-text-secondary">
-											7% of every round goes to Protocol Guild — the collective funding
+											7% of every cycle goes to Protocol Guild — the collective funding
 											mechanism for 170+ Ethereum core protocol contributors.
 											Art that builds the future.
 										</p>
@@ -148,12 +148,12 @@ export default function AboutPage() {
 							{
 								title: 'Zero Creator Extraction',
 								description:
-									'No team wallet receives ETH. All funds flow to players, stakers, and public goods. The project succeeds when its participants succeed.'
+									'No team wallet receives ETH. All funds flow to players, anchor-holders, and public goods. The project succeeds when its participants succeed.'
 							},
 							{
 								title: 'Naturally Limited Supply',
 								description:
-									'The bidding timer grows exponentially. As rounds lengthen, new artworks become increasingly rare — scarcity emerges from mathematics, not artificial caps.'
+									'The gesturing timer grows exponentially. As cycles lengthen, new artworks become increasingly rare — scarcity emerges from mathematics, not artificial caps.'
 							},
 							{
 								title: 'Complete Transparency',
@@ -168,7 +168,7 @@ export default function AboutPage() {
 							{
 								title: 'Charitable Impact',
 								description:
-									'7% of every round is sent on-chain to Protocol Guild, funding the people building the infrastructure we all depend on.'
+									'7% of every cycle is sent on-chain to Protocol Guild, funding the people building the infrastructure we all depend on.'
 							},
 							{
 								title: 'Community Governance',
@@ -261,7 +261,7 @@ export default function AboutPage() {
 						{[
 							{
 								name: 'Cosmic Signature Game',
-								description: 'Main game logic — bidding, prizes, round management',
+								description: 'Main game logic — gesturing, allocations, cycle management',
 								address: '0x1234...5678'
 							},
 							{
@@ -271,21 +271,21 @@ export default function AboutPage() {
 							},
 							{
 								name: 'Cosmic Signature Token',
-								description: 'ERC-20 — governance, bidding, and rewards',
+								description: 'ERC-20 — governance, gesturing, and rewards',
 								address: '0x3456...7890'
 							},
 							{
-								name: 'Prizes Wallet',
-								description: 'Prize distribution and donated NFT custody',
+								name: 'Allocations Wallet',
+								description: 'Allocation distribution and contributed NFT custody',
 								address: '0x4567...8901'
 							},
 							{
-								name: 'Staking Wallets',
-								description: 'NFT staking and reward distribution',
+								name: 'Anchoring Wallets',
+								description: 'NFT anchoring and reward distribution',
 								address: '0x5678...9012'
 							},
 							{
-								name: 'Marketing & Charity',
+								name: 'Marketing & Public Goods',
 								description: 'Marketing rewards and Protocol Guild distributions',
 								address: '0x6789...0123'
 							}
@@ -396,7 +396,7 @@ export default function AboutPage() {
 						<h2 className="heading-sm mb-6">Join the Community</h2>
 						<p className="body-museum mb-8 max-w-lg mx-auto">
 							Connect with other collectors, follow the project&apos;s development,
-							and stay informed about new rounds and artworks.
+							and stay informed about new cycles and artworks.
 						</p>
 						<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
 							<Button size="lg" variant="outline" asChild>

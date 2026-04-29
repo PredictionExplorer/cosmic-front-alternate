@@ -375,7 +375,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
           {/* User Statistics */}
           <Card glass className="p-8">
             <div className="space-y-1">
-              <StatItem title="Number of Bids" value={userInfo.NumBids} />
+              <StatItem title="Number of Gestures" value={userInfo.NumBids} />
               <StatItem
                 title="Number of Cosmic Signature Transfers"
                 value={userInfo.CosmicSignatureNumTransfers}
@@ -387,35 +387,35 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 />
               )}
               <StatItem
-                title="Maximum Bid Amount"
+                title="Maximum Gesture Amount"
                 value={`${userInfo.MaxBidAmount.toFixed(6)} ETH`}
               />
-              <StatItem title="Number of Prizes Taken" value={userInfo.NumPrizes} />
+              <StatItem title="Number of Allocations Taken" value={userInfo.NumPrizes} />
               <StatItem
-                title="Maximum Amount Gained (in prize winnings)"
+                title="Maximum Amount Gained (in allocation winnings)"
                 value={`${userInfo.MaxWinAmount.toFixed(6)} ETH`}
               />
               <StatItem
-                title="Amount of Winnings in ETH raffles"
+                title="Amount of Winnings in ETH stellar selections"
                 value={`${userInfo.SumRaffleEthWinnings.toFixed(6)} ETH`}
               />
               <StatItem
-                title="Amount Withdrawn from ETH raffles"
+                title="Amount Withdrawn from ETH stellar selections"
                 value={`${userInfo.SumRaffleEthWithdrawal.toFixed(6)} ETH`}
               />
-              <StatItem title="Unclaimed Donated NFTs" value={userInfo.UnclaimedNFTs} />
+              <StatItem title="Unclaimed Contributed NFTs" value={userInfo.UnclaimedNFTs} />
               <StatItem
-                title="Total ETH Won in raffles"
+                title="Total ETH Won in stellar selections"
                 value={`${(
                   userInfo.SumRaffleEthWinnings + userInfo.SumRaffleEthWithdrawal
                 ).toFixed(6)} ETH`}
               />
               <StatItem
-                title="Number of (ETH) raffles Participated in"
+                title="Number of (ETH) stellar selections Participated in"
                 value={userInfo.NumRaffleEthWinnings}
               />
               <StatItem
-                title="Raffle NFTs Count (Raffle Mints)"
+                title="Stellar Selection NFTs Count (Stellar Selection Mints)"
                 value={userInfo.RaffleNFTsCount}
               />
               <StatItem
@@ -472,7 +472,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
       {/* Staking Statistics */}
       <section className="py-12 bg-background-surface/50">
         <Container>
-          <h2 className="heading-md mb-6">Staking Statistics</h2>
+          <h2 className="heading-md mb-6">Anchoring Statistics</h2>
 
           {/* Staking Tabs */}
           <div className="flex gap-2 mb-6">
@@ -484,7 +484,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              Cosmic Signature Staking
+              Cosmic Signature Anchoring
             </button>
             <button
               onClick={() => setStakingTab("rwlk")}
@@ -494,7 +494,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                   : "bg-background-elevated text-text-secondary hover:text-primary border border-text-muted/10"
               }`}
             >
-              RandomWalk Staking
+              RandomWalk Anchoring
             </button>
           </div>
 
@@ -503,8 +503,8 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
             <div className="space-y-6">
               <Card glass className="p-8">
                 <div className="text-center py-12">
-                  <p className="text-text-secondary mb-2">CST staking statistics are not available from the API</p>
-                  <p className="text-sm text-text-muted">Please check the staking actions table below for details</p>
+                  <p className="text-text-secondary mb-2">CST anchoring statistics are not available from the API</p>
+                  <p className="text-sm text-text-muted">Please check the anchoring actions table below for details</p>
                 </div>
               </Card>
 
@@ -513,7 +513,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      Stake / Unstake Actions
+                      Stake / Release Actions
                     </h3>
                     <p className="text-sm text-text-secondary">
                       Total: {stakingCSTActions.length} actions
@@ -534,7 +534,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              # NFTs Staked
+                              # NFTs Anchored
                             </th>
                           </tr>
                         </thead>
@@ -553,7 +553,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
-                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
+                                  {action.ActionType === 1 ? "Release" : "Anchor"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center">
@@ -586,7 +586,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      Staking Rewards by Token
+                      Anchoring Rewards by Token
                     </h3>
                     <p className="text-sm text-text-secondary">
                       Total: {cstStakingRewards.length} tokens
@@ -657,7 +657,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      Collected Staking Rewards
+                      Collected Anchoring Rewards
                     </h3>
                     <p className="text-sm text-text-secondary">
                       Total: {collectedCstStakingRewards.length} rewards
@@ -672,10 +672,10 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               Date
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Cycle
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Tokens Staked
+                              Tokens Anchored
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                               Collected
@@ -738,23 +738,23 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <Card glass className="p-8">
                   <div className="space-y-1">
                     <StatItem
-                      title="Number of Active Stakers"
+                      title="Number of Active Anchor-holders"
                       value={userInfo.StakingStatisticsRWalk.NumActiveStakers}
                     />
                     <StatItem
-                      title="Total Number of Stake Actions"
+                      title="Total Number of Anchor Actions"
                       value={userInfo.StakingStatisticsRWalk.TotalNumStakeActions}
                     />
                     <StatItem
-                      title="Total Number of Unstake Actions"
+                      title="Total Number of Release Actions"
                       value={userInfo.StakingStatisticsRWalk.TotalNumUnstakeActions}
                     />
                     <StatItem
-                      title="Total Tokens Minted"
+                      title="Total Tokens Imprinted"
                       value={userInfo.StakingStatisticsRWalk.TotalTokensMinted}
                     />
                     <StatItem
-                      title="Total Tokens Staked"
+                      title="Total Tokens Anchored"
                       value={userInfo.StakingStatisticsRWalk.TotalTokensStaked}
                     />
                   </div>
@@ -762,7 +762,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
               ) : (
                 <Card glass className="p-8">
                   <div className="text-center py-12">
-                    <p className="text-text-secondary">No RandomWalk staking statistics available</p>
+                    <p className="text-text-secondary">No RandomWalk anchoring statistics available</p>
                   </div>
                 </Card>
               )}
@@ -772,7 +772,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      Stake / Unstake Actions
+                      Stake / Release Actions
                     </h3>
                     <p className="text-sm text-text-secondary">
                       Total: {stakingRWLKActions.length} actions
@@ -793,7 +793,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              # NFTs Staked
+                              # NFTs Anchored
                             </th>
                           </tr>
                         </thead>
@@ -812,7 +812,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               </td>
                               <td className="px-6 py-4 text-center">
                                 <Badge variant={action.ActionType === 1 ? "warning" : "success"}>
-                                  {action.ActionType === 1 ? "Unstake" : "Stake"}
+                                  {action.ActionType === 1 ? "Release" : "Anchor"}
                                 </Badge>
                               </td>
                               <td className="px-6 py-4 text-center font-mono text-text-primary">
@@ -841,7 +841,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-serif text-xl font-semibold text-text-primary">
-                      Staking Reward Tokens
+                      Anchoring Reward Tokens
                     </h3>
                     <p className="text-sm text-text-secondary">
                       Total: {rwlkMints.length} tokens
@@ -859,7 +859,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                               Token ID
                             </th>
                             <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                              Round
+                              Cycle
                             </th>
                           </tr>
                         </thead>
@@ -910,7 +910,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
         <section className="py-12">
           <Container>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="heading-md">Bid History</h2>
+              <h2 className="heading-md">Gesture History</h2>
               <p className="text-sm text-text-secondary">
                 Total: {bidHistory.length} bids
               </p>
@@ -924,7 +924,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Price
@@ -1029,7 +1029,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
                         Type
@@ -1059,7 +1059,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                           <Badge variant="default">Round {claim.RoundNum}</Badge>
                         </td>
                         <td className="px-6 py-4 text-sm text-text-primary">
-                          {claim.Description || "Prize"}
+                          {claim.Description || "Allocation"}
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-text-primary">
                           {claim.PrizeAmount ? `${(claim.PrizeAmount / 1e18).toFixed(6)} ETH` : "-"}
@@ -1102,7 +1102,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                         Date
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Round
+                        Cycle
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Reward (CST)
@@ -1149,7 +1149,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
         <section className="py-12">
           <Container>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="heading-md">Donated NFTs</h2>
+              <h2 className="heading-md">Contributed NFTs</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1175,7 +1175,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                   
                   <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between">
-                      <span className="text-text-secondary">Round</span>
+                      <span className="text-text-secondary">Cycle</span>
                       <Link href={`/game/history/rounds/${nft.RoundNum}`}>
                         <span className="text-primary hover:text-primary/80">
                           {nft.RoundNum}
@@ -1207,7 +1207,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
         <section className="py-12 bg-background-surface/50">
           <Container>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="heading-md">Donated ERC20 Tokens</h2>
+              <h2 className="heading-md">Contributed ERC20 Tokens</h2>
             </div>
 
             <div className="space-y-3">

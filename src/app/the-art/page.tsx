@@ -196,7 +196,7 @@ export default function TheArtPage() {
               <h2 className="heading-md mb-4">From Seed to Art in Seven Stages</h2>
               <p className="body-museum">
                 Every Cosmic Signature artwork follows the same pipeline. A hex seed (derived from
-                on-chain randomness when the NFT is minted) drives the entire process.
+                on-chain randomness when the NFT is imprinted) drives the entire process.
               </p>
             </motion.div>
 

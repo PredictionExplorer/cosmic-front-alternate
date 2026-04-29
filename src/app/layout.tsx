@@ -34,7 +34,20 @@ const jetbrainsMono = JetBrains_Mono({
 	display: 'swap'
 });
 
+const defaultMetadataBase = (() => {
+	const raw =
+		process.env.NEXT_PUBLIC_SITE_URL ||
+		process.env.NEXT_PUBLIC_APP_URL ||
+		'http://localhost:3000';
+	try {
+		return new URL(raw);
+	} catch {
+		return new URL('http://localhost:3000');
+	}
+})();
+
 export const metadata: Metadata = {
+	metadataBase: defaultMetadataBase,
 	title: 'Cosmic Signature | Generative Art from Physics',
 	description:
 		'A limited collection of generative artworks born from the Three Body Problem — real gravitational physics, spectral light rendering, and deterministic chaos. No AI. Museum-quality digital art with verifiable provenance.',
@@ -75,7 +88,7 @@ export default async function RootLayout({
 	const showLandingChrome = isLandingHost(host);
 
 	return (
-		<html lang="en" className="scroll-smooth" suppressHydrationWarning>
+		<html lang="en" className="scroll-smooth" data-scroll-behavior="smooth" suppressHydrationWarning>
 			<body className={`${cormorant.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
 				<Web3Provider>
 					<NotificationProvider>

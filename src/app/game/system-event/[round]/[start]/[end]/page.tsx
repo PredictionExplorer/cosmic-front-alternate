@@ -307,7 +307,7 @@ export default function SystemEventPage({ params }: PageProps) {
             <div className="mb-8">
               <h1 className="font-serif text-3xl md:text-4xl font-semibold text-text-primary mb-3">
                 {roundNum > 0
-                  ? `System Configuration Before Round #${roundNum}`
+                  ? `System Configuration Before Cycle #${roundNum}`
                   : "System Configuration Before Deployment"}
               </h1>
               <p className="text-text-secondary">Administrative parameter changes made during this system mode period.</p>

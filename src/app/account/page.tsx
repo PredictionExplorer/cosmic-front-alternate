@@ -209,7 +209,7 @@ function AccountPageContent() {
             </p>
             {isViewingOwnAccount && (
               <Button asChild>
-                <Link href="/game/play">Place Your First Bid</Link>
+                <Link href="/game/play">Place Your First Gesture</Link>
               </Button>
             )}
           </Card>
@@ -268,7 +268,7 @@ function AccountPageContent() {
           <Container>
             <AlertCard
               severity="warning"
-              title="You have prizes to claim"
+              title="You have allocations to claim"
               description={`${formatEth(
                 Math.max(0, Number(winnings.ETHRaffleToClaim) + Number(winnings.ETHChronoWarriorToClaim || 0) + Number(winnings.UnclaimedStakingReward)).toString()
               )} ETH${
@@ -335,12 +335,12 @@ function AccountPageContent() {
               icon={Gem}
             />
             <StatCard
-              label="Raffle NFTs"
+              label="Stellar Selection NFTs"
               value={userInfo.RaffleNFTsCount}
               icon={Award}
             />
             <StatCard
-              label="Total Bids"
+              label="Total Gestures"
               value={userInfo.NumBids}
               icon={Activity}
             />
@@ -364,17 +364,17 @@ function AccountPageContent() {
           <Card glass className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">Number of Bids</span>
+                <span className="text-text-secondary">Number of Gestures</span>
                 <span className="font-mono text-text-primary">{userInfo.NumBids}</span>
               </div>
               
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">Number of Prizes</span>
+                <span className="text-text-secondary">Number of Allocations</span>
                 <span className="font-mono text-text-primary">{userInfo.NumPrizes}</span>
               </div>
 
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">Max Bid Amount</span>
+                <span className="text-text-secondary">Max Gesture Amount</span>
                 <span className="font-mono text-text-primary">{Number(userInfo.MaxBidAmount).toFixed(6)} ETH</span>
               </div>
 
@@ -384,7 +384,7 @@ function AccountPageContent() {
               </div>
 
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">ETH Raffle Winnings</span>
+                <span className="text-text-secondary">ETH Stellar Selection Winnings</span>
                 <span className="font-mono text-text-primary">{Number(userInfo.SumRaffleEthWinnings).toFixed(6)} ETH</span>
               </div>
 
@@ -394,7 +394,7 @@ function AccountPageContent() {
               </div>
 
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">Raffles Participated</span>
+                <span className="text-text-secondary">Stellar Selections Participated</span>
                 <span className="font-mono text-text-primary">{userInfo.NumRaffleEthWinnings}</span>
               </div>
 
@@ -416,7 +416,7 @@ function AccountPageContent() {
               )}
 
               <div className="flex justify-between py-3 border-b border-text-muted/10">
-                <span className="text-text-secondary">Unclaimed Donated NFTs</span>
+                <span className="text-text-secondary">Unclaimed Contributed NFTs</span>
                 <span className="font-mono text-text-primary">{userInfo.UnclaimedNFTs}</span>
               </div>
             </div>
@@ -429,41 +429,41 @@ function AccountPageContent() {
         <section className="py-12 bg-background-surface/50">
           <Container>
             <h2 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-              Staking Statistics
+              Anchoring Statistics
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* RandomWalk Staking */}
               <Card glass className="p-8">
                 <h3 className="font-serif text-xl font-semibold text-text-primary mb-6">
-                  RandomWalk Staking
+                  RandomWalk Anchoring
                 </h3>
                 <div className="space-y-4">
                   {/* <div className="flex justify-between">
-                    <span className="text-text-secondary">Active Stakers</span>
+                    <span className="text-text-secondary">Active Anchor-holders</span>
                     <span className="font-mono text-text-primary">
                       {userInfo.StakingStatisticsRWalk.NumActiveStakers}
                     </span>
                   </div> */}
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Stake Actions</span>
+                    <span className="text-text-secondary">Anchor Actions</span>
                     <span className="font-mono text-text-primary">
                       {userInfo.StakingStatisticsRWalk.TotalNumStakeActions}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Unstake Actions</span>
+                    <span className="text-text-secondary">Release Actions</span>
                     <span className="font-mono text-text-primary">
                       {userInfo.StakingStatisticsRWalk.TotalNumUnstakeActions}
                     </span>
                   </div>
                   <div className="flex justify-between pt-4 border-t border-text-muted/10">
-                    <span className="text-text-secondary">Tokens Minted</span>
+                    <span className="text-text-secondary">Tokens Imprinted</span>
                     <span className="font-mono text-primary font-semibold">
                       {userInfo.StakingStatisticsRWalk.TotalTokensMinted}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-text-secondary">Tokens Staked</span>
+                    <span className="text-text-secondary">Tokens Anchored</span>
                     <span className="font-mono text-text-primary">
                       {userInfo.StakingStatisticsRWalk.TotalTokensStaked}
                     </span>
@@ -486,7 +486,7 @@ function AccountPageContent() {
               <Button size="lg" className="w-full" asChild>
                 <Link href="/game/play">
                   <Trophy className="mr-2" size={20} />
-                  Place a Bid
+                  Place a Gesture
                 </Link>
               </Button>
 
@@ -494,7 +494,7 @@ function AccountPageContent() {
                 <Button size="lg" variant="secondary" className="w-full" asChild>
                   <Link href="/account/winnings">
                     <TrendingUp className="mr-2" size={20} />
-                    Claim Prizes
+                    Claim Allocations
                   </Link>
                 </Button>
               )}

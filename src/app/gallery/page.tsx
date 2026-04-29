@@ -183,7 +183,7 @@ export default function GalleryPage() {
             <Card glass className="p-12 text-center">
               <p className="text-text-secondary">
                 {allNFTs.length === 0
-                  ? "No NFTs have been minted yet."
+                  ? "No NFTs have been imprinted yet."
                   : "No NFTs found matching your search."}
               </p>
             </Card>

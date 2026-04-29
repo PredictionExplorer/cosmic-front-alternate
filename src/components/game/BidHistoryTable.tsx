@@ -19,9 +19,9 @@ function formatBidDateTime(timestamp: number): string {
 }
 
 export interface BidHistoryTableProps {
-  bids: ComponentBidData[];
+  gestures: ComponentBidData[];
   /** If set and &gt; 0, paginate; if 0, show all rows. Default 20 (same as statistics). */
-  bidsPerPage?: number;
+  gesturesPerPage?: number;
   emptyMessage?: string;
 }
 
@@ -30,26 +30,26 @@ export interface BidHistoryTableProps {
  * Includes optional donation preview column ({@link BidDonationFlipCell}) when any bid has NFT/ERC-20 donations.
  */
 export function BidHistoryTable({
-  bids,
-  bidsPerPage = 20,
-  emptyMessage = "No bids found.",
+  gestures,
+  gesturesPerPage = 20,
+  emptyMessage = "No gestures found.",
 }: BidHistoryTableProps) {
   const showDonationColumn = useMemo(
-    () => bids.some((b) => bidRowHasDonation(b)),
-    [bids],
+    () => gestures.some((b) => bidRowHasDonation(b)),
+    [gestures],
   );
 
   const [page, setPage] = useState(1);
 
   const totalPages =
-    bidsPerPage > 0 ? Math.max(1, Math.ceil(bids.length / bidsPerPage)) : 1;
+    gesturesPerPage > 0 ? Math.max(1, Math.ceil(gestures.length / gesturesPerPage)) : 1;
 
   const visible =
-    bidsPerPage > 0
-      ? bids.slice((page - 1) * bidsPerPage, page * bidsPerPage)
-      : bids;
+    gesturesPerPage > 0
+      ? gestures.slice((page - 1) * gesturesPerPage, page * gesturesPerPage)
+      : gestures;
 
-  if (bids.length === 0) {
+  if (gestures.length === 0) {
     return (
       <Card glass className="p-8 text-center">
         <p className="text-text-secondary">{emptyMessage}</p>
@@ -68,7 +68,7 @@ export function BidHistoryTable({
                   Date &amp; Time
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-text-primary">
-                  Bidder
+                  Participant
                 </th>
                 <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                   Price
@@ -76,9 +76,9 @@ export function BidHistoryTable({
                 {showDonationColumn && (
                   <th
                     className="w-14 px-1 py-4 text-center align-middle"
-                    title="Donated token preview"
+                    title="Contributed token preview"
                   >
-                    <span className="sr-only">Donation</span>
+                    <span className="sr-only">Contribution</span>
                     <Gift
                       className="mx-auto h-4 w-4 text-text-muted/60"
                       strokeWidth={1.75}
@@ -118,7 +118,7 @@ export function BidHistoryTable({
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-text-primary text-sm">
                     {bid.BidType === 0
-                      ? `${bid.BidPriceEth?.toFixed(6)} ETH`
+                      ? `${(bid.BidPriceEth || 0).toFixed(6)} ETH`
                       : `${(bid.CstPriceEth || 0).toFixed(2)} CST`}
                   </td>
                   {showDonationColumn && (
@@ -145,7 +145,7 @@ export function BidHistoryTable({
         </div>
       </Card>
 
-      {bidsPerPage > 0 && bids.length > bidsPerPage && (
+      {gesturesPerPage > 0 && gestures.length > gesturesPerPage && (
         <div className="mt-6 flex items-center justify-center gap-2">
           <button
             type="button"
