@@ -14,18 +14,18 @@ export default function PrizesPage() {
 	const prizeTypes = useMemo(() => {
 		return [
 			{
-				name: "Main Prize",
+				name: "Main Allocation",
 				percentage: dashboardData?.PrizePercentage || 0,
-				description: "Last bidder when timer expires",
+				description: "Last participant when timer expires",
 				rewards: [`${dashboardData?.PrizePercentage || 0}% of ETH pool`, "1 Cosmic Signature NFT"],
 				color: "primary",
 			},
 			{
 				name: "Endurance Champion",
 				percentage: 0,
-				description: "Longest single duration as last bidder",
+				description: "Longest single duration as last participant",
 				rewards: [
-					`10x CST per bid`,
+					`10x CST per gesture`,
 					"1 Cosmic Signature NFT",
 				],
 				color: "accent",
@@ -38,25 +38,25 @@ export default function PrizesPage() {
 				color: "info",
 			},
 			{
-				name: "Raffle Winners",
+				name: "Stellar Selection Recipients",
 				percentage: dashboardData?.RafflePercentage || 0,
-				description: "Random selection among all bidders",
+				description: "Random selection among all participants",
 				rewards: [
-					`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} winners`,
-					`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to bidders`,
-					`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to stakers`,
+					`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} recipients`,
+					`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to participants`,
+					`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to anchor-holders`,
 				],
 				color: "warning",
 			},
 			{
-				name: "NFT Stakers",
+				name: "NFT Anchor-holders",
 				percentage: dashboardData?.StakingPercentage || 0,
-				description: "Distributed to all staked NFTs",
+				description: "Distributed to all anchored NFTs",
 				rewards: [`${dashboardData?.StakingPercentage || 0}% of ETH pool (proportional)`],
 				color: "success",
 			},
 			{
-				name: "Charity",
+				name: "Public Goods",
 				percentage: dashboardData?.CharityPercentage || 0,
 				description: "Supporting charitable causes",
 				rewards: [`${dashboardData?.CharityPercentage || 0}% of ETH pool`],
@@ -78,9 +78,9 @@ export default function PrizesPage() {
 						animate={{ opacity: 1, y: 0 }}
 						className="text-center max-w-4xl mx-auto"
 					>
-						<h1 className="heading-xl text-balance mb-6">Prize Structure</h1>
+						<h1 className="heading-xl text-balance mb-6">Allocation Structure</h1>
 						<p className="body-xl">
-							Transparent, fair distribution across multiple winner categories. Every round creates 15+
+							Transparent, fair distribution across multiple recipient categories. Every cycle creates 15+
 							opportunities to win.
 						</p>
 					</motion.div>
@@ -98,7 +98,7 @@ export default function PrizesPage() {
 					>
 						<Card glass className="p-8 md:p-12">
 							<h2 className="font-serif text-2xl font-semibold text-text-primary text-center mb-8">
-								Prize Pool Distribution Flow
+								Allocation Pool Distribution Flow
 							</h2>
 
 							{/* Flow Visualization */}
@@ -174,7 +174,7 @@ export default function PrizesPage() {
 									<div className="flex-1 p-4 rounded-lg bg-background-elevated border border-primary/20">
 										<div className="flex items-center justify-between">
 											<h3 className="font-serif text-lg font-semibold text-text-primary">
-												Next Round Pool
+												Next Cycle Pool
 											</h3>
 											<div className="text-right">
 												<div className="font-mono text-xl font-semibold text-primary">
@@ -189,7 +189,7 @@ export default function PrizesPage() {
 											</div>
 										</div>
 										<p className="text-sm text-text-secondary mt-2">
-											Remaining funds roll over to ensure growing prize pools over time
+											Remaining funds roll over to ensure growing allocation pools over time
 										</p>
 									</div>
 								</motion.div>
@@ -254,26 +254,26 @@ export default function PrizesPage() {
 						viewport={{ once: true }}
 						className="text-center mb-12"
 					>
-						<h2 className="heading-md mb-4">How to Claim Prizes</h2>
+						<h2 className="heading-md mb-4">How to Claim Allocations</h2>
 						<p className="body-lg max-w-2xl mx-auto">
-							Different prize types have different claiming procedures
+							Different allocation types have different claiming procedures
 						</p>
 					</motion.div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<Card glass className="p-8">
-							<h3 className="font-serif text-xl font-semibold text-text-primary mb-4">Main Prize</h3>
+							<h3 className="font-serif text-xl font-semibold text-text-primary mb-4">Main Allocation</h3>
 							<div className="space-y-4 text-sm text-text-secondary">
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">1.</span>
 									<p>
 										Wait for the countdown timer to reach zero (only works if you&apos;re the last
-										bidder)
+										participant)
 									</p>
 								</div>
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">2.</span>
-									<p>Call the &quot;Claim Main Prize&quot; function on the smart contract</p>
+									<p>Call the &quot;Claim Main Allocation&quot; function on the smart contract</p>
 								</div>
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">3.</span>
@@ -281,7 +281,7 @@ export default function PrizesPage() {
 								</div>
 								<div className="p-3 rounded bg-status-warning/10 border border-status-warning/20 mt-4">
 									<p className="text-xs">
-										⚠️ You have 1 day to claim. After that, anyone can claim and receive your prize.
+										⚠️ You have 1 day to claim. After that, anyone can claim and receive your allocation.
 									</p>
 								</div>
 							</div>
@@ -289,27 +289,27 @@ export default function PrizesPage() {
 
 						<Card glass className="p-8">
 							<h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-								Secondary Prizes
+								Secondary Allocations
 							</h3>
 							<div className="space-y-4 text-sm text-text-secondary">
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">1.</span>
-									<p>Secondary prizes (Chrono-Warrior, Raffle ETH) are sent to the Prizes Wallet</p>
+									<p>Secondary allocations (Chrono-Warrior, Stellar Selection ETH) are sent to the Allocations Wallet</p>
 								</div>
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">2.</span>
-									<p>Visit your profile to see available prizes</p>
+									<p>Visit your profile to see available allocations</p>
 								</div>
 								<div className="flex items-start space-x-3">
 									<span className="flex-shrink-0 font-mono text-primary">3.</span>
 									<p>Withdraw your ETH balance when convenient</p>
 								</div>
 								<div className="p-3 rounded bg-status-success/10 border border-status-success/20 mt-4">
-									<p className="text-xs">✓ NFT prizes are automatically sent to your wallet</p>
+									<p className="text-xs">✓ NFT allocations are automatically sent to your wallet</p>
 								</div>
 								<div className="p-3 rounded bg-status-warning/10 border border-status-warning/20 mt-4">
 									<p className="text-xs">
-										⚠️ Secondary prizes also have a claiming deadline. Check your profile regularly to avoid forfeiting unclaimed prizes.
+										⚠️ Secondary allocations also have a claiming deadline. Check your profile regularly to avoid forfeiting unclaimed allocations.
 									</p>
 								</div>
 							</div>

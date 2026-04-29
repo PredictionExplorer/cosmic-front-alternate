@@ -139,7 +139,7 @@ export default function Home() {
             >
               <div className="text-center">
                 <div className="font-mono text-2xl font-semibold text-primary">{totalNFTs}</div>
-                <div className="text-xs text-text-muted uppercase tracking-wider mt-1">Artworks Minted</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mt-1">Artworks Imprinted</div>
               </div>
               <div className="h-8 w-px bg-text-muted/20" />
               <div className="text-center">
@@ -418,7 +418,7 @@ export default function Home() {
             ) : (
               <Card glass className="p-16 text-center">
                 <p className="text-text-secondary">
-                  The first artworks have not yet been minted.
+                  The first artworks have not yet been imprinted.
                 </p>
               </Card>
             )}
@@ -612,9 +612,9 @@ export default function Home() {
                   Through the Game
                 </h3>
                 <p className="text-text-secondary leading-relaxed mb-6">
-                  New artworks are minted when bidding rounds conclude. Place bids with ETH or CST tokens.
-                  Multiple winners per round — the last bidder claims the main prize, but every
-                  participant has chances through raffles, champion prizes, and staking rewards.
+                  New artworks are imprinted when gesturing cycles conclude. Place gestures with ETH or CST tokens.
+                  Multiple recipients per cycle — the last participant claims the main allocation, but every
+                  participant has chances through stellar selections, champion allocations, and anchoring rewards.
                 </p>
                 <Button asChild>
                   <Link href="/game/how-it-works">
@@ -641,7 +641,7 @@ export default function Home() {
                 <p className="text-text-secondary leading-relaxed mb-6">
                   Browse the existing collection and acquire pieces directly from current owners.
                   No game participation required. Every artwork carries full on-chain provenance
-                  — seed, minting round, original winner, and complete ownership history.
+                  — seed, minting cycle, original recipient, and complete ownership history.
                 </p>
                 <Button variant="outline" asChild>
                   <Link href="/gallery">
@@ -670,7 +670,7 @@ export default function Home() {
             <p className="overline mb-4">The Mechanism</p>
             <h2 className="heading-lg text-balance mb-6">How New Artworks Are Created</h2>
             <p className="body-museum max-w-3xl mx-auto">
-              Cosmic Signature artworks are minted through an on-chain bidding game on Arbitrum.
+              Cosmic Signature artworks are imprinted through an on-chain gesturing game on Arbitrum.
               The game creates natural scarcity — as the collection grows, new works become
               exponentially harder to produce.
             </p>
@@ -770,7 +770,7 @@ export default function Home() {
               </div>
 
               <p className="body-museum max-w-2xl mx-auto mb-10">
-                Zero creator ETH extraction. All funds flow to players, stakers, and public goods.
+                Zero creator ETH extraction. All funds flow to players, anchor-holders, and public goods.
                 The contract balance currently holds{" "}
                 <span className="text-primary font-mono font-semibold">
                   {contractBalance.toFixed(2)} ETH

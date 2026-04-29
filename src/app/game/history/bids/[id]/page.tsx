@@ -42,7 +42,7 @@ export default function BidDetailPage({
   const [nftImageError, setNftImageError] = useState(false);
 
   const { data: bidInfo, isLoading: loading, error: fetchError } = useApiQuery<BidInfo>(
-    "bid-info-" + bidId,
+    "gesture-info-" + bidId,
     async () => {
       const response = await api.getBidInfo(bidId);
       if (response && typeof response === 'object' && 'BidInfo' in response) {
@@ -95,11 +95,11 @@ export default function BidDetailPage({
   const getBidTypeLabel = (bidType: number): string => {
     switch (bidType) {
       case 0:
-        return "ETH Bid";
+        return "ETH Gesture";
       case 1:
-        return "RandomWalk Token Bid";
+        return "RandomWalk Token Gesture";
       case 2:
-        return "CST Bid";
+        return "CST Gesture";
       default:
         return "Unknown";
     }
@@ -126,7 +126,7 @@ export default function BidDetailPage({
             <Card glass className="p-12 text-center">
               <div className="flex items-center justify-center space-x-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-text-secondary">Loading bid details...</p>
+                <p className="text-text-secondary">Loading gesture details...</p>
               </div>
             </Card>
           </Container>
@@ -141,9 +141,9 @@ export default function BidDetailPage({
         <section className="section-padding">
           <Container>
             <Card glass className="p-12 text-center">
-              <p className="text-status-error mb-4">{error || "Bid not found"}</p>
+              <p className="text-status-error mb-4">{error || "Gesture not found"}</p>
               <Link href="/game/history/rounds">
-                <Button variant="outline">Back to Rounds</Button>
+                <Button variant="outline">Back to Cycles</Button>
               </Link>
             </Card>
           </Container>
@@ -165,9 +165,9 @@ export default function BidDetailPage({
             items={[
               { label: "Home", href: "/" },
               { label: "Game", href: "/game/play" },
-              { label: "Round History", href: "/game/history/rounds" },
-              { label: `Round ${bidInfo.RoundNum}`, href: `/game/history/rounds/${bidInfo.RoundNum}` },
-              { label: `Bid #${bidInfo.Tx.EvtLogId}` },
+              { label: "Cycle History", href: "/game/history/rounds" },
+              { label: `Cycle ${bidInfo.RoundNum}`, href: `/game/history/rounds/${bidInfo.RoundNum}` },
+              { label: `Gesture #${bidInfo.Tx.EvtLogId}` },
             ]}
           />
 
@@ -180,7 +180,7 @@ export default function BidDetailPage({
               <Link href={`/game/history/rounds/${bidInfo.RoundNum}`}>
                 <Button variant="outline" size="sm">
                   <ArrowLeft size={16} className="mr-2" />
-                  Back to Round
+                  Back to Cycle
                 </Button>
               </Link>
             </div>
@@ -207,12 +207,12 @@ export default function BidDetailPage({
               {/* Bid Information Card */}
               <Card glass>
                 <CardHeader>
-                  <CardTitle>Bid Information</CardTitle>
+                  <CardTitle>Gesture Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-text-secondary mb-2">Bid Type</p>
+                      <p className="text-sm text-text-secondary mb-2">Gesture Type</p>
                       <Badge variant={getBidTypeVariant(bidInfo.BidType)}>
                         {getBidTypeLabel(bidInfo.BidType)}
                       </Badge>
@@ -230,7 +230,7 @@ export default function BidDetailPage({
                   <div className="border-t border-text-muted/10 pt-4">
                     <p className="text-sm text-text-secondary mb-2">
                       <User size={16} className="inline mr-2" />
-                      Bidder
+                      Participant
                     </p>
                     <AddressDisplay address={bidInfo.BidderAddr} showCopy={true} />
                   </div>
@@ -280,7 +280,7 @@ export default function BidDetailPage({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="text-status-success" size={20} />
-                    Bidder Earned CST Tokens
+                    Participant Earned CST Tokens
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -290,7 +290,7 @@ export default function BidDetailPage({
                       {bidInfo.CSTRewardEth} CST
                     </p>
                     <p className="text-xs text-text-muted">
-                      Earned from placing this bid
+                      Earned from placing this gesture
                     </p>
                   </div>
                 </CardContent>
@@ -308,7 +308,7 @@ export default function BidDetailPage({
                   <CardContent>
                     <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/20">
                       <p className="text-text-primary mb-2">
-                        This bid used RandomWalk NFT to get a 50% discount on the bid price.
+                        This gesture used RandomWalk NFT to get a 50% discount on the gesture price.
                       </p>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-text-secondary">Token ID:</span>
@@ -327,7 +327,7 @@ export default function BidDetailPage({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Gift className="text-primary" size={20} />
-                      Donated NFT (ERC-721)
+                      Contributed NFT (ERC-721)
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -392,7 +392,7 @@ export default function BidDetailPage({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Gift className="text-primary" size={20} />
-                      Donated ERC-20 Tokens
+                      Contributed ERC-20 Tokens
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -441,7 +441,7 @@ export default function BidDetailPage({
                 <Card glass>
                   <CardContent className="p-8 text-center">
                     <p className="text-text-secondary">
-                      No donations or special features were included with this bid.
+                      No contributions or special features were included with this gesture.
                     </p>
                   </CardContent>
                 </Card>
@@ -456,7 +456,7 @@ export default function BidDetailPage({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="p-4 rounded-lg bg-background-elevated">
-                    <p className="text-sm text-text-secondary mb-1">Round Number</p>
+                    <p className="text-sm text-text-secondary mb-1">Cycle Number</p>
                     <Link
                       href={`/game/history/rounds/${bidInfo.RoundNum}`}
                       className="font-mono text-xl font-semibold text-primary hover:underline"
@@ -512,7 +512,7 @@ export default function BidDetailPage({
                     {hasNftDonation && (
                       <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
                         <span className="text-sm text-text-secondary">
-                          NFT Donated
+                          NFT Contributed
                         </span>
                         <Badge variant="default">ERC-721</Badge>
                       </div>
@@ -520,7 +520,7 @@ export default function BidDetailPage({
                     {hasErc20Donation && (
                       <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
                         <span className="text-sm text-text-secondary">
-                          Tokens Donated
+                          Tokens Contributed
                         </span>
                         <Badge variant="default">ERC-20</Badge>
                       </div>
@@ -532,7 +532,7 @@ export default function BidDetailPage({
               {/* Bidder Info */}
               <Card glass>
                 <CardHeader>
-                  <CardTitle>Bidder Profile</CardTitle>
+                  <CardTitle>Participant Profile</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">

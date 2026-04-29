@@ -69,7 +69,7 @@ export function BidDonationFlipCell({ bid }: { bid: ComponentBidData }) {
   const [flipped, setFlipped] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  /** Prevents duplicate fetches for the same bid + URI fields when flipping open again. */
+  /** Prevents duplicate fetches for the same row + URI fields when flipping open again. */
   const resolvedNftKeyRef = useRef<string | null>(null);
 
   const nft = hasNftDonation(bid);
@@ -154,7 +154,7 @@ export function BidDonationFlipCell({ bid }: { bid: ComponentBidData }) {
             onClick={() => setFlipped(true)}
             className="flex h-full w-full items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10 hover:text-primary"
             aria-expanded={flipped}
-            aria-label="Show donated token preview"
+            aria-label="Show contributed token preview"
           >
             <Gift className="h-5 w-5" strokeWidth={1.75} />
           </button>

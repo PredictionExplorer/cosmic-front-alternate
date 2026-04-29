@@ -71,24 +71,24 @@ export default function RoundDetailPage({
   const roundNum = parseInt(id);
   
   const [activeTab, setActiveTab] = useState<
-    "overview" | "winners" | "stats" | "bids" | "donations"
+    "overview" | "recipients" | "stats" | "gestures" | "contributions"
   >("overview");
 
   const { data: round, isLoading: loading, error: roundError } = useApiQuery<RoundDetail>(
-    "round-info-" + roundNum,
+    "cycle-info-" + roundNum,
     () => api.getRoundInfo(roundNum) as Promise<unknown> as Promise<RoundDetail>,
   );
   const error = roundError?.message ?? null;
 
-  const { data: bidsData, isLoading: isLoadingBids } = useApiQuery(
-    "bids-round-" + roundNum,
+  const { data: gesturesData, isLoading: isLoadingGestures } = useApiQuery(
+    "gestures-cycle-" + roundNum,
     () => api.getBidListByRound(round!.RoundNum, "desc"),
     { enabled: !!round },
   );
-  const bids = (bidsData ?? []) as ComponentBidData[];
+  const gestures = (gesturesData ?? []) as ComponentBidData[];
 
   const { data: donationsData, isLoading: isLoadingDonations } = useApiQuery(
-    "donations-round-" + roundNum,
+    "contributions-cycle-" + roundNum,
     async () => {
       const [ethDonationsData, nftDonationsData] = await Promise.all([
         api.getETHDonationsByRound(round!.RoundNum),
@@ -129,7 +129,7 @@ export default function RoundDetailPage({
         <Container>
           <Card glass className="p-12 text-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-text-secondary">Loading round data...</p>
+            <p className="text-text-secondary">Loading cycle data...</p>
           </Card>
         </Container>
       </div>
@@ -144,10 +144,10 @@ export default function RoundDetailPage({
           <Card glass className="p-12 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h1 className="heading-sm mb-4">
-              {error ? "Error Loading Round" : "Round Not Found"}
+              {error ? "Error Loading Cycle" : "Cycle Not Found"}
             </h1>
             <p className="text-text-secondary mb-6">
-              {error || "This round doesn't exist or hasn't been played yet."}
+              {error || "This cycle doesn't exist or hasn't been played yet."}
             </p>
             <Button asChild>
               <Link href="/game/history/rounds">
@@ -174,8 +174,8 @@ export default function RoundDetailPage({
             items={[
               { label: "Game", href: "/game/play" },
               { label: "History" },
-              { label: "Rounds", href: "/game/history/rounds" },
-              { label: `Round ${round.RoundNum}` },
+              { label: "Cycles", href: "/game/history/rounds" },
+              { label: `Cycle ${round.RoundNum}` },
             ]}
             className="mb-8"
           />
@@ -186,7 +186,7 @@ export default function RoundDetailPage({
           >
             <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
               <div>
-                <h1 className="heading-xl mb-2">Round {round.RoundNum}</h1>
+                <h1 className="heading-xl mb-2">Cycle {round.RoundNum}</h1>
                 <p className="text-text-secondary">
                   Completed on {formatDate(new Date(safeTimestamp(round)))} •
                   Duration: {formatDuration(durationSeconds * 1000)}
@@ -195,7 +195,7 @@ export default function RoundDetailPage({
 
               <div className="text-right">
                 <p className="text-sm text-text-secondary mb-1">
-                  Total Prize Pool
+                  Total Allocation Pool
                 </p>
                 <p className="font-mono text-4xl font-bold text-primary">
                   {totalPool.toFixed(4)} ETH
@@ -215,21 +215,21 @@ export default function RoundDetailPage({
               <p className="font-mono text-2xl font-semibold text-text-primary">
                 {round.RoundStats.TotalBids}
               </p>
-              <p className="text-sm text-text-secondary">Total Bids</p>
+              <p className="text-sm text-text-secondary">Total Gestures</p>
             </div>
             <div className="text-center">
               <Trophy size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
                 {round.RoundStats.TotalRaffleNFTs + 3}
               </p>
-              <p className="text-sm text-text-secondary">Prize Winners</p>
+              <p className="text-sm text-text-secondary">Allocation Recipients</p>
             </div>
             <div className="text-center">
               <TrendingUp size={24} className="text-primary mx-auto mb-2" />
               <p className="font-mono text-2xl font-semibold text-text-primary">
                 {round.RoundStats.TotalDonatedCount}
               </p>
-              <p className="text-sm text-text-secondary">Donations</p>
+              <p className="text-sm text-text-secondary">Contributions</p>
             </div>
             <div className="text-center">
               <Clock size={24} className="text-primary mx-auto mb-2" />
@@ -257,34 +257,34 @@ export default function RoundDetailPage({
               Overview
             </button>
             <button
-              onClick={() => setActiveTab("winners")}
+              onClick={() => setActiveTab("recipients")}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === "winners"
+                activeTab === "recipients"
                   ? "bg-primary/10 text-primary"
                   : "text-text-secondary hover:text-primary"
               }`}
             >
-              Winners
+              Recipients
             </button>
             <button
-              onClick={() => setActiveTab("bids")}
+              onClick={() => setActiveTab("gestures")}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === "bids"
+                activeTab === "gestures"
                   ? "bg-primary/10 text-primary"
                   : "text-text-secondary hover:text-primary"
               }`}
             >
-              Bids ({bids.length})
+              Gestures ({gestures.length})
             </button>
             <button
-              onClick={() => setActiveTab("donations")}
+              onClick={() => setActiveTab("contributions")}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === "donations"
+                activeTab === "contributions"
                   ? "bg-primary/10 text-primary"
                   : "text-text-secondary hover:text-primary"
               }`}
             >
-              Donations ({ethDonations.length + nftDonations.length})
+              Contributions ({ethDonations.length + nftDonations.length})
             </button>
             <button
               onClick={() => setActiveTab("stats")}
@@ -314,7 +314,7 @@ export default function RoundDetailPage({
                     </div>
                     <div>
                       <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                        Main Prize Winner
+                        Main Allocation Recipient
                       </h3>
                       <AddressDisplay address={round.MainPrize.WinnerAddr} />
                       <p className="text-sm text-text-secondary mt-2">
@@ -324,7 +324,7 @@ export default function RoundDetailPage({
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-text-secondary mb-1">
-                      Prize Amount
+                      Allocation Amount
                     </p>
                     <p className="font-mono text-4xl font-bold text-primary">
                       {round.MainPrize.EthAmountEth.toFixed(4)}
@@ -345,7 +345,7 @@ export default function RoundDetailPage({
                     className="mb-4"
                   />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-secondary">Prize:</span>
+                    <span className="text-sm text-text-secondary">Allocation:</span>
                     <span className="font-mono text-lg text-primary">
                       {round.EnduranceChampion.CstAmountEth.toFixed(0)} CST
                     </span>
@@ -367,13 +367,13 @@ export default function RoundDetailPage({
                     className="mb-4"
                   />
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-secondary">ETH Prize:</span>
+                    <span className="text-sm text-text-secondary">ETH Allocation:</span>
                     <span className="font-mono text-lg text-primary">
                       {round.ChronoWarrior.EthAmountEth.toFixed(4)} ETH
                     </span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-sm text-text-secondary">CST Prize:</span>
+                    <span className="text-sm text-text-secondary">CST Allocation:</span>
                     <span className="font-mono text-sm text-text-primary">
                       {round.ChronoWarrior.CstAmountEth.toFixed(0)} CST
                     </span>
@@ -391,12 +391,12 @@ export default function RoundDetailPage({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card glass className="p-6">
                   <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Raffle Prizes
+                    Stellar Selection Allocations
                   </h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-text-secondary">
-                        ETH Winners:
+                        ETH Recipients:
                       </span>
                       <span className="text-text-primary">
                         {round.RaffleETHDeposits?.length || 0}
@@ -404,7 +404,7 @@ export default function RoundDetailPage({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-text-secondary">
-                        NFT Winners:
+                        NFT Recipients:
                       </span>
                       <span className="text-text-primary">
                         {round.RaffleNFTWinners?.length || 0}
@@ -423,12 +423,12 @@ export default function RoundDetailPage({
 
                 <Card glass className="p-6">
                   <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                    Staking & Charity
+                    Anchoring & Public Goods
                   </h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-text-secondary">
-                        To Stakers:
+                        To Anchor-holders:
                       </span>
                       <span className="font-mono text-status-success">
                         {round.StakingDeposit.StakingDepositAmountEth.toFixed(4)} ETH
@@ -436,7 +436,7 @@ export default function RoundDetailPage({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-text-secondary">
-                        To Charity:
+                        To Public Goods:
                       </span>
                       <span className="font-mono text-status-error">
                         {(round.CharityDeposit?.CharityAmountETH ?? 0).toFixed(4)} ETH
@@ -448,17 +448,17 @@ export default function RoundDetailPage({
             </div>
           )}
 
-          {activeTab === "winners" && (
+          {activeTab === "recipients" && (
             <Card glass className="p-8">
               <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                All Prize Winners
+                All Allocation Recipients
               </h3>
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm text-text-secondary mb-1">
-                        Main Prize
+                        Main Allocation
                       </p>
                       <AddressDisplay address={round.MainPrize.WinnerAddr} />
                     </div>
@@ -499,10 +499,10 @@ export default function RoundDetailPage({
                 <div className="space-y-8 rounded-lg bg-background-elevated p-4 border border-text-muted/10">
                   <div>
                     <p className="text-sm font-semibold text-text-primary mb-3">
-                      Raffle winners
+                      Stellar Selection recipients
                     </p>
                     <p className="text-xs text-text-secondary mb-4">
-                      ETH raffles, bidder-pool NFT raffles, and staking (Random Walk) NFT raffles for this round.
+                      ETH stellar selections, participant-pool NFT stellar selections, and anchoring (Random Walk) NFT stellar selections for this cycle.
                     </p>
 
                     {(round.RaffleETHDeposits?.length ?? 0) > 0 && (
@@ -515,10 +515,10 @@ export default function RoundDetailPage({
                             <thead className="bg-background-surface border-b border-text-muted/10">
                               <tr>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Winner
+                                  Recipient
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Prize
+                                  Allocation
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
                                   Slot
@@ -580,10 +580,10 @@ export default function RoundDetailPage({
                             <thead className="bg-background-surface border-b border-text-muted/10">
                               <tr>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Winner
+                                  Recipient
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Prize
+                                  Allocation
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
                                   Slot
@@ -592,7 +592,7 @@ export default function RoundDetailPage({
                             </thead>
                             <tbody className="divide-y divide-text-muted/10">
                               {round.RaffleNFTWinners!.map((w, i) => (
-                                <tr key={`nft-bid-${w.RecordId ?? i}-${w.WinnerIndex ?? i}`}>
+                                <tr key={`nft-gesture-${w.RecordId ?? i}-${w.WinnerIndex ?? i}`}>
                                   <td className="px-3 py-2">
                                     {w.WinnerAddr ? (
                                       <Link
@@ -640,10 +640,10 @@ export default function RoundDetailPage({
                             <thead className="bg-background-surface border-b border-text-muted/10">
                               <tr>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Winner
+                                  Recipient
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
-                                  Prize
+                                  Allocation
                                 </th>
                                 <th className="px-3 py-2 text-left font-semibold text-text-primary">
                                   Slot
@@ -694,7 +694,7 @@ export default function RoundDetailPage({
                       (round.RaffleNFTWinners?.length ?? 0) === 0 &&
                       (round.StakingNFTWinners?.length ?? 0) === 0 && (
                         <p className="text-sm text-text-muted">
-                          No raffle prizes recorded for this round.
+                          No stellar selection allocations recorded for this cycle.
                         </p>
                       )}
                   </div>
@@ -707,11 +707,11 @@ export default function RoundDetailPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card glass className="p-8">
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                  Round Metrics
+                  Cycle Metrics
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between pb-3 border-b border-text-muted/10">
-                    <span className="text-text-secondary">Total Bids</span>
+                    <span className="text-text-secondary">Total Gestures</span>
                     <span className="font-mono text-text-primary font-semibold">
                       {round.RoundStats.TotalBids}
                     </span>
@@ -732,7 +732,7 @@ export default function RoundDetailPage({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-secondary">
-                      Main Prize CST
+                      Main Allocation CST
                     </span>
                     <span className="font-mono text-primary font-semibold">
                       {round.MainPrize.CstAmountEth.toFixed(0)} CST
@@ -743,18 +743,18 @@ export default function RoundDetailPage({
 
               <Card glass className="p-8">
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-6">
-                  Prize Distribution
+                  Allocation Distribution
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Main Prize", value: round.MainPrize.EthAmountEth },
+                    { label: "Main Allocation", value: round.MainPrize.EthAmountEth },
                     {
                       label: "Chrono-Warrior",
                       value: round.ChronoWarrior.EthAmountEth,
                     },
-                    { label: "Raffle", value: round.RoundStats.TotalRaffleEthDepositsEth },
+                    { label: "Stellar Selection", value: round.RoundStats.TotalRaffleEthDepositsEth },
                     { label: "Staking", value: round.StakingDeposit.StakingDepositAmountEth },
-                    { label: "Charity", value: round.CharityDeposit?.CharityAmountETH ?? 0 },
+                    { label: "Public Goods", value: round.CharityDeposit?.CharityAmountETH ?? 0 },
                   ].map((item, index) => (
                     <div key={index} className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -780,57 +780,57 @@ export default function RoundDetailPage({
             </div>
           )}
 
-          {activeTab === "bids" && (
+          {activeTab === "gestures" && (
             <div className="space-y-6">
               <div>
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                  All Bids for Round {round.RoundNum}
+                  All gestures for cycle {round.RoundNum}
                 </h3>
                 <p className="text-text-secondary mb-6">
-                  Complete bidding history for this round ({bids.length} total
-                  bids)
+                  Complete gesture history for this cycle ({gestures.length} total
+                  gestures)
                 </p>
               </div>
 
-              {isLoadingBids ? (
+              {isLoadingGestures ? (
                 <Card glass className="p-12 text-center">
                   <div className="flex items-center justify-center space-x-3">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <p className="text-text-secondary">Loading bids...</p>
+                    <p className="text-text-secondary">Loading gestures...</p>
                   </div>
                 </Card>
               ) : (
                 <BidHistoryTable
                   key={round.RoundNum}
-                  bids={bids}
-                  emptyMessage="No bids found for this round."
+                  gestures={gestures}
+                  emptyMessage="No gestures found for this cycle."
                 />
               )}
             </div>
           )}
 
-          {activeTab === "donations" && (
+          {activeTab === "contributions" && (
             <div className="space-y-8">
               <div>
                 <h3 className="font-serif text-2xl font-semibold text-text-primary mb-2">
-                  Donations for Round {round.RoundNum}
+                  Contributions for cycle {round.RoundNum}
                 </h3>
                 <p className="text-text-secondary mb-6">
-                  All ETH and NFT donations received during this round
+                  All ETH and NFT contributions received during this cycle
                 </p>
               </div>
 
-              {/* ETH Donations */}
+              {/* ETH contributions */}
               <div>
                 <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                  ETH Donations ({ethDonations.length})
+                  ETH contributions ({ethDonations.length})
                 </h4>
                 {isLoadingDonations ? (
                   <Card glass className="p-12 text-center">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       <p className="text-text-secondary">
-                        Loading donations...
+                        Loading contributions...
                       </p>
                     </div>
                   </Card>
@@ -841,7 +841,7 @@ export default function RoundDetailPage({
                     columns={[
                       {
                         key: "donor",
-                        label: "Donor",
+                        label: "Contributor",
                         render: (_value, item) => (
                           <AddressDisplay
                             address={item.donor as string}
@@ -884,28 +884,28 @@ export default function RoundDetailPage({
                         ),
                       },
                     ]}
-                    emptyMessage="No ETH donations for this round."
+                    emptyMessage="No ETH contributions for this cycle."
                   />
                 ) : (
                   <Card glass className="p-8 text-center">
                     <p className="text-text-secondary">
-                      No ETH donations for this round.
+                      No ETH contributions for this cycle.
                     </p>
                   </Card>
                 )}
               </div>
 
-              {/* NFT Donations */}
+              {/* NFT contributions */}
               <div>
                 <h4 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                  NFT Donations ({nftDonations.length})
+                  NFT contributions ({nftDonations.length})
                 </h4>
                 {isLoadingDonations ? (
                   <Card glass className="p-12 text-center">
                     <div className="flex items-center justify-center space-x-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       <p className="text-text-secondary">
-                        Loading donations...
+                        Loading contributions...
                       </p>
                     </div>
                   </Card>
@@ -916,7 +916,7 @@ export default function RoundDetailPage({
                     columns={[
                       {
                         key: "donor",
-                        label: "Donor",
+                        label: "Contributor",
                         render: (_value, item) => (
                           <AddressDisplay
                             address={item.donor as string}
@@ -958,12 +958,12 @@ export default function RoundDetailPage({
                         ),
                       },
                     ]}
-                    emptyMessage="No NFT donations for this round."
+                    emptyMessage="No NFT contributions for this cycle."
                   />
                 ) : (
                   <Card glass className="p-8 text-center">
                     <p className="text-text-secondary">
-                      No NFT donations for this round.
+                      No NFT contributions for this cycle.
                     </p>
                   </Card>
                 )}

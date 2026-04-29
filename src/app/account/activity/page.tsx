@@ -97,7 +97,7 @@ export default function MyActivityPage() {
             <p className="body-lg">
               {loading
                 ? "Loading your activity..."
-                : `${bidHistory.length} total bid${
+                : `${bidHistory.length} total gesture${
                     bidHistory.length !== 1 ? "s" : ""
                   } placed`}
             </p>
@@ -157,15 +157,15 @@ export default function MyActivityPage() {
               <h2 className="heading-sm mb-4">No Activity Yet</h2>
               <p className="text-text-secondary mb-6">
                 {bidHistory.length === 0
-                  ? "You haven't placed any bids yet. Start playing to see your activity here!"
-                  : "No bids found for the selected filter."}
+                  ? "You haven't placed any gestures yet. Start playing to see your activity here!"
+                  : "No gestures found for the selected filter."}
               </p>
               {bidHistory.length === 0 && (
                 <Link
                   href="/game/play"
                   className="inline-flex items-center px-6 py-3 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
                 >
-                  Place Your First Bid
+                  Place Your First Gesture
                 </Link>
               )}
             </Card>
@@ -200,7 +200,7 @@ export default function MyActivityPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             <h3 className="font-serif text-lg font-semibold text-text-primary">
-                              {bid.BidType === 0 ? "ETH Bid" : "CST Bid"}
+                              {bid.BidType === 0 ? "ETH Gesture" : "CST Gesture"}
                             </h3>
                             <Badge variant="default">Round {bid.RoundNum}</Badge>
                             {bid.RWalkNFTId > 0 && (
@@ -224,11 +224,11 @@ export default function MyActivityPage() {
 
                           <div className="flex items-center gap-4 text-sm">
                             <div>
-                              <span className="text-text-secondary">Bid Price: </span>
+                              <span className="text-text-secondary">Gesture Price: </span>
                               <span className="font-mono font-semibold text-text-primary">
                                 {bid.BidType === 0
-                                  ? `${bid.BidPriceEth.toFixed(6)} ETH`
-                                  : `${weiToEther(bid.BidPrice).toFixed(2)} CST`}
+                                  ? `${gesture.BidPriceEth.toFixed(6)} ETH`
+                                  : `${weiToEther(gesture.BidPrice).toFixed(2)} CST`}
                               </span>
                             </div>
                             {Number(bid.NumCSTTokens) > 0 && (
@@ -268,19 +268,19 @@ export default function MyActivityPage() {
               <Card glass className="p-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                   <div>
-                    <p className="text-sm text-text-secondary mb-1">Total Bids</p>
+                    <p className="text-sm text-text-secondary mb-1">Total Gestures</p>
                     <p className="text-2xl font-bold text-primary font-mono">
                       {bidHistory.length}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-text-secondary mb-1">ETH Bids</p>
+                    <p className="text-sm text-text-secondary mb-1">ETH Gestures</p>
                     <p className="text-2xl font-bold text-primary font-mono">
                       {activityCounts.eth}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-text-secondary mb-1">CST Bids</p>
+                    <p className="text-sm text-text-secondary mb-1">CST Gestures</p>
                     <p className="text-2xl font-bold text-status-warning font-mono">
                       {activityCounts.cst}
                     </p>

@@ -87,7 +87,7 @@ export function Footer() {
 										href="/stake"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Stake NFTs
+										Anchor NFTs
 									</Link>
 								</li>
 							</ul>
@@ -118,7 +118,7 @@ export function Footer() {
 										href="/game/prizes"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Prize Structure
+										Allocation Structure
 									</Link>
 								</li>
 								<li>
@@ -174,10 +174,10 @@ export function Footer() {
 								</li>
 								<li>
 									<Link
-										href="/donations"
+										href="/contributions"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Donations
+										Contributions
 									</Link>
 								</li>
 							</ul>

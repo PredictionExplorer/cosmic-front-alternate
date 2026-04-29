@@ -18,7 +18,7 @@ const projectId =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID";
 
 if (!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID) {
-  console.warn(
+  console.log(
     "WalletConnect Project ID not found. Get one at https://cloud.walletconnect.com"
   );
 }

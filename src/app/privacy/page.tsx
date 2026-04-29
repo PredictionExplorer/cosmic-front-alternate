@@ -14,11 +14,11 @@ export default function PrivacyPage() {
       content: [
         {
           subtitle: "Wallet Information",
-          text: "When you connect your Web3 wallet to use Cosmic Signature, we collect your public wallet address. This is necessary to process transactions, display your NFTs, track your bids, and award prizes.",
+          text: "When you connect your Web3 wallet to use Cosmic Signature, we collect your public wallet address. This is necessary to process transactions, display your NFTs, track your gestures, and award allocations.",
         },
         {
           subtitle: "Transaction Data",
-          text: "We collect information about your interactions with our smart contracts, including bids placed, NFTs won, staking activities, and prize claims. All of this data is publicly available on the blockchain.",
+          text: "We collect information about your interactions with our smart contracts, including gestures placed, NFTs won, anchoring activities, and allocation claims. All of this data is publicly available on the blockchain.",
         },
         {
           subtitle: "Usage Data",
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       content: [
         {
           subtitle: "Service Delivery",
-          text: "Your wallet address and transaction data are used to provide you with the game services, including processing bids, managing NFTs, distributing prizes, and displaying your game statistics.",
+          text: "Your wallet address and transaction data are used to provide you with the game services, including processing gestures, managing NFTs, distributing allocations, and displaying your game statistics.",
         },
         {
           subtitle: "Platform Improvement",
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
       content: [
         {
           subtitle: "Public Blockchain Data",
-          text: "All blockchain transactions are public by nature. Your wallet address, bids, NFT ownership, and prize winnings are visible on the blockchain and through our platform.",
+          text: "All blockchain transactions are public by nature. Your wallet address, gestures, NFT ownership, and allocation winnings are visible on the blockchain and through our platform.",
         },
         {
           subtitle: "Third-Party Services",
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
         },
         {
           subtitle: "Blockchain Permanence",
-          text: "Please note that blockchain transactions are permanent and cannot be deleted. Once a bid is placed or an NFT is transferred, this information remains on the blockchain forever.",
+          text: "Please note that blockchain transactions are permanent and cannot be deleted. Once a gesture is placed or an NFT is transferred, this information remains on the blockchain forever.",
         },
         {
           subtitle: "Cookie Preferences",

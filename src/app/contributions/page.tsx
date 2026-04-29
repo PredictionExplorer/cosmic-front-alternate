@@ -72,7 +72,7 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
     resolve();
   }, [nft]);
 
-  const bidEvtLogId = nft.Tx?.EvtLogId;
+  const cycleHref = `/game/history/rounds/${nft.RoundNum}`;
 
   return (
     <motion.div
@@ -119,7 +119,7 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
           {/* Round badge overlay */}
           <div className="absolute top-2 left-2">
             <Badge variant="default" className="shadow-lg">
-              Round {nft.RoundNum}
+              Cycle {nft.RoundNum}
             </Badge>
           </div>
         </div>
@@ -147,13 +147,13 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
           </div>
 
           <div>
-            <p className="text-xs text-text-secondary mb-1">Donor</p>
+            <p className="text-xs text-text-secondary mb-1">Contributor</p>
             <AddressDisplay address={nft.DonorAddr} shorten showCopy={false} />
           </div>
 
           {nft.WinnerAddr && (
             <div>
-              <p className="text-xs text-text-secondary mb-1">Winner</p>
+              <p className="text-xs text-text-secondary mb-1">Recipient</p>
               <AddressDisplay address={nft.WinnerAddr} shorten showCopy={false} />
             </div>
           )}
@@ -164,10 +164,10 @@ function NFTDonationCard({ nft }: { nft: DonatedNFT }) {
               : "—"}
           </div>
 
-          {bidEvtLogId && (
-            <Link href={`/game/history/bids/${bidEvtLogId}`}>
+          {nft.RoundNum != null && (
+            <Link href={cycleHref}>
               <span className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                View bid <ExternalLink size={11} />
+                View cycle <ExternalLink size={11} />
               </span>
             </Link>
           )}
@@ -186,12 +186,12 @@ type NFTDonationStats = ApiNFTDonationStats;
 type Tab = "nfts" | "erc20" | "eth";
 type ClaimFilter = "all" | "unclaimed" | "claimed";
 
-export default function DonationsPage() {
+export default function ContributionsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("nfts");
 
   // Fetch donated NFTs (with claim status enrichment)
   const { data: nftsRaw, isLoading: nftsLoading, error: nftsQueryError } = useApiQuery(
-    "donations-nfts",
+    "contributions-nfts",
     async () => {
       const listData = await api.getNFTDonationsList();
       const rawNfts: DonatedNFT[] = Array.isArray(listData) ? (listData as unknown as DonatedNFT[]) : [];
@@ -223,7 +223,7 @@ export default function DonationsPage() {
 
   // NFT statistics from dedicated endpoint
   const { data: nftStats } = useApiQuery(
-    "donations-nft-stats",
+    "contributions-nft-stats",
     async () => {
       const data = await api.getNFTDonationStatistics();
       if (data && typeof data === "object") return data as NFTDonationStats;
@@ -233,7 +233,7 @@ export default function DonationsPage() {
 
   // ERC-20 donations
   const { data: erc20sRaw, isLoading: erc20Loading, error: erc20QueryError } = useApiQuery(
-    "donations-erc20",
+    "contributions-erc20",
     async () => {
       const data = await api.getERC20DonationsList();
       return Array.isArray(data) ? (data as unknown as DonatedERC20[]) : [];
@@ -244,7 +244,7 @@ export default function DonationsPage() {
 
   // ETH donations
   const { data: ethDonationsRaw, isLoading: ethLoading, error: ethQueryError } = useApiQuery(
-    "donations-eth",
+    "contributions-eth",
     async () => {
       const data = await api.getAllETHDonations();
       return Array.isArray(data) ? (data as unknown as ETHDonation[]) : [];
@@ -305,7 +305,7 @@ export default function DonationsPage() {
           <Breadcrumbs
             items={[
               { label: "Home", href: "/" },
-              { label: "Donations" },
+              { label: "Contributions" },
             ]}
           />
 
@@ -317,9 +317,9 @@ export default function DonationsPage() {
             <div className="flex items-center gap-4 mb-4">
               <Gift className="text-primary" size={40} />
               <div>
-                <h1 className="heading-lg">Donations</h1>
+                <h1 className="heading-lg">Contributions</h1>
                 <p className="body-lg text-text-secondary">
-                  All NFTs and ERC-20 tokens donated during bids
+                  All NFTs and ERC-20 tokens contributed during gestures
                 </p>
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function DonationsPage() {
                   <span className="font-semibold text-text-primary">
                     {nftStats?.TotalDonated ?? nftStats?.NumDonations ?? nfts.length}
                   </span>{" "}
-                  Donated NFTs
+                  Contributed NFTs
                 </span>
               </div>
 
@@ -368,7 +368,7 @@ export default function DonationsPage() {
                 <Coins size={16} className="text-primary" />
                 <span className="text-sm text-text-secondary">
                   <span className="font-semibold text-text-primary">{erc20s.length}</span>{" "}
-                  ERC-20 Donations
+                  ERC-20 contributions
                 </span>
               </div>
 
@@ -380,7 +380,7 @@ export default function DonationsPage() {
                     <span className="font-semibold text-text-primary">
                       {totalEthDonated.toFixed(4)}
                     </span>{" "}
-                    ETH Donated ({ethDonations.length})
+                    ETH contributed ({ethDonations.length})
                   </span>
                 </div>
               )}
@@ -403,7 +403,7 @@ export default function DonationsPage() {
               }`}
             >
               <Gift size={14} className="inline mr-2" />
-              Donated NFTs ({nfts.length})
+              Contributed NFTs ({nfts.length})
             </button>
             <button
               onClick={() => setActiveTab("erc20")}
@@ -425,7 +425,7 @@ export default function DonationsPage() {
               }`}
             >
               <CircleDollarSign size={14} className="inline mr-2" />
-              ETH Donations ({ethDonations.length})
+              ETH contributions ({ethDonations.length})
             </button>
           </div>
 
@@ -437,7 +437,7 @@ export default function DonationsPage() {
                 <Search size={16} className="text-text-muted flex-shrink-0" />
                 <input
                   type="number"
-                  placeholder="Filter by round…"
+                  placeholder="Filter by cycle…"
                   value={roundFilter}
                   onChange={(e) => setRoundFilter(e.target.value)}
                   className="w-full bg-transparent text-sm text-text-primary placeholder-text-muted outline-none"
@@ -479,7 +479,7 @@ export default function DonationsPage() {
               {nftsLoading ? (
                 <div className="flex items-center justify-center py-24">
                   <Loader2 className="animate-spin text-primary mr-3" size={28} />
-                  <span className="text-text-secondary">Loading donated NFTs…</span>
+                  <span className="text-text-secondary">Loading contributed NFTs…</span>
                 </div>
               ) : nftsError ? (
                 <Card glass className="p-12 text-center">
@@ -490,8 +490,8 @@ export default function DonationsPage() {
                   <Gift className="mx-auto mb-4 text-text-muted" size={48} />
                   <p className="text-text-secondary">
                     {hasFilters
-                      ? "No donated NFTs match the current filters."
-                      : "No donated NFTs found."}
+                      ? "No contributed NFTs match the current filters."
+                      : "No contributed NFTs found."}
                   </p>
                 </Card>
               ) : (
@@ -510,7 +510,7 @@ export default function DonationsPage() {
               {erc20Loading ? (
                 <div className="flex items-center justify-center py-24">
                   <Loader2 className="animate-spin text-primary mr-3" size={28} />
-                  <span className="text-text-secondary">Loading ERC-20 donations…</span>
+                  <span className="text-text-secondary">Loading ERC-20 contributions…</span>
                 </div>
               ) : erc20Error ? (
                 <Card glass className="p-12 text-center">
@@ -521,8 +521,8 @@ export default function DonationsPage() {
                   <Coins className="mx-auto mb-4 text-text-muted" size={48} />
                   <p className="text-text-secondary">
                     {hasFilters
-                      ? "No ERC-20 donations match the current filters."
-                      : "No ERC-20 donations found."}
+                      ? "No ERC-20 contributions match the current filters."
+                      : "No ERC-20 contributions found."}
                   </p>
                 </Card>
               ) : (
@@ -530,18 +530,18 @@ export default function DonationsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Coins className="text-primary" size={20} />
-                      ERC-20 Token Donations
+                      ERC-20 Token Contributions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-text-muted/10">
-                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Round</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Cycle</th>
                           <th className="text-left py-3 px-3 text-text-secondary font-medium">Token</th>
-                          <th className="text-right py-3 px-3 text-text-secondary font-medium">Donated</th>
+                          <th className="text-right py-3 px-3 text-text-secondary font-medium">Contributed</th>
                           <th className="text-right py-3 px-3 text-text-secondary font-medium">Claimed</th>
-                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Winner</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Recipient</th>
                           <th className="text-left py-3 px-3 text-text-secondary font-medium">Date</th>
                           <th className="text-center py-3 px-3 text-text-secondary font-medium">Status</th>
                           <th className="py-3 px-3" />
@@ -622,10 +622,10 @@ export default function DonationsPage() {
                               )}
                             </td>
                             <td className="py-3 px-3">
-                              {token.Tx?.EvtLogId && (
-                                <Link href={`/game/history/bids/${token.Tx.EvtLogId}`}>
+                              {token.RoundNum != null && (
+                                <Link href={`/game/history/rounds/${token.RoundNum}`}>
                                   <span className="text-xs text-primary hover:underline whitespace-nowrap">
-                                    View bid
+                                    View cycle
                                   </span>
                                 </Link>
                               )}
@@ -639,13 +639,13 @@ export default function DonationsPage() {
               )}
             </>
           )}
-          {/* ── ETH Donations Tab ─────────────────────────────────── */}
+          {/* ── ETH contributions tab ─────────────────────────────── */}
           {activeTab === "eth" && (
             <>
               {ethLoading ? (
                 <div className="flex items-center justify-center py-24">
                   <Loader2 className="animate-spin text-primary mr-3" size={28} />
-                  <span className="text-text-secondary">Loading ETH donations…</span>
+                  <span className="text-text-secondary">Loading ETH contributions…</span>
                 </div>
               ) : ethError ? (
                 <Card glass className="p-12 text-center">
@@ -655,7 +655,7 @@ export default function DonationsPage() {
                 <Card glass className="p-12 text-center">
                   <CircleDollarSign className="mx-auto mb-4 text-text-muted" size={48} />
                   <p className="text-text-secondary">
-                    {roundFilter ? "No ETH donations match the current round filter." : "No ETH donations found."}
+                    {roundFilter ? "No ETH contributions match the current cycle filter." : "No ETH contributions found."}
                   </p>
                 </Card>
               ) : (
@@ -663,15 +663,15 @@ export default function DonationsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CircleDollarSign className="text-primary" size={20} />
-                      ETH Donations
+                      ETH Contributions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-text-muted/10">
-                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Round</th>
-                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Donor</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Cycle</th>
+                          <th className="text-left py-3 px-3 text-text-secondary font-medium">Contributor</th>
                           <th className="text-right py-3 px-3 text-text-secondary font-medium">Amount (ETH)</th>
                           <th className="text-left py-3 px-3 text-text-secondary font-medium">Info</th>
                           <th className="text-left py-3 px-3 text-text-secondary font-medium">Date</th>
@@ -725,10 +725,10 @@ export default function DonationsPage() {
                                   : "—"}
                               </td>
                               <td className="py-3 px-3">
-                                {d.Tx?.EvtLogId && (
-                                  <Link href={`/game/history/bids/${d.Tx.EvtLogId}`}>
+                                {d.RoundNum != null && (
+                                  <Link href={`/game/history/rounds/${d.RoundNum}`}>
                                     <span className="text-xs text-primary hover:underline whitespace-nowrap flex items-center gap-1">
-                                      View bid <ExternalLink size={10} />
+                                      View cycle <ExternalLink size={10} />
                                     </span>
                                   </Link>
                                 )}

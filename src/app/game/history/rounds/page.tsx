@@ -35,7 +35,7 @@ export default function RoundsArchivePage() {
 	const [perPage, setPerPage] = useState(20);
 
 	const { data: roundsData, isLoading: loading, error: fetchError } = useApiQuery<ApiRoundData[]>(
-		'rounds-list',
+		'cycles-list',
 		async () => {
 			const data = await api.getRoundList() as unknown as ApiRoundData[];
 			return data.sort((a: ApiRoundData, b: ApiRoundData) =>
@@ -73,18 +73,18 @@ export default function RoundsArchivePage() {
 			<section className="section-padding bg-background-surface/50">
 				<Container>
 					<Breadcrumbs
-						items={[{ label: 'Game', href: '/game/play' }, { label: 'History' }, { label: 'Rounds' }]}
+						items={[{ label: 'Game', href: '/game/play' }, { label: 'History' }, { label: 'Cycles' }]}
 						className="mb-8"
 					/>
 
 					<motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-						<h1 className="heading-xl mb-4">Round Archive</h1>
+						<h1 className="heading-xl mb-4">Cycle Archive</h1>
 						<p className="body-lg">
 							{loading ? (
-								'Loading rounds data...'
+								'Loading cycles data...'
 							) : (
 								<>
-									Explore all {rounds.length} completed rounds • Total prizes: ~
+									Explore all {rounds.length} completed cycles • Total prizes: ~
 									{Math.floor(rounds.length * 12.5)} ETH distributed
 								</>
 							)}
@@ -100,7 +100,7 @@ export default function RoundsArchivePage() {
 						<Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
 						<input
 							type="text"
-							placeholder="Search by round number or winner address..."
+							placeholder="Search by cycle number or recipient address..."
 							value={searchQuery}
 							onChange={e => setSearchQuery(e.target.value)}
 							className="w-full pl-12 pr-4 py-3 rounded-lg bg-background-surface border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
@@ -115,7 +115,7 @@ export default function RoundsArchivePage() {
 					{loading ? (
 						<Card glass className="p-12 text-center">
 							<Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-							<p className="text-text-secondary">Loading rounds data...</p>
+							<p className="text-text-secondary">Loading cycles data...</p>
 						</Card>
 					) : error ? (
 						<Card glass className="p-12 text-center">
@@ -130,12 +130,12 @@ export default function RoundsArchivePage() {
 						</Card>
 					) : paginatedRounds.length === 0 ? (
 						<Card glass className="p-12 text-center">
-							<p className="text-text-secondary">No rounds found matching your search.</p>
+							<p className="text-text-secondary">No cycles found matching your search.</p>
 						</Card>
 					) : (
 						<>
 							<div className="mb-6 text-sm text-text-secondary">
-								Showing {paginatedRounds.length} of {filteredRounds.length} round{filteredRounds.length !== 1 ? 's' : ''}
+								Showing {paginatedRounds.length} of {filteredRounds.length} cycle{filteredRounds.length !== 1 ? 's' : ''}
 							</div>
 
 							<div className="space-y-6">
@@ -161,7 +161,7 @@ export default function RoundsArchivePage() {
 														<div className="flex-1">
 															<div className="flex items-center space-x-4 mb-4">
 																<Badge variant="default" className="text-base px-4 py-1.5">
-																	Round {round.RoundNum}
+																	Cycle {round.RoundNum}
 																</Badge>
 																<span className="text-sm text-text-muted">
 																	{formatDate(new Date(safeTimestamp(round.ClaimPrizeTx.Tx)))}
@@ -172,7 +172,7 @@ export default function RoundsArchivePage() {
 																<div className="flex items-center space-x-3">
 																	<Trophy size={18} className="text-primary" />
 																	<span className="text-text-secondary text-sm">
-																		Winner:
+																		Recipient:
 																	</span>
 																	<AddressDisplay
 																		address={round.MainPrize.WinnerAddr}
@@ -207,7 +207,7 @@ export default function RoundsArchivePage() {
 														{/* Prize Amount */}
 														<div className="text-right">
 															<p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">
-																Main Prize
+																Main Allocation
 															</p>
 															<p className="font-mono text-3xl font-bold text-primary mb-1">
 																{(round.MainPrize?.EthAmountEth || 0).toFixed(4)}
@@ -264,7 +264,7 @@ export default function RoundsArchivePage() {
 								<div className="mt-12 space-y-6">
 									{/* Page Size Selector */}
 									<div className="flex items-center justify-center gap-3">
-										<span className="text-sm text-text-secondary">Rounds per page:</span>
+										<span className="text-sm text-text-secondary">Cycles per page:</span>
 										<select
 											value={perPage}
 											onChange={e => setPerPage(Number(e.target.value))}
@@ -366,7 +366,7 @@ export default function RoundsArchivePage() {
 
 									{/* Pagination Info */}
 									<div className="text-center text-sm text-text-secondary">
-										Showing {page * perPage + 1} - {Math.min((page + 1) * perPage, filteredRounds.length)} of {filteredRounds.length} rounds
+										Showing {page * perPage + 1} - {Math.min((page + 1) * perPage, filteredRounds.length)} of {filteredRounds.length} cycles
 									</div>
 								</div>
 							)}

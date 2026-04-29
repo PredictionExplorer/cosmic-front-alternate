@@ -133,7 +133,7 @@ export function SystemModesTable({
             <thead className="border-b border-text-muted/10 bg-background-elevated/60">
               <tr>
                 <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                  Round
+                  Cycle
                 </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-text-secondary">
                   Started
