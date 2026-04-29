@@ -29,7 +29,7 @@ import {
   WALLET_TRANSACTION_CANCELLED_MESSAGE,
 } from "@/lib/errorReporter";
 
-type NFTData = Pick<ApiCSTToken, 'TokenId' | 'Seed' | 'Tx' | 'TokenName' | 'RoundNum' | 'Anchored' | 'WasUnstaked'>;
+type NFTData = Pick<ApiCSTToken, 'TokenId' | 'Seed' | 'Tx' | 'TokenName' | 'RoundNum' | 'Staked' | 'WasUnstaked'>;
 
 type StakedToken = ApiStakedCSTToken;
 
@@ -282,7 +282,7 @@ export default function MyNFTsPage() {
               <button
                 onClick={() => setFilter("anchored")}
                 className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  filter === "staked"
+                  filter === "anchored"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}
@@ -292,7 +292,7 @@ export default function MyNFTsPage() {
               <button
                 onClick={() => setFilter("released")}
                 className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  filter === "unstaked"
+                  filter === "released"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}

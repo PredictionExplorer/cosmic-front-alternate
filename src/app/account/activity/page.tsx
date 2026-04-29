@@ -227,8 +227,8 @@ export default function MyActivityPage() {
                               <span className="text-text-secondary">Gesture Price: </span>
                               <span className="font-mono font-semibold text-text-primary">
                                 {bid.BidType === 0
-                                  ? `${gesture.BidPriceEth.toFixed(6)} ETH`
-                                  : `${weiToEther(gesture.BidPrice).toFixed(2)} CST`}
+                                  ? `${bid.BidPriceEth.toFixed(6)} ETH`
+                                  : `${weiToEther(bid.BidPrice).toFixed(2)} CST`}
                               </span>
                             </div>
                             {Number(bid.NumCSTTokens) > 0 && (

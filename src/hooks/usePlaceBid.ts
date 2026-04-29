@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAccount } from 'wagmi';
 import { type Abi, formatEther, parseEther, parseUnits, erc20Abi, erc721Abi } from 'viem';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
@@ -229,7 +229,10 @@ export function usePlaceBid(): PlaceBidResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const notifications = { showInfo, showSuccess, showError };
+  const notifications = useMemo(
+    () => ({ showInfo, showSuccess, showError }),
+    [showInfo, showSuccess, showError],
+  );
 
   const placeEthBid = useCallback(async (params: PlaceEthBidParams): Promise<boolean> => {
     const { bidMessage, ethBidPrice, priceBuffer, useRandomWalkNft: useRwNft, selectedNftId, donation } = params;

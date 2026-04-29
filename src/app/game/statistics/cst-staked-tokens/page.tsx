@@ -126,7 +126,7 @@ export default function CstGloballyStakedTokensPage() {
                         const tokenId = staked.TokenInfo?.TokenId;
                         const txHash = resolveTxHash(staked, stakeTxByActionId);
                         return (
-                          <tr key={`${anchored.StakeActionId}-${tokenId}`} className="hover:bg-background-elevated/40">
+                          <tr key={`${staked.StakeActionId}-${tokenId}`} className="hover:bg-background-elevated/40">
                             <td className="px-4 py-3 align-top">
                               {addr ? (
                                 <Link
