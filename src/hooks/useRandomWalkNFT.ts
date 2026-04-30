@@ -1,21 +1,21 @@
 /**
  * Random Walk NFT Hook
- * 
- * Provides read and write functionality for RandomWalk NFT contract
+ *
+ * Provides read and write functionality for RandomWalk NFT contract.
+ * Address comes from dashboard API (`ContractAddrs.RandomWalkAddr`).
  */
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { getContractAddresses } from '@/lib/web3/contracts';
-import { useChainId } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useChainId } from 'wagmi';
+import { zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import RandomWalkNFTABI from '@/contracts/RandomWalkNFT.json';
 
 export function useRandomWalkNFT() {
 	const chainId = useChainId();
-	const contractAddress = getContractAddresses(chainId).RANDOM_WALK_NFT;
+	const contracts = useContractAddresses();
+	const contractAddress = contracts?.RANDOM_WALK_NFT ?? zeroAddress;
+	const hasAddr = !!contracts?.RANDOM_WALK_NFT;
 
-	/**
-	 * Get all NFT token IDs owned by a specific address
-	 */
 	const useWalletOfOwner = (ownerAddress?: `0x${string}`) => {
 		return useReadContract({
 			address: contractAddress,
@@ -23,15 +23,12 @@ export function useRandomWalkNFT() {
 			functionName: 'walletOfOwner',
 			args: ownerAddress ? [ownerAddress] : undefined,
 			query: {
-				enabled: !!ownerAddress,
+				enabled: !!ownerAddress && hasAddr,
 				retry: 1,
-			}
+			},
 		});
 	};
 
-	/**
-	 * Get balance (number of NFTs owned) by address
-	 */
 	const useBalanceOf = (ownerAddress?: `0x${string}`) => {
 		return useReadContract({
 			address: contractAddress,
@@ -39,14 +36,11 @@ export function useRandomWalkNFT() {
 			functionName: 'balanceOf',
 			args: ownerAddress ? [ownerAddress] : undefined,
 			query: {
-				enabled: !!ownerAddress,
-			}
+				enabled: !!ownerAddress && hasAddr,
+			},
 		});
 	};
 
-	/**
-	 * Get token ID at specific index for owner
-	 */
 	const useTokenOfOwnerByIndex = (ownerAddress?: `0x${string}`, index?: number) => {
 		return useReadContract({
 			address: contractAddress,
@@ -54,14 +48,11 @@ export function useRandomWalkNFT() {
 			functionName: 'tokenOfOwnerByIndex',
 			args: ownerAddress && index !== undefined ? [ownerAddress, BigInt(index)] : undefined,
 			query: {
-				enabled: !!ownerAddress && index !== undefined,
-			}
+				enabled: !!ownerAddress && index !== undefined && hasAddr,
+			},
 		});
 	};
 
-	/**
-	 * Get owner of a specific token
-	 */
 	const useOwnerOf = (tokenId?: bigint) => {
 		return useReadContract({
 			address: contractAddress,
@@ -69,14 +60,11 @@ export function useRandomWalkNFT() {
 			functionName: 'ownerOf',
 			args: tokenId !== undefined ? [tokenId] : undefined,
 			query: {
-				enabled: tokenId !== undefined,
-			}
+				enabled: tokenId !== undefined && hasAddr,
+			},
 		});
 	};
 
-	/**
-	 * Get token name
-	 */
 	const useTokenName = (tokenId?: bigint) => {
 		return useReadContract({
 			address: contractAddress,
@@ -84,14 +72,11 @@ export function useRandomWalkNFT() {
 			functionName: 'tokenNames',
 			args: tokenId !== undefined ? [tokenId] : undefined,
 			query: {
-				enabled: tokenId !== undefined,
-			}
+				enabled: tokenId !== undefined && hasAddr,
+			},
 		});
 	};
 
-	/**
-	 * Check if operator is approved for all tokens of owner
-	 */
 	const useIsApprovedForAll = (ownerAddress?: `0x${string}`, operatorAddress?: `0x${string}`) => {
 		return useReadContract({
 			address: contractAddress,
@@ -99,26 +84,25 @@ export function useRandomWalkNFT() {
 			functionName: 'isApprovedForAll',
 			args: ownerAddress && operatorAddress ? [ownerAddress, operatorAddress] : undefined,
 			query: {
-				enabled: !!ownerAddress && !!operatorAddress,
-			}
+				enabled: !!ownerAddress && !!operatorAddress && hasAddr,
+			},
 		});
 	};
 
-	// Write operations
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
 	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-	const contractConfig = {
-		address: contractAddress,
-		abi: RandomWalkNFTABI,
-		chainId: chainId
-	} as const;
+	const contractConfig = contracts?.RANDOM_WALK_NFT
+		? ({
+				address: contracts.RANDOM_WALK_NFT,
+				abi: RandomWalkNFTABI,
+				chainId,
+			} as const)
+		: null;
 
 	return {
-		// Contract info
-		contractAddress,
-		
-		// Read hooks
+		contractAddress: contracts?.RANDOM_WALK_NFT ?? contractAddress,
+
 		read: {
 			useWalletOfOwner,
 			useBalanceOf,
@@ -128,27 +112,25 @@ export function useRandomWalkNFT() {
 			useIsApprovedForAll,
 		},
 
-		// Write operations
 		write: {
-			/**
-			 * Set approval for all tokens to an operator
-			 */
 			setApprovalForAll: (operator: `0x${string}`, approved: boolean) => {
+				if (!contractConfig) {
+					throw new Error('RandomWalk NFT contract address not loaded from the API yet.');
+				}
 				return writeContract({
 					...contractConfig,
 					functionName: 'setApprovalForAll',
-					args: [operator, approved]
+					args: [operator, approved],
 				});
-			}
+			},
 		},
 
-		// Transaction status
 		status: {
 			hash,
 			isPending,
 			isConfirming,
 			isSuccess,
-			error
-		}
+			error,
+		},
 	};
 }

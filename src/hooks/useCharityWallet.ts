@@ -8,7 +8,8 @@
 'use client';
 
 import { useReadContract } from 'wagmi';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import CharityWalletABI from '@/contracts/CharityWallet.json';
 
@@ -16,10 +17,14 @@ import CharityWalletABI from '@/contracts/CharityWallet.json';
  * Hook for reading from the Charity Wallet contract
  */
 export function useCharityWalletRead() {
+	const contracts = useContractAddresses();
+	const addr = contracts?.CHARITY_WALLET ?? zeroAddress;
+	const queryEnabled = !!contracts?.CHARITY_WALLET;
 	const contractConfig = {
-		address: CONTRACTS.CHARITY_WALLET,
+		address: addr,
 		abi: CharityWalletABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
+		query: { enabled: queryEnabled },
 	} as const;
 
 	return {

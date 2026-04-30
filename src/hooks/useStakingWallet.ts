@@ -8,7 +8,8 @@
 'use client';
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import StakingWalletCSTABI from '@/contracts/StakingWalletCosmicSignatureNft.json';
 import StakingWalletRWLKABI from '@/contracts/StakingWalletRandomWalkNft.json';
@@ -17,10 +18,19 @@ import StakingWalletRWLKABI from '@/contracts/StakingWalletRandomWalkNft.json';
  * Hook for CST NFT Staking (with ETH rewards)
  */
 export function useStakingWalletCST() {
-	const contractConfig = {
-		address: CONTRACTS.STAKING_WALLET_CST,
+	const contracts = useContractAddresses();
+	const addr = contracts?.STAKING_WALLET_CST ?? zeroAddress;
+	const queryEnabled = !!contracts?.STAKING_WALLET_CST;
+	const readConfig = {
+		address: addr,
 		abi: StakingWalletCSTABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
+		query: { enabled: queryEnabled },
+	} as const;
+	const writeBase = {
+		address: addr,
+		abi: StakingWalletCSTABI,
+		chainId: defaultChain.id,
 	} as const;
 
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
@@ -36,7 +46,7 @@ export function useStakingWalletCST() {
 			 */
 			useNumStaked: () =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'numStakedNfts'
 				}),
 
@@ -45,7 +55,7 @@ export function useStakingWalletCST() {
 			 */
 			useRewardPerNft: () =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'rewardAmountPerStakedNft'
 				}),
 
@@ -54,7 +64,7 @@ export function useStakingWalletCST() {
 			 */
 			useStakeAction: (actionId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'stakeActions',
 					args: [actionId]
 				}),
@@ -65,7 +75,7 @@ export function useStakingWalletCST() {
 			 */
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'usedNfts',
 					args: [nftId]
 				})
@@ -80,7 +90,7 @@ export function useStakingWalletCST() {
 			 */
 			stake: (nftId: bigint) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'stake',
 					args: [nftId]
 				});
@@ -91,7 +101,7 @@ export function useStakingWalletCST() {
 			 */
 			stakeMany: (nftIds: bigint[]) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'stakeMany',
 					args: [nftIds]
 				});
@@ -102,7 +112,7 @@ export function useStakingWalletCST() {
 			 */
 			unstake: (stakeActionId: bigint) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'unstake',
 					args: [stakeActionId]
 				});
@@ -113,7 +123,7 @@ export function useStakingWalletCST() {
 			 */
 			unstakeMany: (stakeActionIds: bigint[]) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'unstakeMany',
 					args: [stakeActionIds]
 				});
@@ -137,10 +147,19 @@ export function useStakingWalletCST() {
  * Hook for RandomWalk NFT Staking (raffle eligibility only, no ETH rewards)
  */
 export function useStakingWalletRWLK() {
-	const contractConfig = {
-		address: CONTRACTS.STAKING_WALLET_RWLK,
+	const contracts = useContractAddresses();
+	const addr = contracts?.STAKING_WALLET_RWLK ?? zeroAddress;
+	const queryEnabled = !!contracts?.STAKING_WALLET_RWLK;
+	const readConfig = {
+		address: addr,
 		abi: StakingWalletRWLKABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
+		query: { enabled: queryEnabled },
+	} as const;
+	const writeBase = {
+		address: addr,
+		abi: StakingWalletRWLKABI,
+		chainId: defaultChain.id,
 	} as const;
 
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
@@ -156,7 +175,7 @@ export function useStakingWalletRWLK() {
 			 */
 			useNumStaked: () =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'numStakedNfts'
 				}),
 
@@ -165,7 +184,7 @@ export function useStakingWalletRWLK() {
 			 */
 			useStakeAction: (actionId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'stakeActions',
 					args: [actionId]
 				}),
@@ -176,7 +195,7 @@ export function useStakingWalletRWLK() {
 			 */
 			useWasStaked: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...readConfig,
 					functionName: 'usedNfts',
 					args: [nftId]
 				})
@@ -193,7 +212,7 @@ export function useStakingWalletRWLK() {
 			 */
 			stake: (nftId: bigint) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'stake',
 					args: [nftId]
 				});
@@ -204,7 +223,7 @@ export function useStakingWalletRWLK() {
 			 */
 			stakeMany: (nftIds: bigint[]) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'stakeMany',
 					args: [nftIds]
 				});
@@ -215,7 +234,7 @@ export function useStakingWalletRWLK() {
 			 */
 			unstake: (stakeActionId: bigint) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'unstake',
 					args: [stakeActionId]
 				});
@@ -226,7 +245,7 @@ export function useStakingWalletRWLK() {
 			 */
 			unstakeMany: (stakeActionIds: bigint[]) => {
 				return writeContract({
-					...contractConfig,
+					...writeBase,
 					functionName: 'unstakeMany',
 					args: [stakeActionIds]
 				});

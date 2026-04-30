@@ -1,566 +1,573 @@
 [
   {
-    "name": "FundTransferFailed",
-    "type": "error",
     "inputs": [
       {
-        "type": "string"
-      },
-      {
+        "internalType": "contract CosmicSignatureNft",
+        "name": "nft_",
         "type": "address"
       },
       {
-        "type": "uint256"
+        "internalType": "address",
+        "name": "game_",
+        "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    "name": "InvalidOperationInCurrentState",
-    "type": "error",
     "inputs": [
       {
-        "type": "string"
-      }
-    ]
-  },
-  {
-    "name": "NftAlreadyUnstaked",
-    "type": "error",
-    "inputs": [
-      {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
         "type": "uint256"
       }
-    ]
+    ],
+    "name": "FundTransferFailed",
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nftId",
+        "type": "uint256"
+      }
+    ],
     "name": "NftHasAlreadyBeenStaked",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
+        "internalType": "uint256",
+        "name": "stakeActionId",
         "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "NftNotUnstaked",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
       },
       {
-        "type": "uint256"
+        "internalType": "address",
+        "name": "callerAddress",
+        "type": "address"
       }
-    ]
-  },
-  {
+    ],
     "name": "NftStakeActionAccessDenied",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
+        "internalType": "uint256",
+        "name": "stakeActionId",
         "type": "uint256"
-      },
-      {
-        "type": "address"
       }
-    ]
-  },
-  {
+    ],
     "name": "NftStakeActionInvalidId",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "error"
   },
   {
-    "name": "NoStakedNfts",
-    "type": "error",
     "inputs": [
       {
-        "type": "string"
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
       }
-    ]
-  },
-  {
-    "name": "NumEthDepositsToEvaluateMaxLimitIsOutOfAllowedRange",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
+    ],
     "name": "OwnableInvalidOwner",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "OwnableUnauthorizedAccount",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
+    "name": "ReentrancyGuardReentrantCall",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
+    "name": "ThereAreStakedNfts",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "callerAddress",
+        "type": "address"
+      }
+    ],
     "name": "UnauthorizedCaller",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
     "name": "ZeroAddress",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ]
+    "type": "error"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "actionCounter",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "depositAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardAmountPerStakedNft",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "numStakedNfts",
+        "type": "uint256"
+      }
+    ],
     "name": "EthDepositReceived",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "FundTransferFailed",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
-        "type": "address",
-        "indexed": true
+        "indexed": true,
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
       },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
         "type": "uint256"
       }
-    ]
+    ],
+    "name": "FundTransferFailed",
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "charityAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "FundsTransferredToCharity",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "stakeActionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "nftId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "stakerAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "numStakedNfts",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardAmountPerStakedNft",
+        "type": "uint256"
+      }
+    ],
     "name": "NftStaked",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint8"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "actionCounter",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "stakeActionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "nftId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "stakerAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "numStakedNfts",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardAmountPerStakedNft",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "rewardAmount",
+        "type": "uint256"
+      }
+    ],
     "name": "NftUnstaked",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "OwnershipTransferred",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "RewardPaid",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "StateReset",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
+    "inputs": [],
     "name": "actionCounter",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "depositIfPossible",
-    "type": "function",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundNum_",
+        "type": "uint256"
+      }
+    ],
+    "name": "deposit",
+    "outputs": [],
     "stateMutability": "payable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
-    "name": "ethDeposits",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "type": "uint64"
-      },
-      {
-        "type": "uint192"
-      }
-    ]
-  },
-  {
+    "inputs": [],
     "name": "game",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "nft",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract CosmicSignatureNft",
+        "name": "",
         "type": "address"
       }
-    ]
-  },
-  {
-    "name": "numEthDeposits",
-    "type": "function",
+    ],
     "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "numStakedNfts",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
-  },
-  {
-    "name": "numStateResets",
-    "type": "function",
+    ],
     "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
-    "name": "numUnpaidStakeActions",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
     "name": "owner",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
-  },
-  {
-    "name": "payManyRewards",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256[]"
-      },
-      {
-        "type": "uint256"
-      }
     ],
-    "outputs": []
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "payReward",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
-  },
-  {
+    "inputs": [],
     "name": "renounceOwnership",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
-    "outputs": []
+    "name": "rewardAmountPerStakedNft",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "nftId_",
+        "type": "uint256"
+      }
+    ],
     "name": "stake",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "stakeActions",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "nftId",
         "type": "uint256"
       },
       {
+        "internalType": "address",
+        "name": "nftOwnerAddress",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "initialRewardAmountPerStakedNft",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "nftIds_",
+        "type": "uint256[]"
+      }
+    ],
     "name": "stakeMany",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256[]"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "transferOwnership",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
-    "name": "tryPerformMaintenance",
-    "type": "function",
-    "stateMutability": "nonpayable",
     "inputs": [
       {
-        "type": "bool"
-      },
-      {
+        "internalType": "address",
+        "name": "charityAddress_",
         "type": "address"
       }
     ],
+    "name": "tryPerformMaintenance",
     "outputs": [
       {
+        "internalType": "bool",
+        "name": "",
         "type": "bool"
       }
-    ]
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "name": "unstake",
-    "type": "function",
-    "stateMutability": "nonpayable",
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "stakeActionId_",
         "type": "uint256"
       }
     ],
-    "outputs": []
+    "name": "unstake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "name": "unstakeMany",
-    "type": "function",
-    "stateMutability": "nonpayable",
     "inputs": [
       {
+        "internalType": "uint256[]",
+        "name": "stakeActionIds_",
         "type": "uint256[]"
       }
     ],
-    "outputs": []
+    "name": "unstakeMany",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "name": "usedNfts",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
+    "name": "usedNfts",
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

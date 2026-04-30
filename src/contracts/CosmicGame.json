@@ -1,2249 +1,2995 @@
 [
   {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      }
+    ],
     "name": "AddressEmptyCode",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
     "name": "BidHasBeenPlacedInCurrentRound",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "contract IERC721",
+        "name": "nftAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nftId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "callerAddress",
+        "type": "address"
+      }
+    ],
     "name": "CallerIsNotNftOwner",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "address"
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
     "name": "ERC1967InvalidImplementation",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "ERC1967NonPayable",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "FailedCall",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
+    "name": "FirstRound",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "FundTransferFailed",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
-        "type": "address"
+        "internalType": "uint256",
+        "name": "bidPrice",
+        "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "receivedAmount",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "InsufficientReceivedBidAmount",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "InvalidInitialization",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
+    "name": "InvalidOperationInCurrentState",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "lastBidderAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "beneficiaryAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "durationUntilOperationIsPermitted",
+        "type": "uint256"
+      }
+    ],
     "name": "MainPrizeClaimDenied",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
-        "type": "address"
+        "internalType": "uint256",
+        "name": "mainPrizeTime",
+        "type": "uint256"
       },
       {
-        "type": "address"
-      },
-      {
+        "internalType": "uint256",
+        "name": "blockTimeStamp",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "MainPrizeEarlyClaim",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
     "name": "NoBidsPlacedInCurrentRound",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "NotInitializing",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
     "name": "OwnableInvalidOwner",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
     "name": "OwnableUnauthorizedAccount",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "roundActivationTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "blockTimeStamp",
+        "type": "uint256"
+      }
+    ],
     "name": "RoundIsActive",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
+        "internalType": "uint256",
+        "name": "roundActivationTime",
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "blockTimeStamp",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "RoundIsInactive",
-    "type": "error",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
-        "type": "uint256"
-      },
-      {
+        "internalType": "uint256",
+        "name": "messageLength",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "TooLongBidMessage",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [],
     "name": "UUPSUnauthorizedCallContext",
-    "type": "error",
-    "inputs": []
+    "type": "error"
   },
   {
-    "name": "UUPSUnsupportedProxiableUUID",
-    "type": "error",
     "inputs": [
       {
+        "internalType": "bytes32",
+        "name": "slot",
         "type": "bytes32"
       }
-    ]
+    ],
+    "name": "UUPSUnsupportedProxiableUUID",
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "randomWalkNftId",
+        "type": "uint256"
+      }
+    ],
     "name": "UsedRandomWalkNft",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
     "name": "WrongBidType",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ]
+    "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
     "name": "ZeroAddress",
-    "type": "error",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ]
+    "type": "error"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "errStr",
+        "type": "string"
+      }
+    ],
+    "name": "ArbitrumError",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "BidMessageLengthMaxLimitChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lastBidderAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "paidEthPrice",
+        "type": "int256"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "paidCstPrice",
+        "type": "int256"
+      },
+      {
+        "indexed": true,
+        "internalType": "int256",
+        "name": "randomWalkNftId",
+        "type": "int256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "message",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "mainPrizeTime",
+        "type": "uint256"
+      }
+    ],
     "name": "BidPlaced",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "int256"
-      },
-      {
-        "type": "int256"
-      },
-      {
-        "type": "int256",
-        "indexed": true
-      },
-      {
-        "type": "string"
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "CharityAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "CharityEthDonationAmountPercentageChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "ChronoWarriorEthPrizeAmountPercentageChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "ChronoWarriorPrizeAllocated",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
-        "type": "uint256",
-        "indexed": true
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
       },
       {
-        "type": "address",
-        "indexed": true
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "winnerIndex",
+        "type": "uint256"
       },
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "chronoWarriorAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cstPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "prizeCosmicSignatureNftId",
         "type": "uint256"
       }
-    ]
+    ],
+    "name": "ChronoWarriorPrizePaid",
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract ICosmicSignatureNft",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "CosmicSignatureNftAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "CosmicSignatureNftStakingTotalEthRewardAmountPercentageChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract ICosmicSignatureToken",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "CosmicSignatureTokenAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "CstDutchAuctionBeginningBidPriceMinLimitChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "CstDutchAuctionDurationDivisorChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
+    "name": "CstPrizeAmountChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "CstRewardAmountForBiddingChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "CstRewardAmountMultiplierChanged",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "DelayDurationBeforeRoundActivationChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "enduranceChampionAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cstPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "prizeCosmicSignatureNftId",
+        "type": "uint256"
+      }
+    ],
     "name": "EnduranceChampionPrizePaid",
-    "type": "event",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
     "inputs": [
       {
-        "type": "uint256",
-        "indexed": true
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
+    "name": "EthBidPriceIncreaseDivisorChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
-        "type": "address",
-        "indexed": true
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
+    "name": "EthBidRefundAmountInGasToSwallowMaxLimitChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
         "type": "uint256"
       },
       {
-        "type": "uint256",
-        "indexed": true
-      }
-    ]
-  },
-  {
-    "name": "EthBidRefundAmountInGasMinLimitChanged",
-    "type": "event",
-    "inputs": [
+        "indexed": true,
+        "internalType": "address",
+        "name": "donorAddress",
+        "type": "address"
+      },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "EthDonated",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "donorAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "ethDonationWithInfoRecordIndex",
+        "type": "uint256"
+      }
+    ],
     "name": "EthDonatedWithInfo",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "EthDutchAuctionDurationDivisorChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "EthDutchAuctionEndingBidPriceDivisorChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "FirstBidPlacedInRound",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
-        "type": "uint256",
-        "indexed": true
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "blockTimeStamp",
         "type": "uint256"
       }
-    ]
+    ],
+    "name": "FirstBidPlacedInRound",
+    "type": "event"
   },
   {
-    "name": "FundTransferFailed",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "string",
+        "name": "errStr",
         "type": "string"
       },
       {
-        "type": "address",
-        "indexed": true
+        "indexed": true,
+        "internalType": "address",
+        "name": "destinationAddress",
+        "type": "address"
       },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
         "type": "uint256"
       }
-    ]
+    ],
+    "name": "FundTransferFailed",
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "charityAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
     "name": "FundsTransferredToCharity",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "InitialDurationUntilMainPrizeDivisorChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "Initialized",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "version",
         "type": "uint64"
       }
-    ]
+    ],
+    "name": "Initialized",
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lastCstBidderAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cstPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "prizeCosmicSignatureNftId",
+        "type": "uint256"
+      }
+    ],
     "name": "LastCstBidderPrizePaid",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "MainEthPrizeAmountPercentageChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "beneficiaryAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cstPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "prizeCosmicSignatureNftId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timeoutTimeToWithdrawSecondaryPrizes",
+        "type": "uint256"
+      }
+    ],
     "name": "MainPrizeClaimed",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "uint256",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "MainPrizeTimeIncrementInMicroSecondsChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "MainPrizeTimeIncrementIncreaseDivisorChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "MarketingWalletAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "MarketingWalletCstContributionAmountChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "NextEthBidPriceIncreaseDivisorChanged",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
         "type": "uint256"
       }
-    ]
-  },
-  {
+    ],
     "name": "NumRaffleCosmicSignatureNftsForBiddersChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "NumRaffleCosmicSignatureNftsForRandomWalkNftStakersChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "NumRaffleEthPrizesForBiddersChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "OwnershipTransferred",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IPrizesWallet",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "PrizesWalletAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "RaffleTotalEthPrizeAmountForBiddersPercentageChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "winnerIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "winnerAddress",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ethPrizeAmount",
+        "type": "uint256"
+      }
+    ],
     "name": "RaffleWinnerBidderEthPrizeAllocated",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "address",
-        "indexed": true
-      },
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
-    "name": "RaffleWinnerCosmicSignatureNftAwarded",
-    "type": "event",
+    "anonymous": false,
     "inputs": [
       {
-        "type": "uint256",
-        "indexed": true
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "winnerIsRandomWalkNftStaker",
         "type": "bool"
       },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "winnerIndex",
         "type": "uint256"
       },
       {
-        "type": "address",
-        "indexed": true
+        "indexed": true,
+        "internalType": "address",
+        "name": "winnerAddress",
+        "type": "address"
       },
       {
-        "type": "uint256",
-        "indexed": true
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cstPrizeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "prizeCosmicSignatureNftId",
+        "type": "uint256"
       }
-    ]
+    ],
+    "name": "RaffleWinnerPrizePaid",
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IRandomWalkNFT",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "RandomWalkNftAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "RoundActivationTimeChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IStakingWalletCosmicSignatureNft",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "StakingWalletCosmicSignatureNftAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IStakingWalletRandomWalkNft",
+        "name": "newValue",
+        "type": "address"
+      }
+    ],
     "name": "StakingWalletRandomWalkNftAddressChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
     "name": "TimeoutDurationToClaimMainPrizeChanged",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
     "name": "Upgraded",
-    "type": "event",
-    "inputs": [
-      {
-        "type": "address",
-        "indexed": true
-      }
-    ]
+    "type": "event"
   },
   {
+    "inputs": [],
     "name": "UPGRADE_INTERFACE_VERSION",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "string",
+        "name": "",
         "type": "string"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "bidMessageLengthMaxLimit",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "priceMaxLimit_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "message_",
+        "type": "string"
+      }
+    ],
     "name": "bidWithCst",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "priceMaxLimit_",
         "type": "uint256"
       },
       {
+        "internalType": "string",
+        "name": "message_",
         "type": "string"
+      },
+      {
+        "internalType": "contract IERC721",
+        "name": "nftAddress_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nftId_",
+        "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "bidWithCstAndDonateNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "priceMaxLimit_",
         "type": "uint256"
       },
       {
+        "internalType": "string",
+        "name": "message_",
         "type": "string"
       },
       {
+        "internalType": "contract IERC20",
+        "name": "tokenAddress_",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "amount_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "bidWithCstAndDonateToken",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "string"
-      },
-      {
-        "type": "address"
-      },
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "randomWalkNftId_",
+        "type": "int256"
+      },
+      {
+        "internalType": "string",
+        "name": "message_",
+        "type": "string"
+      }
+    ],
     "name": "bidWithEth",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "int256",
+        "name": "randomWalkNftId_",
         "type": "int256"
       },
       {
+        "internalType": "string",
+        "name": "message_",
         "type": "string"
+      },
+      {
+        "internalType": "contract IERC721",
+        "name": "nftAddress_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nftId_",
+        "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "bidWithEthAndDonateNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "int256",
+        "name": "randomWalkNftId_",
         "type": "int256"
       },
       {
+        "internalType": "string",
+        "name": "message_",
         "type": "string"
       },
       {
+        "internalType": "contract IERC20",
+        "name": "tokenAddress_",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "amount_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "bidWithEthAndDonateToken",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
-        "type": "int256"
-      },
-      {
-        "type": "string"
-      },
-      {
-        "type": "address"
-      },
-      {
+        "internalType": "uint256",
+        "name": "roundNum",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "bidderAddresses",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
+    "outputs": [
       {
+        "internalType": "uint256",
+        "name": "numItems",
         "type": "uint256"
       }
     ],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundNum",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "bidderAddress",
+        "type": "address"
+      }
+    ],
     "name": "biddersInfo",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "address"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "totalSpentEthAmount",
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "totalSpentCstAmount",
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "lastBidTimeStamp",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "charityAddress",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "charityEthDonationAmountPercentage",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "chronoWarriorAddress",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "chronoWarriorDuration",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "chronoWarriorEthPrizeAmountPercentage",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "claimMainPrize",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "cosmicSignatureNftStakingTotalEthRewardAmountPercentage",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "cstDutchAuctionBeginningBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "cstDutchAuctionBeginningBidPriceMinLimit",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "cstDutchAuctionBeginningTimeStamp",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "cstDutchAuctionDurationDivisor",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
+    "name": "cstPrizeAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "cstRewardAmountForBidding",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
-  },
-  {
-    "name": "cstRewardAmountMultiplier",
-    "type": "function",
+    ],
     "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "delayDurationBeforeRoundActivation",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "donateEth",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "payable",
-    "inputs": [],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "data_",
+        "type": "string"
+      }
+    ],
     "name": "donateEthWithInfo",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "payable",
-    "inputs": [
-      {
-        "type": "string"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "enduranceChampionAddress",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "enduranceChampionDuration",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "enduranceChampionStartTimeStamp",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "ethBidRefundAmountInGasMinLimit",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "ethDonationWithInfoRecords",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
-      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "enduranceChampionStartTimeStamp",
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ethBidPriceIncreaseDivisor",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "ethBidRefundAmountInGasToSwallowMaxLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "ethDonationWithInfoRecords",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundNum",
         "type": "uint256"
       },
       {
+        "internalType": "address",
+        "name": "donorAddress",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "amount",
         "type": "uint256"
       },
       {
+        "internalType": "string",
+        "name": "data",
         "type": "string"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "ethDutchAuctionBeginningBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "ethDutchAuctionDurationDivisor",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "ethDutchAuctionEndingBidPriceDivisor",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundNum_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "bidIndex_",
+        "type": "uint256"
+      }
+    ],
     "name": "getBidderAddressAt",
-    "type": "function",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "roundNum_",
         "type": "uint256"
       },
       {
-        "type": "uint256"
-      }
-    ],
-    "outputs": [
-      {
+        "internalType": "address",
+        "name": "bidderAddress_",
         "type": "address"
       }
-    ]
-  },
-  {
+    ],
     "name": "getBidderTotalSpentAmounts",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
-      {
-        "type": "uint256"
-      },
-      {
-        "type": "address"
-      }
-    ],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       },
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getCharityEthDonationAmount",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getChronoWarriorEthPrizeAmount",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getCosmicSignatureNftStakingTotalEthRewardAmount",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getCstDutchAuctionDurations",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       },
       {
+        "internalType": "int256",
+        "name": "",
         "type": "int256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getDurationElapsedSinceRoundActivation",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "int256",
+        "name": "",
         "type": "int256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getDurationUntilMainPrize",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
-        "type": "int256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getDurationUntilMainPrizeRaw",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getDurationUntilRoundActivation",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "int256",
+        "name": "",
         "type": "int256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "getEthDutchAuctionDurations",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
+    "name": "getEthDutchAuctionDurations",
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       },
       {
+        "internalType": "int256",
+        "name": "",
         "type": "int256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "ethBidPrice_",
+        "type": "uint256"
+      }
+    ],
     "name": "getEthPlusRandomWalkNftBidPrice",
-    "type": "function",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "pure",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getInitialDurationUntilMainPrize",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getMainEthPrizeAmount",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getMainPrizeTimeIncrement",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "getNextCstBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "currentTimeOffset_",
+        "type": "int256"
+      }
+    ],
+    "name": "getNextCstBidPriceAdvanced",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getNextEthBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "currentTimeOffset_",
+        "type": "int256"
+      }
+    ],
+    "name": "getNextEthBidPriceAdvanced",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getRaffleTotalEthPrizeAmountForBidders",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundNum_",
+        "type": "uint256"
+      }
+    ],
     "name": "getTotalNumBids",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [
+    "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "initialDurationUntilMainPrizeDivisor",
-    "type": "function",
     "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
-    "name": "initialize",
-    "type": "function",
+    "inputs": [],
+    "name": "halveEthDutchAuctionEndingBidPrice",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "initialDurationUntilMainPrizeDivisor",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "ownerAddress_",
         "type": "address"
       }
     ],
-    "outputs": []
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "lastBidderAddress",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "lastCstBidderAddress",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "mainEthPrizeAmountPercentage",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "mainPrizeTime",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "mainPrizeTimeIncrementInMicroSeconds",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "mainPrizeTimeIncrementIncreaseDivisor",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "marketingWallet",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "marketingWalletCstContributionAmount",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "nextEthBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
-  },
-  {
-    "name": "nextEthBidPriceIncreaseDivisor",
-    "type": "function",
+    ],
     "stateMutability": "view",
-    "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
+    "type": "function"
   },
   {
-    "name": "ethBidPriceIncreaseDivisor",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
-    "outputs": [
-      {
-        "type": "uint256"
-      }
-    ]
-  },
-  {
     "name": "nextRoundFirstCstDutchAuctionBeginningBidPrice",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "nft",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract CosmicSignatureNft",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "numEthDonationWithInfoRecords",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "numRaffleCosmicSignatureNftsForBidders",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "numRaffleCosmicSignatureNftsForRandomWalkNftStakers",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "numRaffleEthPrizesForBidders",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "owner",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "address",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "prevEnduranceChampionDuration",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
+    "name": "prevEnduranceChampionDuration",
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "prizesWallet",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
+    "name": "prizesWallet",
     "outputs": [
       {
+        "internalType": "contract PrizesWallet",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "proxiableUUID",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
+    "name": "proxiableUUID",
     "outputs": [
       {
+        "internalType": "bytes32",
+        "name": "",
         "type": "bytes32"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "raffleTotalEthPrizeAmountForBiddersPercentage",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "randomWalkNft",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract RandomWalkNFT",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "renounceOwnership",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "roundActivationTime",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "roundNum",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setBidMessageLengthMaxLimit",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setCharityAddress",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setCharityEthDonationAmountPercentage",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setChronoWarriorEthPrizeAmountPercentage",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract ICosmicSignatureNft",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setCosmicSignatureNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setCosmicSignatureNftStakingTotalEthRewardAmountPercentage",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract ICosmicSignatureToken",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setCosmicSignatureToken",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setCstDutchAuctionBeginningBidPriceMinLimit",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setCstDutchAuctionDurationDivisor",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
+    "name": "setCstPrizeAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setCstRewardAmountForBidding",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
-    "name": "setCstRewardAmountMultiplier",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
-  },
-  {
     "name": "setDelayDurationBeforeRoundActivation",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
+    "name": "setEthBidPriceIncreaseDivisor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "name": "setEthBidRefundAmountInGasMinLimit",
-    "type": "function",
-    "stateMutability": "nonpayable",
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
+    "name": "setEthBidRefundAmountInGasToSwallowMaxLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setEthDutchAuctionDurationDivisor",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setEthDutchAuctionEndingBidPriceDivisor",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setInitialDurationUntilMainPrizeDivisor",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setMainEthPrizeAmountPercentage",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setMainPrizeTimeIncrementInMicroSeconds",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setMainPrizeTimeIncrementIncreaseDivisor",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setMarketingWallet",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setMarketingWalletCstContributionAmount",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
-    "name": "setNextEthBidPriceIncreaseDivisor",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
-  },
-  {
     "name": "setNumRaffleCosmicSignatureNftsForBidders",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setNumRaffleCosmicSignatureNftsForRandomWalkNftStakers",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "newValue_",
         "type": "uint256"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setNumRaffleEthPrizesForBidders",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract IPrizesWallet",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setPrizesWallet",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setRaffleTotalEthPrizeAmountForBiddersPercentage",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract IRandomWalkNFT",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setRandomWalkNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setRoundActivationTime",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "contract IStakingWalletCosmicSignatureNft",
+        "name": "newValue_",
+        "type": "address"
+      }
+    ],
     "name": "setStakingWalletCosmicSignatureNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
+        "internalType": "contract IStakingWalletRandomWalkNft",
+        "name": "newValue_",
         "type": "address"
       }
     ],
-    "outputs": []
-  },
-  {
     "name": "setStakingWalletRandomWalkNft",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newValue_",
+        "type": "uint256"
+      }
+    ],
     "name": "setTimeoutDurationToClaimMainPrize",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "uint256"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "stakingWalletCosmicSignatureNft",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract StakingWalletCosmicSignatureNft",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "stakingWalletRandomWalkNft",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract StakingWalletRandomWalkNft",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "timeoutDurationToClaimMainPrize",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [],
     "name": "token",
-    "type": "function",
-    "stateMutability": "view",
-    "inputs": [],
     "outputs": [
       {
+        "internalType": "contract CosmicSignatureToken",
+        "name": "",
         "type": "address"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "transferOwnership",
-    "type": "function",
+    "outputs": [],
     "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
-      }
-    ],
-    "outputs": []
+    "type": "function"
   },
   {
-    "name": "tryGetCurrentChampions",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [],
+    "name": "tryGetCurrentChampions",
     "outputs": [
       {
+        "internalType": "address",
+        "name": "enduranceChampionAddress_",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "enduranceChampionDuration_",
         "type": "uint256"
       },
       {
+        "internalType": "address",
+        "name": "chronoWarriorAddress_",
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "chronoWarriorDuration_",
         "type": "uint256"
-      }
-    ]
-  },
-  {
-    "name": "upgradeTo",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      {
-        "type": "address"
       }
     ],
-    "outputs": []
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "name": "upgradeToAndCall",
-    "type": "function",
-    "stateMutability": "payable",
     "inputs": [
       {
+        "internalType": "address",
+        "name": "newImplementation",
         "type": "address"
       },
       {
+        "internalType": "bytes",
+        "name": "data",
         "type": "bytes"
       }
     ],
-    "outputs": []
+    "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   },
   {
-    "name": "usedRandomWalkNfts",
-    "type": "function",
-    "stateMutability": "view",
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "nftId",
         "type": "uint256"
       }
     ],
+    "name": "usedRandomWalkNfts",
     "outputs": [
       {
+        "internalType": "uint256",
+        "name": "nftWasUsed",
         "type": "uint256"
       }
-    ]
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]

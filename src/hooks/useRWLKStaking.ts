@@ -7,7 +7,8 @@ import { api } from "@/services/api";
 import type { ApiRWLKToken, ApiStakedRWLKToken } from "@/services/apiTypes";
 import { useRandomWalkNFT } from "@/hooks/useRandomWalkNFT";
 import { useStakingWalletRWLK } from "@/hooks/useStakingWallet";
-import { CONTRACTS } from "@/lib/web3/contracts";
+import { useContractAddresses } from "@/hooks/useContractAddresses";
+import { zeroAddress } from "viem";
 import { useNotification } from "@/contexts/NotificationContext";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { wagmiConfig } from "@/lib/web3/config";
@@ -27,6 +28,9 @@ async function getFeesWithBuffer() {
 export function useRWLKStaking() {
   const { address, isConnected } = useAccount();
   const { showSuccess, showError, showInfo } = useNotification();
+  const contracts = useContractAddresses();
+  const rwStakingAddr = contracts?.STAKING_WALLET_RWLK;
+  const rwNftAddr = contracts?.RANDOM_WALK_NFT;
 
   const rwlkNftContract = useRandomWalkNFT();
   const rwlkStakingContract = useStakingWalletRWLK();
@@ -47,7 +51,7 @@ export function useRWLKStaking() {
   const { data: isApprovedForAll, refetch: refetchApproval } =
     rwlkNftContract.read.useIsApprovedForAll(
       (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
-      CONTRACTS.STAKING_WALLET_RWLK
+      (rwStakingAddr ?? zeroAddress) as `0x${string}`
     );
 
   const { data: rwlkTokenIds, refetch: refetchWallet } =
@@ -68,9 +72,10 @@ export function useRWLKStaking() {
         ownedTokenIds
           .filter((id) => !everStakedIds.has(id))
           .map(async (tokenId) => {
+            if (!rwStakingAddr) return;
             try {
               const result = await readContract(wagmiConfig, {
-                address: CONTRACTS.STAKING_WALLET_RWLK,
+                address: rwStakingAddr,
                 abi: StakingWalletRWLKABI,
                 functionName: "usedNfts",
                 args: [BigInt(tokenId)],
@@ -96,7 +101,7 @@ export function useRWLKStaking() {
           IsStaked: false,
         }));
     },
-    []
+    [rwStakingAddr]
   );
 
   const refetch = useCallback(async () => {
@@ -287,16 +292,20 @@ export function useRWLKStaking() {
 
   const handleApprove = useCallback(async (): Promise<boolean> => {
     if (!rwlkNftContract) return false;
+    if (!rwNftAddr || !rwStakingAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return false;
+    }
 
     try {
       showInfo("Requesting approval... Please confirm the transaction in your wallet.");
 
       const fees = await getFeesWithBuffer();
       const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.RANDOM_WALK_NFT,
+        address: rwNftAddr,
         abi: RandomWalkNFTABI,
         functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_RWLK, true],
+        args: [rwStakingAddr, true],
         ...fees,
       });
 
@@ -316,7 +325,7 @@ export function useRWLKStaking() {
       }
       return false;
     }
-  }, [rwlkNftContract, showInfo, showSuccess, showError, refetchApproval]);
+  }, [rwlkNftContract, rwNftAddr, rwStakingAddr, showInfo, showSuccess, showError, refetchApproval]);
 
   const stake = useCallback(
     async (tokenId: number) => {
@@ -335,8 +344,13 @@ export function useRWLKStaking() {
         }
       }
 
+      if (!rwStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setStakingTokenId(null);
+        return;
+      }
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
+        address: rwStakingAddr,
         abi: StakingWalletRWLKABI,
         functionName: "stake",
         args: [BigInt(tokenId)],
@@ -374,7 +388,7 @@ export function useRWLKStaking() {
         setStakingTokenId(null);
       }
     },
-    [rwlkNftContract, rwlkStakingContract, isApprovedForAll, handleApprove, address, showError, showInfo]
+    [rwlkNftContract, rwlkStakingContract, rwStakingAddr, isApprovedForAll, handleApprove, address, showError, showInfo]
   );
 
   const stakeMany = useCallback(
@@ -399,9 +413,14 @@ export function useRWLKStaking() {
         }
       }
 
+      if (!rwStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setIsStakingMultiple(false);
+        return;
+      }
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
+        address: rwStakingAddr,
         abi: StakingWalletRWLKABI,
         functionName: "stakeMany",
         args: [tokenIdsBigInt],
@@ -438,7 +457,7 @@ export function useRWLKStaking() {
         setIsStakingMultiple(false);
       }
     },
-    [rwlkNftContract, rwlkStakingContract, isApprovedForAll, handleApprove, address, showError, showInfo, refetch]
+    [rwlkNftContract, rwlkStakingContract, rwStakingAddr, isApprovedForAll, handleApprove, address, showError, showInfo, refetch]
   );
 
   const unstake = useCallback(
@@ -450,8 +469,13 @@ export function useRWLKStaking() {
 
       setUnstakingActionId(stakeActionId);
 
+      if (!rwStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setUnstakingActionId(null);
+        return;
+      }
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
+        address: rwStakingAddr,
         abi: StakingWalletRWLKABI,
         functionName: "unstake",
         args: [BigInt(stakeActionId)],
@@ -478,7 +502,7 @@ export function useRWLKStaking() {
         setUnstakingActionId(null);
       }
     },
-    [rwlkStakingContract, address, showError, showInfo]
+    [rwlkStakingContract, rwStakingAddr, address, showError, showInfo]
   );
 
   const unstakeMany = useCallback(
@@ -495,9 +519,14 @@ export function useRWLKStaking() {
       setIsStakingMultiple(true);
       selectedStakedIdsRef.current = stakeActionIds.length;
 
+      if (!rwStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setIsStakingMultiple(false);
+        return;
+      }
       const ids = stakeActionIds.map((id) => BigInt(id));
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_RWLK,
+        address: rwStakingAddr,
         abi: StakingWalletRWLKABI,
         functionName: "unstakeMany",
         args: [ids],
@@ -524,7 +553,7 @@ export function useRWLKStaking() {
         setIsStakingMultiple(false);
       }
     },
-    [rwlkStakingContract, address, showError, showInfo]
+    [rwlkStakingContract, rwStakingAddr, address, showError, showInfo]
   );
 
   const isSubmitting =

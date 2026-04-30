@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font
 import { headers } from 'next/headers';
 import './globals.css';
 import { Header } from '@/components/layout/Header';
+import { MainWithHeaderOffset } from '@/components/layout/MainWithHeaderOffset';
 import { Footer } from '@/components/layout/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlobalErrorHandler } from '@/components/GlobalErrorHandler';
@@ -99,7 +100,11 @@ export default async function RootLayout({
 									<div className="flex min-h-screen flex-col">
 										{!showLandingChrome && <Header />}
 										<ErrorBoundary>
-											<main className={`flex-1 ${showLandingChrome ? '' : 'pt-[72px] lg:pt-[88px]'}`}>{children}</main>
+											{showLandingChrome ? (
+												<main className="flex-1">{children}</main>
+											) : (
+												<MainWithHeaderOffset>{children}</MainWithHeaderOffset>
+											)}
 										</ErrorBoundary>
 										{!showLandingChrome && <Footer />}
 									</div>

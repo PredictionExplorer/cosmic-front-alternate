@@ -70,6 +70,22 @@ export interface ApiCurRoundStats {
   RoundDurationSeconds: number;
 }
 
+/** Nested object on dashboard JSON (`statistics/dashboard`). */
+export interface ApiDashboardContractAddrs {
+  CosmicGameAddr: string;
+  CosmicSignatureAddr: string;
+  CosmicTokenAddr: string;
+  CosmicDaoAddr: string;
+  CharityWalletAddr: string;
+  PrizesWalletAddr: string;
+  RandomWalkAddr: string;
+  StakingWalletCSTAddr: string;
+  StakingWalletRWalkAddr: string;
+  MarketingWalletAddr: string;
+  ImplementationAddr?: string;
+  [key: string]: unknown;
+}
+
 export interface ApiDashboardData {
   CurRoundNum: number;
   LastBidderAddr: string;
@@ -80,6 +96,7 @@ export interface ApiDashboardData {
   CurNumBids: number;
   MainStats: Record<string, unknown>;
   CurRoundStats: ApiCurRoundStats;
+  ContractAddrs: ApiDashboardContractAddrs;
   PrizePercentage: number;
   ChronoWarriorPercentage: number;
   RafflePercentage: number;

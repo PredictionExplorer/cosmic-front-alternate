@@ -15,8 +15,8 @@ import Link from "next/link";
 import { useAccount } from "wagmi";
 import { readContract } from "@wagmi/core";
 import { wagmiConfig } from "@/lib/web3/config";
-import { CONTRACTS } from "@/lib/web3/contracts";
 import { defaultChain } from "@/lib/web3/chains";
+import { useContractAddresses } from "@/hooks/useContractAddresses";
 import PrizesWalletABI from "@/contracts/PrizesWallet.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
@@ -96,6 +96,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function MyWinningsPage() {
   const { address, isConnected } = useAccount();
+  const contracts = useContractAddresses();
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,6 +115,8 @@ export default function MyWinningsPage() {
   const prizesWallet = usePrizesWallet();
   const stakingWallet = useStakingWalletCST();
   const { showSuccess, showError, showInfo } = useNotification();
+  const prizesWalletAddr = contracts?.PRIZES_WALLET;
+  const stakingWalletCstAddr = contracts?.STAKING_WALLET_CST;
 
   // Track claiming operations for success messages
   const [pendingClaim, setPendingClaim] = useState<{
@@ -127,8 +130,9 @@ export default function MyWinningsPage() {
   }>({ type: null });
 
   const { data: winningsData, isLoading: loading, refetch } = useApiQuery(
-    "account-winnings-" + address,
+    "account-winnings-" + address + "-" + (contracts?.PRIZES_WALLET ?? "pending"),
     async () => {
+      const prizesAddr = contracts!.PRIZES_WALLET;
       const [
         raffleDeposits,
         unclaimedNFTsRaw,
@@ -224,7 +228,7 @@ export default function MyWinningsPage() {
       for (const roundNum of uniqueRounds) {
         try {
           const timeoutData = await readContract(wagmiConfig, {
-            address: CONTRACTS.PRIZES_WALLET,
+            address: prizesAddr,
             abi: PrizesWalletABI,
             chainId: defaultChain.id,
             functionName: 'roundTimeoutTimesToWithdrawPrizes',
@@ -251,7 +255,7 @@ export default function MyWinningsPage() {
         roundTimeouts,
       };
     },
-    { enabled: !!address }
+    { enabled: !!address && !!contracts?.PRIZES_WALLET }
   );
 
   const raffleETHWinnings = winningsData?.raffleETHWinnings ?? [];
@@ -386,6 +390,10 @@ export default function MyWinningsPage() {
   // Claim all ETH (raffle prizes)
   const handleClaimETH = async () => {
     if (totalEthToClaim === 0 || raffleETHWinnings.length === 0) return;
+    if (!prizesWalletAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
     
     setClaiming((prev) => ({ ...prev, eth: true }));
     try {
@@ -394,7 +402,7 @@ export default function MyWinningsPage() {
       
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.PRIZES_WALLET,
+        address: prizesWalletAddr,
         abi: PrizesWalletABI,
         functionName: 'withdrawEverything',
         args: [roundNumbers, [], []],
@@ -433,11 +441,15 @@ export default function MyWinningsPage() {
 
   // Claim single donated NFT
   const handleClaimNFT = async (nftIndex: number) => {
+    if (!prizesWalletAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
     setClaiming((prev) => ({ ...prev, nft: nftIndex }));
     try {
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.PRIZES_WALLET,
+        address: prizesWalletAddr,
         abi: PrizesWalletABI,
         functionName: 'claimDonatedNft',
         args: [BigInt(nftIndex)],
@@ -471,13 +483,17 @@ export default function MyWinningsPage() {
   const handleClaimAllNFTs = async () => {
     const unclaimedNFTs = donatedNFTs.filter((nft) => !nft.Claimed);
     if (unclaimedNFTs.length === 0) return;
+    if (!prizesWalletAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
 
     try {
       const indexes = unclaimedNFTs.map((nft) => BigInt(nft.Index));
       
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.PRIZES_WALLET,
+        address: prizesWalletAddr,
         abi: PrizesWalletABI,
         functionName: 'claimManyDonatedNfts',
         args: [indexes],
@@ -506,6 +522,10 @@ export default function MyWinningsPage() {
 
   // Claim single ERC20 token
   const handleClaimERC20 = async (token: DonatedERC20) => {
+    if (!prizesWalletAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
     setClaiming((prev) => ({ ...prev, erc20: token.RoundNum }));
     try {
       // Use the DonateClaimDiff (unclaimed amount) instead of total donated
@@ -513,7 +533,7 @@ export default function MyWinningsPage() {
       
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.PRIZES_WALLET,
+        address: prizesWalletAddr,
         abi: PrizesWalletABI,
         functionName: 'claimDonatedToken',
         args: [BigInt(token.RoundNum), token.TokenAddr as `0x${string}`, amountToClaim],
@@ -552,6 +572,10 @@ export default function MyWinningsPage() {
   const handleClaimAllERC20 = async () => {
     const unclaimedTokens = donatedERC20.filter((t) => !t.Claimed);
     if (unclaimedTokens.length === 0) return;
+    if (!prizesWalletAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
 
     try {
       const tokens = unclaimedTokens.map((token) => ({
@@ -562,7 +586,7 @@ export default function MyWinningsPage() {
 
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.PRIZES_WALLET,
+        address: prizesWalletAddr,
         abi: PrizesWalletABI,
         functionName: 'claimManyDonatedTokens',
         args: [tokens],
@@ -592,6 +616,10 @@ export default function MyWinningsPage() {
   // Claim all staking rewards (unstake all deposits)
   const handleClaimAllStaking = async () => {
     if (stakingRewards.length === 0 || stakedTokenActions.length === 0) return;
+    if (!stakingWalletCstAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return;
+    }
 
     try {
       // Get all action IDs from currently staked tokens
@@ -614,7 +642,7 @@ export default function MyWinningsPage() {
       
       // Estimate gas to validate transaction
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: stakingWalletCstAddr,
         abi: StakingWalletCSTABI,
         functionName: 'unstakeMany',
         args: [allActionIds],
@@ -676,7 +704,7 @@ export default function MyWinningsPage() {
               <Trophy className="mx-auto mb-4 text-text-muted" size={64} />
               <h1 className="heading-sm mb-4">Connect Your Wallet</h1>
               <p className="text-text-secondary">
-                Please connect your wallet to view and claim your allocations
+                Please connect your wallet to view and claim your prizes
               </p>
             </Card>
           </Container>
@@ -694,7 +722,7 @@ export default function MyWinningsPage() {
               className="animate-spin mx-auto mb-4 text-primary"
               size={48}
             />
-            <p className="text-text-secondary">Loading your allocations...</p>
+            <p className="text-text-secondary">Loading your prizes...</p>
           </Card>
         </Container>
       </div>
@@ -802,7 +830,7 @@ export default function MyWinningsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {totalEthToClaim > 0 && (
                     <Card glass className="p-4">
-                      <p className="text-sm text-text-secondary mb-1">Stellar Selection ETH</p>
+                      <p className="text-sm text-text-secondary mb-1">Raffle ETH</p>
                       <p className="font-mono text-xl font-semibold text-primary">
                         {totalEthToClaim.toFixed(6)} ETH
                       </p>
@@ -818,7 +846,7 @@ export default function MyWinningsPage() {
                   )}
                   {totalStakingRewards > 0 && (
                     <Card glass className="p-4">
-                      <p className="text-sm text-text-secondary mb-1">Anchoring Rewards</p>
+                      <p className="text-sm text-text-secondary mb-1">Staking Rewards</p>
                       <p className="font-mono text-xl font-semibold text-status-success">
                         {totalStakingRewards.toFixed(6)} ETH
                       </p>
@@ -923,7 +951,7 @@ export default function MyWinningsPage() {
                           Datetime
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                          Cycle
+                          Round
                         </th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                           Expiration Date
@@ -1068,7 +1096,7 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Claimable CST Anchoring Rewards
+                Claimable CST Staking Rewards
               </h2>
               {stakingRewards.length > 0 && (
                 <Button
@@ -1095,11 +1123,11 @@ export default function MyWinningsPage() {
                 />
                 <div className="text-sm text-text-secondary">
                   <p className="font-semibold text-text-primary mb-1">
-                    How anchoring rewards work:
+                    How staking rewards work:
                   </p>
                   <p>
-                    When you release your NFTs, the pending rewards will be automatically 
-                    transferred to your wallet. Use &quot;Claim All&quot; to release all deposits 
+                    When you unstake your NFTs, the pending rewards will be automatically 
+                    transferred to your wallet. Use &quot;Claim All&quot; to unstake all deposits 
                     and claim all rewards at once.
                   </p>
                 </div>
@@ -1186,7 +1214,7 @@ export default function MyWinningsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-text-secondary mb-1">
-                        Your NFTs Anchored
+                        Your NFTs Staked
                       </p>
                       <p className="font-mono text-lg font-bold text-text-primary">
                         {stakingRewards.reduce((sum, r) => sum + r.YourTokensStaked, 0)}
@@ -1289,7 +1317,7 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Contributed NFTs
+                Donated NFTs
               </h2>
               {unclaimedNFTs.length > 0 && (
                 <Button
@@ -1313,7 +1341,7 @@ export default function MyWinningsPage() {
                         Contract Address
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Cycle
+                        Round
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
                         Date
@@ -1463,7 +1491,7 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Contributed ERC20 Tokens
+                Donated ERC20 Tokens
               </h2>
               {unclaimedERC20.length > 0 && (
                 <Button
@@ -1484,7 +1512,7 @@ export default function MyWinningsPage() {
                         Token Contract
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-text-primary">
-                        Cycle
+                        Round
                       </th>
                       <th className="px-6 py-4 text-right text-sm font-semibold text-text-primary">
                         Amount To Claim

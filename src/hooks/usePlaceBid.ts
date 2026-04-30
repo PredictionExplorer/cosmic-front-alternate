@@ -5,7 +5,8 @@ import { useAccount } from 'wagmi';
 import { type Abi, formatEther, parseEther, parseUnits, erc20Abi, erc721Abi } from 'viem';
 import { readContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { wagmiConfig } from '@/lib/web3/config';
-import { CONTRACTS, isDeployedAddress } from '@/lib/web3/contracts';
+import { isDeployedAddress } from '@/lib/web3/contractAddresses';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { useNotification } from '@/contexts/NotificationContext';
 import {
   isUserRejection,
@@ -91,6 +92,7 @@ async function parseTokenAmount(tokenAddress: string, amount: string): Promise<b
 
 async function checkAndApproveERC20(
   ownerAddress: `0x${string}`,
+  prizesWallet: `0x${string}`,
   tokenAddress: string,
   amount: bigint,
   notifications: { showInfo: (m: string) => void; showSuccess: (m: string) => void; showError: (m: string) => void },
@@ -100,7 +102,7 @@ async function checkAndApproveERC20(
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'allowance',
-      args: [ownerAddress, CONTRACTS.PRIZES_WALLET],
+      args: [ownerAddress, prizesWallet],
     });
 
     if (allowance >= amount) {
@@ -114,7 +116,7 @@ async function checkAndApproveERC20(
         address: tokenAddress as `0x${string}`,
         abi: erc20Abi,
         functionName: 'approve',
-        args: [CONTRACTS.PRIZES_WALLET, BigInt(0)],
+        args: [prizesWallet, BigInt(0)],
       });
       notifications.showInfo('Reset transaction submitted. Waiting for confirmation...');
       await waitForTransactionReceipt(wagmiConfig, { hash: resetHash });
@@ -129,7 +131,7 @@ async function checkAndApproveERC20(
       address: tokenAddress as `0x${string}`,
       abi: erc20Abi,
       functionName: 'approve',
-      args: [CONTRACTS.PRIZES_WALLET, amount],
+      args: [prizesWallet, amount],
     });
     notifications.showInfo('Approval transaction submitted. Waiting for confirmation...');
     await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -148,6 +150,7 @@ async function checkAndApproveERC20(
 
 async function checkAndApproveNFT(
   ownerAddress: `0x${string}`,
+  prizesWallet: `0x${string}`,
   nftAddress: string,
   tokenId: string,
   notifications: { showInfo: (m: string) => void; showSuccess: (m: string) => void; showError: (m: string) => void },
@@ -160,7 +163,7 @@ async function checkAndApproveNFT(
       args: [BigInt(tokenId)],
     });
 
-    if (approvedAddress?.toLowerCase() === CONTRACTS.PRIZES_WALLET.toLowerCase()) {
+    if (approvedAddress?.toLowerCase() === prizesWallet.toLowerCase()) {
       notifications.showInfo('NFT is already approved!');
       return true;
     }
@@ -169,7 +172,7 @@ async function checkAndApproveNFT(
       address: nftAddress as `0x${string}`,
       abi: erc721Abi,
       functionName: 'isApprovedForAll',
-      args: [ownerAddress, CONTRACTS.PRIZES_WALLET],
+      args: [ownerAddress, prizesWallet],
     });
 
     if (isApprovedForAll) {
@@ -182,7 +185,7 @@ async function checkAndApproveNFT(
       address: nftAddress as `0x${string}`,
       abi: erc721Abi,
       functionName: 'approve',
-      args: [CONTRACTS.PRIZES_WALLET, BigInt(tokenId)],
+      args: [prizesWallet, BigInt(tokenId)],
     });
     notifications.showInfo('Approval transaction submitted. Waiting for confirmation...');
     await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -225,6 +228,7 @@ async function verifyNftOwnership(
 
 export function usePlaceBid(): PlaceBidResult {
   const { address, isConnected } = useAccount();
+  const contracts = useContractAddresses();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -241,10 +245,15 @@ export function usePlaceBid(): PlaceBidResult {
       showWarning('Please connect your wallet first');
       return false;
     }
-    if (!isDeployedAddress(CONTRACTS.COSMIC_GAME)) {
+    if (!contracts) {
+      showError('Game configuration is still loading. Please wait a moment and try again.');
+      return false;
+    }
+    if (!isDeployedAddress(contracts.COSMIC_GAME)) {
       showError('Contract not deployed on this network. Please switch to the correct network.');
       return false;
     }
+    const { COSMIC_GAME, PRIZES_WALLET } = contracts;
 
     const messageValidation = validateBidMessageLength(bidMessage);
     if (!messageValidation.isValid) {
@@ -270,12 +279,12 @@ export function usePlaceBid(): PlaceBidResult {
         if (!owned) return false;
 
         showInfo('Step 1/2: Checking NFT approval...');
-        const approved = await checkAndApproveNFT(address, donation.address, donation.tokenId, notifications);
+        const approved = await checkAndApproveNFT(address, PRIZES_WALLET, donation.address, donation.tokenId, notifications);
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
         const estimation = await estimateContractGas(wagmiConfig, {
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateNft',
           args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
@@ -289,7 +298,7 @@ export function usePlaceBid(): PlaceBidResult {
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateNft',
           args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
@@ -305,12 +314,12 @@ export function usePlaceBid(): PlaceBidResult {
         const tokenAmount = await parseTokenAmount(donation.address, donation.amount);
 
         showInfo('Step 1/2: Checking ERC20 token approval...');
-        const approved = await checkAndApproveERC20(address, donation.address, tokenAmount, notifications);
+        const approved = await checkAndApproveERC20(address, PRIZES_WALLET, donation.address, tokenAmount, notifications);
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
         const estimation = await estimateContractGas(wagmiConfig, {
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateToken',
           args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, tokenAmount],
@@ -324,7 +333,7 @@ export function usePlaceBid(): PlaceBidResult {
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateToken',
           args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, tokenAmount],
@@ -338,7 +347,7 @@ export function usePlaceBid(): PlaceBidResult {
 
       // Regular bid (no donation)
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.COSMIC_GAME,
+        address: COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithEth',
         args: [nftIdToSend, bidMessage],
@@ -352,7 +361,7 @@ export function usePlaceBid(): PlaceBidResult {
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeWithBufferedFees({
-        address: CONTRACTS.COSMIC_GAME,
+        address: COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithEth',
         args: [nftIdToSend, bidMessage],
@@ -381,7 +390,7 @@ export function usePlaceBid(): PlaceBidResult {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isConnected, address, showWarning, showError, showInfo, showSuccess, notifications]);
+  }, [isConnected, address, contracts, showWarning, showError, showInfo, showSuccess, notifications]);
 
   const placeCstBid = useCallback(async (params: PlaceCstBidParams): Promise<boolean> => {
     const { bidMessage, cstBidPrice, maxCstPrice, donation } = params;
@@ -390,10 +399,15 @@ export function usePlaceBid(): PlaceBidResult {
       showWarning('Please connect your wallet first');
       return false;
     }
-    if (!isDeployedAddress(CONTRACTS.COSMIC_GAME)) {
+    if (!contracts) {
+      showError('Game configuration is still loading. Please wait a moment and try again.');
+      return false;
+    }
+    if (!isDeployedAddress(contracts.COSMIC_GAME)) {
       showError('Contract not deployed on this network. Please switch to the correct network.');
       return false;
     }
+    const { COSMIC_GAME, PRIZES_WALLET } = contracts;
 
     const messageValidation = validateBidMessageLength(bidMessage);
     if (!messageValidation.isValid) {
@@ -419,12 +433,12 @@ export function usePlaceBid(): PlaceBidResult {
         if (!owned) return false;
 
         showInfo('Step 1/2: Checking NFT approval...');
-        const approved = await checkAndApproveNFT(address, donation.address, donation.tokenId, notifications);
+        const approved = await checkAndApproveNFT(address, PRIZES_WALLET, donation.address, donation.tokenId, notifications);
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
         const estimation = await estimateContractGas(wagmiConfig, {
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateNft',
           args: [maxLimit, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
@@ -437,7 +451,7 @@ export function usePlaceBid(): PlaceBidResult {
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateNft',
           args: [maxLimit, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
@@ -452,12 +466,12 @@ export function usePlaceBid(): PlaceBidResult {
         const tokenAmount = await parseTokenAmount(donation.address, donation.amount);
 
         showInfo('Step 1/2: Checking ERC20 token approval...');
-        const approved = await checkAndApproveERC20(address, donation.address, tokenAmount, notifications);
+        const approved = await checkAndApproveERC20(address, PRIZES_WALLET, donation.address, tokenAmount, notifications);
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
         const estimation = await estimateContractGas(wagmiConfig, {
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateToken',
           args: [maxLimit, bidMessage, donation.address as `0x${string}`, tokenAmount],
@@ -470,7 +484,7 @@ export function usePlaceBid(): PlaceBidResult {
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
-          address: CONTRACTS.COSMIC_GAME,
+          address: COSMIC_GAME,
           abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateToken',
           args: [maxLimit, bidMessage, donation.address as `0x${string}`, tokenAmount],
@@ -483,7 +497,7 @@ export function usePlaceBid(): PlaceBidResult {
 
       // Regular CST bid
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.COSMIC_GAME,
+        address: COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithCst',
         args: [maxLimit, bidMessage],
@@ -496,7 +510,7 @@ export function usePlaceBid(): PlaceBidResult {
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeWithBufferedFees({
-        address: CONTRACTS.COSMIC_GAME,
+        address: COSMIC_GAME,
         abi: CosmicGameABI,
         functionName: 'bidWithCst',
         args: [maxLimit, bidMessage],
@@ -519,7 +533,7 @@ export function usePlaceBid(): PlaceBidResult {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isConnected, address, showWarning, showError, showInfo, showSuccess, notifications]);
+  }, [isConnected, address, contracts, showWarning, showError, showInfo, showSuccess, notifications]);
 
   return { placeEthBid, placeCstBid, isSubmitting, error };
 }

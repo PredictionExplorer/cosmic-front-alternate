@@ -21,8 +21,7 @@ import {
 import type { ApiDashboardData } from "@/services/apiTypes";
 
 interface DashboardData extends ApiDashboardData {
-	ContractAddrs: Record<string, string>;
-	MainStats: { TotalBids: number; TotalRounds: number };
+	MainStats: ApiDashboardData['MainStats'] & { TotalBids?: number; TotalRounds?: number };
 }
 
 interface ContractItemProps {
@@ -240,7 +239,10 @@ export default function ContractsPage() {
 		},
 		{
 			name: 'Total Gestures',
-			value: data?.MainStats.TotalBids.toLocaleString(),
+			value:
+				typeof data?.MainStats?.TotalBids === 'number'
+					? data.MainStats.TotalBids.toLocaleString()
+					: '--',
 		},
 		{
 			name: 'Total Cycles',

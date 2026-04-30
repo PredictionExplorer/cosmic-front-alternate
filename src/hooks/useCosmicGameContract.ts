@@ -8,8 +8,8 @@
 'use client';
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { Address } from 'viem';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { Address, zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
 
@@ -20,10 +20,14 @@ import CosmicGameABI from '@/contracts/CosmicGame.json';
  * Results are automatically cached and refreshed.
  */
 export function useCosmicGameRead() {
+	const contracts = useContractAddresses();
+	const address = contracts?.COSMIC_GAME ?? zeroAddress;
+	const queryEnabled = !!contracts?.COSMIC_GAME;
 	const contractConfig = {
-		address: CONTRACTS.COSMIC_GAME,
+		address,
 		abi: CosmicGameABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
+		query: { enabled: queryEnabled },
 	} as const;
 
 	return {
@@ -173,14 +177,25 @@ export function useCosmicGameRead() {
  * Handles gas estimation and error handling.
  */
 export function useCosmicGameWrite() {
+	const contracts = useContractAddresses();
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
 	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-	const contractConfig = {
-		address: CONTRACTS.COSMIC_GAME,
-		abi: CosmicGameABI,
-		chainId: defaultChain.id
-	} as const;
+	const gameAddr = contracts?.COSMIC_GAME;
+	const contractConfig = gameAddr
+		? ({
+				address: gameAddr,
+				abi: CosmicGameABI,
+				chainId: defaultChain.id,
+			} as const)
+		: null;
+
+	const requireGameConfig = () => {
+		if (!contractConfig) {
+			throw new Error('Cosmic Game contract address not loaded from the API yet.');
+		}
+		return contractConfig;
+	};
 
 	return {
 		/**
@@ -192,7 +207,7 @@ export function useCosmicGameWrite() {
 		 */
 		bidWithEth: (randomWalkNftId: bigint, message: string, value: bigint) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithEth',
 				args: [randomWalkNftId, message],
 				value
@@ -207,7 +222,7 @@ export function useCosmicGameWrite() {
 		 */
 		bidWithCst: (priceMaxLimit: bigint, message: string) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithCst',
 				args: [priceMaxLimit, message]
 			});
@@ -218,7 +233,7 @@ export function useCosmicGameWrite() {
 		 */
 		bidWithCstAndDonateNft: (priceMaxLimit: bigint, message: string, nftAddress: Address, nftTokenId: bigint) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithCstAndDonateNft',
 				args: [priceMaxLimit, message, nftAddress, nftTokenId]
 			});
@@ -229,7 +244,7 @@ export function useCosmicGameWrite() {
 		 */
 		bidWithCstAndDonateToken: (priceMaxLimit: bigint, message: string, tokenAddress: Address, amount: bigint) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithCstAndDonateToken',
 				args: [priceMaxLimit, message, tokenAddress, amount]
 			});
@@ -243,7 +258,7 @@ export function useCosmicGameWrite() {
 		 */
 		claimMainPrize: () => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'claimMainPrize'
 			});
 		},
@@ -255,7 +270,7 @@ export function useCosmicGameWrite() {
 		 */
 		donateEth: (value: bigint) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'donateEth',
 				value
 			});
@@ -269,7 +284,7 @@ export function useCosmicGameWrite() {
 		 */
 		donateEthWithInfo: (data: string, value: bigint) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'donateEthWithInfo',
 				args: [data],
 				value
@@ -287,7 +302,7 @@ export function useCosmicGameWrite() {
 			value: bigint
 		) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithEthAndDonateNft',
 				args: [randomWalkNftId, message, nftAddress, nftId],
 				value
@@ -305,7 +320,7 @@ export function useCosmicGameWrite() {
 			value: bigint
 		) => {
 			return writeContract({
-				...contractConfig,
+				...requireGameConfig(),
 				functionName: 'bidWithEthAndDonateToken',
 				args: [randomWalkNftId, message, tokenAddress, amount],
 				value

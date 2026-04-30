@@ -19,7 +19,7 @@ import { safeTimestamp } from "@/lib/utils";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { useNotification } from "@/contexts/NotificationContext";
-import { CONTRACTS } from "@/lib/web3/contracts";
+import { useContractAddresses } from "@/hooks/useContractAddresses";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -35,6 +35,7 @@ type StakedToken = ApiStakedCSTToken;
 
 export default function MyNFTsPage() {
   const { address, isConnected } = useAccount();
+  const contracts = useContractAddresses();
   const [filter, setFilter] = useState<"all" | "anchored" | "released">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,7 +49,7 @@ export default function MyNFTsPage() {
   // Check approval status
   const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
     (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
-    CONTRACTS.STAKING_WALLET_CST
+    (contracts?.STAKING_WALLET_CST ?? "0x0000000000000000000000000000000000000000") as `0x${string}`
   );
 
   const { data: nftData, isLoading: loading, refetch } = useApiQuery(
@@ -72,14 +73,18 @@ export default function MyNFTsPage() {
 
   // Handle approval
   const handleApprove = async () => {
+    if (!contracts?.COSMIC_SIGNATURE_NFT || !contracts?.STAKING_WALLET_CST) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return false;
+    }
     try {
       showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
       
       const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+        address: contracts.COSMIC_SIGNATURE_NFT,
         abi: CosmicSignatureNFTABI,
         functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_CST, true],
+        args: [contracts.STAKING_WALLET_CST, true],
       });
       
       console.log(`Approval transaction hash: ${hash}`);
@@ -135,9 +140,13 @@ export default function MyNFTsPage() {
       }
 
       // Proceed with staking
+      if (!contracts?.STAKING_WALLET_CST) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        return;
+      }
       showInfo("Please confirm the transaction in your wallet...");
       const stakeHash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: contracts.STAKING_WALLET_CST,
         abi: StakingWalletCSTABI,
         functionName: "stake",
         args: [BigInt(tokenId)],

@@ -7,7 +7,7 @@ import { api } from "@/services/api";
 import type { ApiCSTToken, ApiStakedCSTToken } from "@/services/apiTypes";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
-import { CONTRACTS } from "@/lib/web3/contracts";
+import { useContractAddresses } from "@/hooks/useContractAddresses";
 import { useNotification } from "@/contexts/NotificationContext";
 import { estimateContractGas } from "@/lib/web3/gasEstimation";
 import { wagmiConfig } from "@/lib/web3/config";
@@ -32,6 +32,9 @@ async function getFeesWithBuffer() {
 export function useCSTStaking() {
   const { address, isConnected } = useAccount();
   const { showSuccess, showError, showInfo } = useNotification();
+  const contracts = useContractAddresses();
+  const cstStakingAddr = contracts?.STAKING_WALLET_CST;
+  const cosmicSigNftAddr = contracts?.COSMIC_SIGNATURE_NFT;
 
   const nftContract = useCosmicSignatureNFT();
   const stakingContract = useStakingWalletCST();
@@ -51,7 +54,7 @@ export function useCSTStaking() {
   const { data: isApprovedForAll, refetch: refetchApproval } =
     nftContract.read.useIsApprovedForAll(
       (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
-      CONTRACTS.STAKING_WALLET_CST
+      (cstStakingAddr ?? "0x0000000000000000000000000000000000000000") as `0x${string}`
     );
 
   // Fetch tokens on mount / address change
@@ -189,16 +192,20 @@ export function useCSTStaking() {
 
   const handleApprove = useCallback(async (): Promise<boolean> => {
     if (!nftContract) return false;
+    if (!cosmicSigNftAddr || !cstStakingAddr) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return false;
+    }
 
     try {
       showInfo("Requesting approval... Please confirm the transaction in your wallet.");
 
       const fees = await getFeesWithBuffer();
       const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+        address: cosmicSigNftAddr,
         abi: CosmicSignatureNFTABI,
         functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_CST, true],
+        args: [cstStakingAddr, true],
         ...fees,
       });
 
@@ -218,7 +225,7 @@ export function useCSTStaking() {
       }
       return false;
     }
-  }, [nftContract, showSuccess, showError, showInfo, refetchApproval]);
+  }, [nftContract, cosmicSigNftAddr, cstStakingAddr, showSuccess, showError, showInfo, refetchApproval]);
 
   const stake = useCallback(
     async (tokenId: number) => {
@@ -237,8 +244,13 @@ export function useCSTStaking() {
         }
       }
 
+      if (!cstStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setStakingTokenId(null);
+        return;
+      }
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: cstStakingAddr,
         abi: StakingWalletCSTABI,
         functionName: "stake",
         args: [BigInt(tokenId)],
@@ -265,7 +277,7 @@ export function useCSTStaking() {
         setStakingTokenId(null);
       }
     },
-    [nftContract, stakingContract, isApprovedForAll, handleApprove, address, showError, showInfo]
+    [nftContract, stakingContract, cstStakingAddr, isApprovedForAll, handleApprove, address, showError, showInfo]
   );
 
   const stakeMany = useCallback(
@@ -290,9 +302,14 @@ export function useCSTStaking() {
         }
       }
 
+      if (!cstStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setIsStakingMultiple(false);
+        return;
+      }
       const tokenIdsBigInt = tokenIds.map((id) => BigInt(id));
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: cstStakingAddr,
         abi: StakingWalletCSTABI,
         functionName: "stakeMany",
         args: [tokenIdsBigInt],
@@ -319,7 +336,7 @@ export function useCSTStaking() {
         setIsStakingMultiple(false);
       }
     },
-    [nftContract, stakingContract, isApprovedForAll, handleApprove, address, showError, showInfo]
+    [nftContract, stakingContract, cstStakingAddr, isApprovedForAll, handleApprove, address, showError, showInfo]
   );
 
   const unstake = useCallback(
@@ -331,8 +348,13 @@ export function useCSTStaking() {
 
       setUnstakingActionId(stakeActionId);
 
+      if (!cstStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setUnstakingActionId(null);
+        return;
+      }
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: cstStakingAddr,
         abi: StakingWalletCSTABI,
         functionName: "unstake",
         args: [BigInt(stakeActionId)],
@@ -359,7 +381,7 @@ export function useCSTStaking() {
         setUnstakingActionId(null);
       }
     },
-    [stakingContract, address, showError, showInfo]
+    [stakingContract, cstStakingAddr, address, showError, showInfo]
   );
 
   const unstakeMany = useCallback(
@@ -376,9 +398,14 @@ export function useCSTStaking() {
       setIsStakingMultiple(true);
       selectedStakedIdsRef.current = stakeActionIds.length;
 
+      if (!cstStakingAddr) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        setIsStakingMultiple(false);
+        return;
+      }
       const ids = stakeActionIds.map((id) => BigInt(id));
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: cstStakingAddr,
         abi: StakingWalletCSTABI,
         functionName: "unstakeMany",
         args: [ids],
@@ -405,7 +432,7 @@ export function useCSTStaking() {
         setIsStakingMultiple(false);
       }
     },
-    [stakingContract, address, showError, showInfo]
+    [stakingContract, cstStakingAddr, address, showError, showInfo]
   );
 
   const isSubmitting =

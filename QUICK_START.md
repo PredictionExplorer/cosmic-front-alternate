@@ -31,9 +31,9 @@ cp .env.local.example .env.local
     NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_actual_project_id
     ```
 
-**Update Contract Addresses (Before Production):**
+**Contract addresses (production):**
 
-Open `/src/lib/web3/contracts.ts` and replace the zero addresses with actual deployed contract addresses.
+On-chain addresses are not hardcoded. The app reads `ContractAddrs` from the cosmicgame statistics dashboard API (same host as your configured API base URL). Ensure that endpoint returns a complete `ContractAddrs` object for the deployment you target.
 
 ### Step 3: Run Development Server
 

@@ -65,6 +65,32 @@ export function validateDashboard(data: unknown): ApiDashboardData {
     throw new ApiError("Dashboard missing CurRoundStats object", 0);
   }
 
+  const ca = data.ContractAddrs;
+  if (!isObject(ca)) {
+    throw new ApiError("Dashboard missing ContractAddrs object", 0);
+  }
+  const requiredContractKeys = [
+    "CosmicGameAddr",
+    "CosmicTokenAddr",
+    "CosmicSignatureAddr",
+    "RandomWalkAddr",
+    "PrizesWalletAddr",
+    "StakingWalletCSTAddr",
+    "StakingWalletRWalkAddr",
+    "CharityWalletAddr",
+    "MarketingWalletAddr",
+    "CosmicDaoAddr",
+  ] as const;
+  for (const key of requiredContractKeys) {
+    const v = ca[key as string];
+    if (typeof v !== "string" || !/^0x[a-fA-F0-9]{40}$/i.test(v)) {
+      throw new ApiError(
+        `Dashboard ContractAddrs.${key} missing or not a 0x-prefixed 20-byte address`,
+        0,
+      );
+    }
+  }
+
   return data as unknown as ApiDashboardData;
 }
 

@@ -8,8 +8,8 @@
 'use client';
 
 import { useReadContract, useAccount } from 'wagmi';
-import { Address, formatUnits } from 'viem';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { Address, formatUnits, zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import CosmicTokenABI from '@/contracts/CosmicToken.json';
 
@@ -20,10 +20,13 @@ import CosmicTokenABI from '@/contracts/CosmicToken.json';
  * Results are automatically cached and refreshed.
  */
 export function useCosmicTokenRead() {
+	const contracts = useContractAddresses();
+	const tokenAddr = contracts?.COSMIC_SIGNATURE_TOKEN ?? zeroAddress;
+	const hasToken = !!contracts?.COSMIC_SIGNATURE_TOKEN;
 	const contractConfig = {
-		address: CONTRACTS.COSMIC_SIGNATURE_TOKEN,
+		address: tokenAddr,
 		abi: CosmicTokenABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
 	} as const;
 
 	return {
@@ -38,7 +41,7 @@ export function useCosmicTokenRead() {
 				functionName: 'balanceOf',
 				args: address ? [address] : undefined,
 				query: {
-					enabled: !!address,
+					enabled: !!address && hasToken,
 					refetchInterval: 15_000,
 				}
 			}),
@@ -49,7 +52,8 @@ export function useCosmicTokenRead() {
 		useTotalSupply: () =>
 			useReadContract({
 				...contractConfig,
-				functionName: 'totalSupply'
+				functionName: 'totalSupply',
+				query: { enabled: hasToken },
 			}),
 
 		/**
@@ -61,7 +65,7 @@ export function useCosmicTokenRead() {
 				functionName: 'allowance',
 				args: owner && spender ? [owner, spender] : undefined,
 				query: {
-					enabled: !!(owner && spender)
+					enabled: !!(owner && spender) && hasToken,
 				}
 			}),
 
@@ -71,7 +75,8 @@ export function useCosmicTokenRead() {
 		useName: () =>
 			useReadContract({
 				...contractConfig,
-				functionName: 'name'
+				functionName: 'name',
+				query: { enabled: hasToken },
 			}),
 
 		/**
@@ -80,7 +85,8 @@ export function useCosmicTokenRead() {
 		useSymbol: () =>
 			useReadContract({
 				...contractConfig,
-				functionName: 'symbol'
+				functionName: 'symbol',
+				query: { enabled: hasToken },
 			}),
 
 		/**
@@ -89,7 +95,8 @@ export function useCosmicTokenRead() {
 		useDecimals: () =>
 			useReadContract({
 				...contractConfig,
-				functionName: 'decimals'
+				functionName: 'decimals',
+				query: { enabled: hasToken },
 			})
 	};
 }
