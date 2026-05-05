@@ -19,7 +19,7 @@ import { safeTimestamp } from "@/lib/utils";
 import { useCosmicSignatureNFT } from "@/hooks/useCosmicSignatureNFT";
 import { useStakingWalletCST } from "@/hooks/useStakingWallet";
 import { useNotification } from "@/contexts/NotificationContext";
-import { CONTRACTS } from "@/lib/web3/contracts";
+import { useContractAddresses } from "@/hooks/useContractAddresses";
 import CosmicSignatureNFTABI from "@/contracts/CosmicSignature.json";
 import StakingWalletCSTABI from "@/contracts/StakingWalletCosmicSignatureNft.json";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -35,7 +35,8 @@ type StakedToken = ApiStakedCSTToken;
 
 export default function MyNFTsPage() {
   const { address, isConnected } = useAccount();
-  const [filter, setFilter] = useState<"all" | "staked" | "unstaked">("all");
+  const contracts = useContractAddresses();
+  const [filter, setFilter] = useState<"all" | "anchored" | "released">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [stakingTokenId, setStakingTokenId] = useState<number | null>(null);
@@ -48,7 +49,7 @@ export default function MyNFTsPage() {
   // Check approval status
   const { data: isApprovedForAll } = nftContract.read.useIsApprovedForAll(
     (address as `0x${string}`) || "0x0000000000000000000000000000000000000000",
-    CONTRACTS.STAKING_WALLET_CST
+    (contracts?.STAKING_WALLET_CST ?? "0x0000000000000000000000000000000000000000") as `0x${string}`
   );
 
   const { data: nftData, isLoading: loading, refetch } = useApiQuery(
@@ -72,14 +73,18 @@ export default function MyNFTsPage() {
 
   // Handle approval
   const handleApprove = async () => {
+    if (!contracts?.COSMIC_SIGNATURE_NFT || !contracts?.STAKING_WALLET_CST) {
+      showError("Game configuration is still loading. Please wait and try again.");
+      return false;
+    }
     try {
       showInfo("⏳ Requesting approval... Please confirm the transaction in your wallet.");
       
       const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+        address: contracts.COSMIC_SIGNATURE_NFT,
         abi: CosmicSignatureNFTABI,
         functionName: "setApprovalForAll",
-        args: [CONTRACTS.STAKING_WALLET_CST, true],
+        args: [contracts.STAKING_WALLET_CST, true],
       });
       
       console.log(`Approval transaction hash: ${hash}`);
@@ -91,7 +96,7 @@ export default function MyNFTsPage() {
       });
       
       console.log(`Approval confirmed in block ${receipt.blockNumber}`);
-      showSuccess("✅ Approval confirmed! Proceeding with staking...");
+      showSuccess("✅ Approval confirmed! Proceeding with anchoring...");
       
       // Small delay to ensure blockchain state is updated
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -135,9 +140,13 @@ export default function MyNFTsPage() {
       }
 
       // Proceed with staking
+      if (!contracts?.STAKING_WALLET_CST) {
+        showError("Game configuration is still loading. Please wait and try again.");
+        return;
+      }
       showInfo("Please confirm the transaction in your wallet...");
       const stakeHash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.STAKING_WALLET_CST,
+        address: contracts.STAKING_WALLET_CST,
         abi: StakingWalletCSTABI,
         functionName: "stake",
         args: [BigInt(tokenId)],
@@ -145,14 +154,14 @@ export default function MyNFTsPage() {
       showInfo("Transaction submitted! Waiting for confirmation...");
       await waitForTransactionReceipt(wagmiConfig, { hash: stakeHash });
       showSuccess(
-        `Successfully staked NFT #${tokenId}!`
+        `Successfully anchored NFT #${tokenId}!`
       );
 
       setTimeout(() => {
         refetch();
       }, 2000);
     } catch (error: unknown) {
-      console.error("Staking error:", error);
+      console.error("Anchoring error:", error);
       if (isUserRejection(error)) {
         showInfo(WALLET_TRANSACTION_CANCELLED_MESSAGE);
       } else {
@@ -194,8 +203,8 @@ export default function MyNFTsPage() {
 
   const filteredNFTs = allNFTs.filter((nft) => {
     // Filter by staking status
-    if (filter === "staked" && !stakedTokenIds.includes(nft.tokenId)) return false;
-    if (filter === "unstaked" && stakedTokenIds.includes(nft.tokenId)) return false;
+    if (filter === "anchored" && !stakedTokenIds.includes(nft.tokenId)) return false;
+    if (filter === "released" && stakedTokenIds.includes(nft.tokenId)) return false;
 
     // Filter by search
     if (searchQuery) {
@@ -257,7 +266,7 @@ export default function MyNFTsPage() {
                 ? "Loading your NFTs..."
                 : `You own ${allNFTs.length} Cosmic Signature NFT${
                     allNFTs.length !== 1 ? "s" : ""
-                  } • ${stakedTokenIds.length} currently staked`}
+                  } • ${stakedTokenIds.length} currently anchored`}
             </p>
           </motion.div>
         </Container>
@@ -280,9 +289,9 @@ export default function MyNFTsPage() {
                 All ({allNFTs.length})
               </button>
               <button
-                onClick={() => setFilter("staked")}
+                onClick={() => setFilter("anchored")}
                 className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  filter === "staked"
+                  filter === "anchored"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}
@@ -290,9 +299,9 @@ export default function MyNFTsPage() {
                 Staked ({stakedTokenIds.length})
               </button>
               <button
-                onClick={() => setFilter("unstaked")}
+                onClick={() => setFilter("released")}
                 className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  filter === "unstaked"
+                  filter === "released"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}
@@ -364,7 +373,7 @@ export default function MyNFTsPage() {
               </p>
               {allNFTs.length === 0 && (
                 <Button className="mt-6" asChild>
-                  <Link href="/game/play">Place Your First Bid</Link>
+                  <Link href="/game/play">Place Your First Gesture</Link>
                 </Button>
               )}
             </Card>
@@ -385,7 +394,7 @@ export default function MyNFTsPage() {
                         {/* Staking Status Badge */}
                         {isStaked && (
                           <div className="absolute top-6 left-6 z-10">
-                            <StatusBadge status="staked" />
+                            <StatusBadge status="anchored" />
                           </div>
                         )}
 
@@ -415,7 +424,7 @@ export default function MyNFTsPage() {
                                 stakingContract.status.isConfirming
                               }
                             >
-                              {stakingTokenId === nft.tokenId ? "Staking..." : "Stake"}
+                              {stakingTokenId === nft.tokenId ? "Anchoring..." : "Anchor"}
                             </Button>
                           )}
                         </div>
@@ -448,14 +457,14 @@ export default function MyNFTsPage() {
                               <h3 className="font-serif text-xl font-semibold text-text-primary truncate">
                                 {nft.customName || nft.name}
                               </h3>
-                              {isStaked && <StatusBadge status="staked" />}
+                              {isStaked && <StatusBadge status="anchored" />}
                             </div>
                             <p className="text-sm text-text-secondary">
                               Token ID: #{nft.tokenId} • Round {nft.round} minted
                             </p>
                             {isStaked && (
                               <p className="text-xs text-status-success mt-1">
-                                Earning staking rewards
+                                Earning anchoring rewards
                               </p>
                             )}
                           </div>
@@ -479,7 +488,7 @@ export default function MyNFTsPage() {
                                   stakingContract.status.isConfirming
                                 }
                               >
-                                {stakingTokenId === nft.tokenId ? "Staking..." : "Stake"}
+                                {stakingTokenId === nft.tokenId ? "Anchoring..." : "Anchor"}
                               </Button>
                             )}
                           </div>

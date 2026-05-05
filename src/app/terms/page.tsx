@@ -51,7 +51,7 @@ export default function TermsPage() {
       content: [
         {
           subtitle: "How the Game Works",
-          text: "Cosmic Signature is a decentralized auction game where users place bids using ETH or CST tokens. The last bidder when the timer expires wins the main prize. Additional prizes are distributed according to the published prize structure.",
+          text: "Cosmic Signature is a decentralized auction game where users place gestures using ETH or CST tokens. The last participant when the timer expires wins the main allocation. Additional allocations are distributed according to the published allocation structure.",
         },
         {
           subtitle: "Smart Contract Interaction",
@@ -59,29 +59,29 @@ export default function TermsPage() {
         },
         {
           subtitle: "Gas Fees",
-          text: "You are responsible for paying all Ethereum network gas fees associated with your transactions. Gas fees are separate from bid amounts and are paid to Ethereum miners, not to Cosmic Signature.",
+          text: "You are responsible for paying all Ethereum network gas fees associated with your transactions. Gas fees are separate from gesture amounts and are paid to Ethereum miners, not to Cosmic Signature.",
         },
         {
           subtitle: "Random Walk NFT Discount",
-          text: "Random Walk NFTs can be used once per NFT to receive a 50% discount on ETH bids. This action is permanent and cannot be undone. Once used, a Random Walk NFT cannot be used again for discounts.",
+          text: "Random Walk NFTs can be used once per NFT to receive a 50% discount on ETH gestures. This action is permanent and cannot be undone. Once used, a Random Walk NFT cannot be used again for discounts.",
         },
       ],
     },
     {
       icon: Scale,
-      title: "Prizes and Payouts",
+      title: "Allocations and Payouts",
       content: [
         {
-          subtitle: "Prize Distribution",
-          text: "Prizes are distributed automatically according to the smart contract rules. The current prize structure includes Main Prize (25% ETH + NFT), Endurance Champion (CST + NFT), Last CST Bidder (CST + NFT), Chrono-Warrior (8% ETH), Raffle prizes (4% ETH + 9 NFTs), NFT Stakers (6% ETH), and Charity (7% ETH).",
+          subtitle: "Allocation Distribution",
+          text: "Allocations are distributed automatically according to the smart contract rules. The current allocation structure includes Main Allocation (25% ETH + NFT), Endurance Champion (CST + NFT), Last CST Participant (CST + NFT), Chrono-Warrior (8% ETH), Stellar Selection allocations (4% ETH + 9 NFTs), NFT Anchor-holders (6% ETH), and Public Goods (7% ETH).",
         },
         {
-          subtitle: "Claiming Prizes",
-          text: "Some prizes require manual claiming through the platform. The Main Prize winner has 24 hours to claim their prize after the round ends. If not claimed within this period, the prize may become available for others to claim according to smart contract rules.",
+          subtitle: "Claiming Allocations",
+          text: "Some allocations require manual claiming through the platform. The Main Allocation recipient has 24 hours to claim their allocation after the cycle ends. If not claimed within this period, the allocation may become available for others to claim according to smart contract rules.",
         },
         {
           subtitle: "No Guaranteed Returns",
-          text: "Participation in Cosmic Signature does not guarantee any returns or profits. All bids are considered final, and you may lose the full amount of your bid. Never bid more than you can afford to lose.",
+          text: "Participation in Cosmic Signature does not guarantee any returns or profits. All gestures are considered final, and you may lose the full amount of your gesture. Never gesture more than you can afford to lose.",
         },
       ],
     },

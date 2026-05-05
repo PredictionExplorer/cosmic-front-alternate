@@ -7,9 +7,14 @@
 
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { Address } from 'viem';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import {
+	useReadContract,
+	useWriteContract,
+	useWaitForTransactionReceipt,
+	useAccount,
+} from 'wagmi';
+import { Address, zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import CosmicSignatureNFTABI from '@/contracts/CosmicSignature.json';
 
@@ -18,13 +23,32 @@ import CosmicSignatureNFTABI from '@/contracts/CosmicSignature.json';
  */
 export function useCosmicSignatureNFT() {
 	const { address: userAddress } = useAccount();
+	const contracts = useContractAddresses();
+	const nftAddr = contracts?.COSMIC_SIGNATURE_NFT ?? zeroAddress;
+	const hasAddr = !!contracts?.COSMIC_SIGNATURE_NFT;
+
+	const writeConfig = contracts?.COSMIC_SIGNATURE_NFT
+		? ({
+				address: contracts.COSMIC_SIGNATURE_NFT,
+				abi: CosmicSignatureNFTABI,
+				chainId: defaultChain.id,
+			} as const)
+		: null;
+
+	const requireNftConfig = () => {
+		if (!writeConfig) {
+			throw new Error('Cosmic Signature NFT address not loaded from the API yet.');
+		}
+		return writeConfig;
+	};
+
 	const { data: hash, writeContract, isPending, error } = useWriteContract();
 	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
-	const contractConfig = {
-		address: CONTRACTS.COSMIC_SIGNATURE_NFT,
+	const baseRead = {
+		address: nftAddr,
 		abi: CosmicSignatureNFTABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
 	} as const;
 
 	return {
@@ -37,9 +61,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useMetadata: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'getNftMetaData',
-					args: [nftId]
+					args: [nftId],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -47,9 +72,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useName: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'getNftName',
-					args: [nftId]
+					args: [nftId],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -57,9 +83,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useSeed: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'getNftSeed',
-					args: [nftId]
+					args: [nftId],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -67,9 +94,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useOwner: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'ownerOf',
-					args: [nftId]
+					args: [nftId],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -77,12 +105,12 @@ export function useCosmicSignatureNFT() {
 			 */
 			useBalance: (address?: Address) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'balanceOf',
 					args: [address || userAddress!],
 					query: {
-						enabled: !!address || !!userAddress
-					}
+						enabled: hasAddr && (!!address || !!userAddress),
+					},
 				}),
 
 			/**
@@ -90,9 +118,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useTokenOfOwnerByIndex: (address: Address, index: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'tokenOfOwnerByIndex',
-					args: [address, index]
+					args: [address, index],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -100,8 +129,9 @@ export function useCosmicSignatureNFT() {
 			 */
 			useTotalSupply: () =>
 				useReadContract({
-					...contractConfig,
-					functionName: 'totalSupply'
+					...baseRead,
+					functionName: 'totalSupply',
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -109,9 +139,10 @@ export function useCosmicSignatureNFT() {
 			 */
 			useIsApprovedForAll: (owner: Address, operator: Address) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'isApprovedForAll',
-					args: [owner, operator]
+					args: [owner, operator],
+					query: { enabled: hasAddr },
 				}),
 
 			/**
@@ -119,10 +150,11 @@ export function useCosmicSignatureNFT() {
 			 */
 			useTokenURI: (nftId: bigint) =>
 				useReadContract({
-					...contractConfig,
+					...baseRead,
 					functionName: 'tokenURI',
-					args: [nftId]
-				})
+					args: [nftId],
+					query: { enabled: hasAddr },
+				}),
 		},
 
 		/**
@@ -137,9 +169,9 @@ export function useCosmicSignatureNFT() {
 			 */
 			setName: (nftId: bigint, name: string) => {
 				return writeContract({
-					...contractConfig,
+					...requireNftConfig(),
 					functionName: 'setNftName',
-					args: [nftId, name]
+					args: [nftId, name],
 				});
 			},
 
@@ -151,9 +183,9 @@ export function useCosmicSignatureNFT() {
 			 */
 			setApprovalForAll: (operator: Address, approved: boolean) => {
 				return writeContract({
-					...contractConfig,
+					...requireNftConfig(),
 					functionName: 'setApprovalForAll',
-					args: [operator, approved]
+					args: [operator, approved],
 				});
 			},
 
@@ -162,11 +194,11 @@ export function useCosmicSignatureNFT() {
 			 */
 			transfer: (from: Address, to: Address, tokenId: bigint) => {
 				return writeContract({
-					...contractConfig,
+					...requireNftConfig(),
 					functionName: 'transferFrom',
-					args: [from, to, tokenId]
+					args: [from, to, tokenId],
 				});
-			}
+			},
 		},
 
 		/**
@@ -177,180 +209,7 @@ export function useCosmicSignatureNFT() {
 			isPending,
 			isConfirming,
 			isSuccess,
-			error
-		}
-	};
-}
-
-/**
- * Hook for RandomWalk NFT operations
- */
-export function useRandomWalkNFT() {
-	const { address: userAddress } = useAccount();
-	const { data: hash, writeContract, isPending, error } = useWriteContract();
-	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
-	const contractConfig = {
-		address: CONTRACTS.RANDOM_WALK_NFT,
-		abi: [
-			// Minimal ABI - only what we need
-			{
-				name: 'mint',
-				type: 'function',
-				stateMutability: 'payable',
-				inputs: [],
-				outputs: []
-			},
-			{
-				name: 'getMintPrice',
-				type: 'function',
-				stateMutability: 'view',
-				inputs: [],
-				outputs: [{ type: 'uint256' }]
-			},
-			{
-				name: 'walletOfOwner',
-				type: 'function',
-				stateMutability: 'view',
-				inputs: [{ type: 'address' }],
-				outputs: [{ type: 'uint256[]' }]
-			},
-			{
-				name: 'ownerOf',
-				type: 'function',
-				stateMutability: 'view',
-				inputs: [{ type: 'uint256' }],
-				outputs: [{ type: 'address' }]
-			},
-			{
-				name: 'balanceOf',
-				type: 'function',
-				stateMutability: 'view',
-				inputs: [{ type: 'address' }],
-				outputs: [{ type: 'uint256' }]
-			},
-			{
-				name: 'setApprovalForAll',
-				type: 'function',
-				stateMutability: 'nonpayable',
-				inputs: [
-					{ type: 'address', name: 'operator' },
-					{ type: 'bool', name: 'approved' }
-				],
-				outputs: []
-			},
-			{
-				name: 'isApprovedForAll',
-				type: 'function',
-				stateMutability: 'view',
-				inputs: [
-					{ type: 'address', name: 'owner' },
-					{ type: 'address', name: 'operator' }
-				],
-				outputs: [{ type: 'bool' }]
-			}
-		]
-	} as const;
-
-	return {
-		/**
-		 * Read operations
-		 */
-		read: {
-			/**
-			 * Get current mint price
-			 */
-			useMintPrice: () =>
-				useReadContract({
-					...contractConfig,
-					functionName: 'getMintPrice'
-				}),
-
-			/**
-			 * Get all NFT IDs owned by a user
-			 */
-			useWalletOfOwner: (address?: Address) =>
-				useReadContract({
-					...contractConfig,
-					functionName: 'walletOfOwner',
-					args: [address || userAddress!],
-					query: {
-						enabled: !!address || !!userAddress
-					}
-				}),
-
-			/**
-			 * Get NFT owner
-			 */
-			useOwner: (tokenId: bigint) =>
-				useReadContract({
-					...contractConfig,
-					functionName: 'ownerOf',
-					args: [tokenId]
-				}),
-
-			/**
-			 * Get user's RandomWalk NFT balance
-			 */
-			useBalance: (address?: Address) =>
-				useReadContract({
-					...contractConfig,
-					functionName: 'balanceOf',
-					args: [address || userAddress!],
-					query: {
-						enabled: !!address || !!userAddress
-					}
-				}),
-
-			/**
-			 * Check if approved for all
-			 */
-			useIsApprovedForAll: (owner: Address, operator: Address) =>
-				useReadContract({
-					...contractConfig,
-					functionName: 'isApprovedForAll',
-					args: [owner, operator]
-				})
+			error,
 		},
-
-		/**
-		 * Write operations
-		 */
-		write: {
-			/**
-			 * Mint a RandomWalk NFT
-			 *
-			 * @param value - ETH amount (should be getMintPrice() + buffer)
-			 */
-			mint: (value: bigint) => {
-				return writeContract({
-					...contractConfig,
-					functionName: 'mint',
-					value
-				});
-			},
-
-			/**
-			 * Approve staking wallet
-			 */
-			setApprovalForAll: (operator: Address, approved: boolean) => {
-				return writeContract({
-					...contractConfig,
-					functionName: 'setApprovalForAll',
-					args: [operator, approved]
-				});
-			}
-		},
-
-		/**
-		 * Transaction status
-		 */
-		status: {
-			hash,
-			isPending,
-			isConfirming,
-			isSuccess,
-			error
-		}
 	};
 }

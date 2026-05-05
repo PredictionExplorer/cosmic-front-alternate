@@ -12,11 +12,11 @@ export const NAV_LINKS = [
       { href: "/game/prizes", label: "Prize Structure" },
       { href: "/game/leaderboard", label: "Leaderboard" },
       { href: "/game/statistics", label: "Statistics" },
-      { href: "/game/history/rounds", label: "Round History" },
+      { href: "/game/history/rounds", label: "Cycle History" },
     ],
   },
-  { href: "/stake", label: "Stake" },
-  { href: "/donations", label: "Donations" },
+  { href: "/stake", label: "Anchor" },
+  { href: "/contributions", label: "Contributions" },
   { href: "/contracts", label: "Contracts" },
 ] as const;
 

@@ -12,11 +12,11 @@ export interface TimelineItem {
   description: string;
   timestamp: number;
   type:
-    | "bid"
+    | "gesture"
     | "claim"
     | "stake"
-    | "unstake"
-    | "donation"
+    | "release"
+    | "contribution"
     | "transfer"
     | "name-change"
     | "other";
@@ -34,14 +34,14 @@ interface TimelineProps {
 
 const getTypeColor = (type: TimelineItem["type"]) => {
   switch (type) {
-    case "bid":
+    case "gesture":
       return "bg-primary";
     case "claim":
       return "bg-status-success";
     case "stake":
-    case "unstake":
+    case "release":
       return "bg-status-info";
-    case "donation":
+    case "contribution":
       return "bg-status-warning";
     case "transfer":
     case "name-change":

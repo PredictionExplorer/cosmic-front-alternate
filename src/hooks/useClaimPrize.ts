@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { wagmiConfig } from '@/lib/web3/config';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { useNotification } from '@/contexts/NotificationContext';
 import {
   isUserRejection,
@@ -25,6 +25,7 @@ interface ClaimPrizeResult {
 
 export function useClaimPrize(): ClaimPrizeResult {
   const { address, isConnected } = useAccount();
+  const contracts = useContractAddresses();
   const { showSuccess, showError, showInfo, showWarning } = useNotification();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,11 @@ export function useClaimPrize(): ClaimPrizeResult {
       showWarning('Please connect your wallet first');
       return false;
     }
+    if (!contracts?.COSMIC_GAME) {
+      showError('Game configuration is still loading. Please wait a moment and try again.');
+      return false;
+    }
+    const gameAddr = contracts.COSMIC_GAME;
 
     setIsSubmitting(true);
     setError(null);
@@ -41,7 +47,7 @@ export function useClaimPrize(): ClaimPrizeResult {
     try {
       showInfo('Validating claim eligibility...');
       const estimation = await estimateContractGas(wagmiConfig, {
-        address: CONTRACTS.COSMIC_GAME,
+        address: gameAddr,
         abi: CosmicGameABI,
         functionName: 'claimMainPrize',
         args: [],
@@ -79,7 +85,7 @@ export function useClaimPrize(): ClaimPrizeResult {
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeContract(wagmiConfig, {
-        address: CONTRACTS.COSMIC_GAME,
+        address: gameAddr,
         abi: CosmicGameABI,
         functionName: 'claimMainPrize',
         ...feeParams,
@@ -103,7 +109,7 @@ export function useClaimPrize(): ClaimPrizeResult {
     } finally {
       setIsSubmitting(false);
     }
-  }, [isConnected, address, showWarning, showError, showInfo, showSuccess]);
+  }, [isConnected, address, contracts, showWarning, showError, showInfo, showSuccess]);
 
   return { claimMainPrize, isSubmitting, error };
 }

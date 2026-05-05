@@ -21,8 +21,7 @@ import {
 import type { ApiDashboardData } from "@/services/apiTypes";
 
 interface DashboardData extends ApiDashboardData {
-	ContractAddrs: Record<string, string>;
-	MainStats: { TotalBids: number; TotalRounds: number };
+	MainStats: ApiDashboardData['MainStats'] & { TotalBids?: number; TotalRounds?: number };
 }
 
 interface ContractItemProps {
@@ -130,7 +129,7 @@ export default function ContractsPage() {
 			copyable: true,
 		},
 		{
-			name: 'Charity Wallet Address',
+			name: 'Public Goods Wallet Address',
 			value: data?.ContractAddrs.CharityWalletAddr,
 			copyable: true,
 		},
@@ -140,17 +139,17 @@ export default function ContractsPage() {
 			copyable: true,
 		},
 		{
-			name: 'Prizes Wallet Address',
+			name: 'Allocations Wallet Address',
 			value: data?.ContractAddrs.PrizesWalletAddr,
 			copyable: true,
 		},
 		{
-			name: 'Cosmic Signature Staking Wallet Address',
+			name: 'Cosmic Signature Anchoring Wallet Address',
 			value: data?.ContractAddrs.StakingWalletCSTAddr,
 			copyable: true,
 		},
 		{
-			name: 'Random Walk Staking Wallet Address',
+			name: 'Random Walk Anchoring Wallet Address',
 			value: data?.ContractAddrs.StakingWalletRWalkAddr,
 			copyable: true,
 		},
@@ -166,7 +165,7 @@ export default function ContractsPage() {
 			value: timeIncrease ? `${timeIncrease.toFixed(2)}%` : '--',
 		},
 		{
-			name: 'Prize Percentage',
+			name: 'Allocation Percentage',
 			value: data ? `${data.PrizePercentage}%` : '--',
 		},
 		{
@@ -174,36 +173,36 @@ export default function ContractsPage() {
 			value: data ? `${data.ChronoWarriorPercentage}%` : '--',
 		},
 		{
-			name: 'Raffle Percentage',
+			name: 'Stellar Selection Percentage',
 			value: data ? `${data.RafflePercentage}%` : '--',
 		},
 		{
-			name: 'Staking Percentage',
+			name: 'Anchoring Percentage',
 			value: data ? `${data.StakingPercentage}%` : '--',
 		},
 		{
-			name: 'Raffle ETH Winners for Bidding',
+			name: 'Stellar Selection ETH Recipients for Gesturing',
 			value: data?.NumRaffleEthWinnersBidding,
 		},
 		{
-			name: 'Raffle NFT Winners for Bidding',
+			name: 'Stellar Selection NFT Recipients for Gesturing',
 			value: data?.NumRaffleNFTWinnersBidding,
 		},
 		{
-			name: 'Raffle NFT Winners for Staking Random Walk',
+			name: 'Stellar Selection NFT Recipients for Anchoring Random Walk',
 			value: data?.NumRaffleNFTWinnersStakingRWalk,
 		},
 		{
-			name: 'Charity Address',
+			name: 'Public Goods Address',
 			value: (charityAddress && typeof charityAddress === 'string') ? charityAddress : '--',
 			copyable: true,
 		},
 		{
-			name: 'Charity Percentage',
+			name: 'Public Goods Percentage',
 			value: data ? `${data.CharityPercentage}%` : '--',
 		},
 		{
-			name: 'Amount of CosmicTokens earned per bid',
+			name: 'Amount of CosmicTokens earned per gesture',
 			value: cstRewardFormatted ? `${cstRewardFormatted} CST` : '--',
 		},
 		{
@@ -223,7 +222,7 @@ export default function ContractsPage() {
 			value: ethAuctionElapsed ? formatTime(ethAuctionElapsed) : '--',
 		},
 		{
-			name: 'Timeout to claim prize',
+			name: 'Timeout to claim allocation',
 			value: data ? formatTime(data.TimeoutClaimPrize) : '--',
 		},
 		{
@@ -231,19 +230,22 @@ export default function ContractsPage() {
 			value: (bidMessageMaxLength && typeof bidMessageMaxLength === 'bigint') ? Number(bidMessageMaxLength) : '--',
 		},
 		{
-			name: 'Initial increment first bid',
+			name: 'Initial increment first gesture',
 			value: data ? formatTime(data.InitialSecondsUntilPrize) : '--',
 		},
 		{
-			name: 'CST dutch auction beginning bid price',
+			name: 'CST dutch auction beginning gesture price',
 			value: cstBeginningBidPriceFormatted ? `${cstBeginningBidPriceFormatted} CST` : '--',
 		},
 		{
-			name: 'Total Bids',
-			value: data?.MainStats.TotalBids.toLocaleString(),
+			name: 'Total Gestures',
+			value:
+				typeof data?.MainStats?.TotalBids === 'number'
+					? data.MainStats.TotalBids.toLocaleString()
+					: '--',
 		},
 		{
-			name: 'Total Rounds',
+			name: 'Total Cycles',
 			value: data?.CurRoundNum,
 		},
 	];

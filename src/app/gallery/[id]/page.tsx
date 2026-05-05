@@ -100,7 +100,7 @@ export default function NFTDetailPage({
     isLoading: loadingLastRoundReward,
     error: lastRoundRewardError,
   } = useApiQuery(
-    "gallery-staking-last-round-per-nft",
+    "gallery-anchoring-last-cycle-per-nft",
     async () => {
       const dash: ApiDashboardData = await api.getDashboardInfo();
       const cur = dash.CurRoundNum ?? 0;
@@ -206,7 +206,7 @@ export default function NFTDetailPage({
           <Card glass className="p-12 text-center">
             <h1 className="heading-sm mb-4">NFT Not Found</h1>
             <p className="text-text-secondary mb-6">
-              {error || "This NFT doesn't exist or hasn't been minted yet."}
+              {error || "This NFT doesn't exist or hasn't been imprinted yet."}
             </p>
             <Button asChild>
               <Link href="/gallery">
@@ -223,13 +223,13 @@ export default function NFTDetailPage({
   const getPrizeType = (recordType: number, roundNum: number) => {
     switch (recordType) {
       case 1:
-        return "Raffle Winner";
+        return "Stellar Selection Recipient";
       case 2:
-        return "Staking Winner";
+        return "Anchoring Recipient";
       case 3:
-        return `Round Winner (Round #${roundNum})`;
+        return `Cycle Recipient (Cycle #${roundNum})`;
       case 4:
-        return "Endurance Champion NFT Winner";
+        return "Endurance Champion NFT Recipient";
       default:
         return "Unknown";
     }
@@ -508,7 +508,7 @@ export default function NFTDetailPage({
                 </div>
 
                 <div className="flex justify-between items-center pb-4 border-b border-text-muted/10">
-                  <span className="text-text-secondary">Round</span>
+                  <span className="text-text-secondary">Cycle</span>
                   <Link
                     href={`/game/history/rounds/${nft.RoundNum}`}
                     className="inline-block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-md"
@@ -523,7 +523,7 @@ export default function NFTDetailPage({
                 </div>
 
                 <div className="flex justify-between items-center pb-4 border-b border-text-muted/10">
-                  <span className="text-text-secondary">Prize Type</span>
+                  <span className="text-text-secondary">Allocation Type</span>
                   <span className="text-sm text-text-primary">
                     {getPrizeType(nft.RecordType, nft.RoundNum)}
                   </span>
@@ -537,7 +537,7 @@ export default function NFTDetailPage({
                 </div>
 
                 <div className="flex justify-between items-start pb-4 border-b border-text-muted/10">
-                  <span className="text-text-secondary">Winner</span>
+                  <span className="text-text-secondary">Recipient</span>
                   <Link
                     href={`/account?address=${nft.WinnerAddr}`}
                     className="font-mono text-primary hover:text-primary/80 transition-colors text-sm"
@@ -575,26 +575,26 @@ export default function NFTDetailPage({
             <Card glass>
               <CardContent className="p-6">
                 <h3 className="font-serif text-xl font-semibold text-text-primary mb-4">
-                  Staking Status
+                  Anchoring Status
                 </h3>
                 <div className="space-y-2">
                   {!nft.Staked && !nft.WasUnstaked ? (
                     <p className="text-sm text-green-400">
-                      ✓ This NFT is eligible for staking
+                      ✓ This NFT is eligible for anchoring
                     </p>
                   ) : (
                     <p className="text-sm text-red-400">
-                      ✗ This NFT has already been staked and cannot be staked
+                      ✗ This NFT has already been anchored and cannot be anchored
                       again
                     </p>
                   )}
                   {lastRoundRewardError ? (
                     <p className="text-sm text-text-muted mt-3">
-                      Could not load last round staking rewards.
+                      Could not load last cycle anchoring rewards.
                     </p>
                   ) : loadingLastRoundReward ? (
                     <p className="text-sm text-text-muted mt-3">
-                      Loading last round staking rewards…
+                      Loading last cycle anchoring rewards…
                     </p>
                   ) : lastRoundRewardInfo &&
                     lastRoundRewardInfo.ethPerStakedNft != null &&
@@ -616,8 +616,8 @@ export default function NFTDetailPage({
                   ) : lastRoundRewardInfo &&
                     lastRoundRewardInfo.ethPerStakedNft === 0 ? (
                     <p className="text-sm text-text-muted mt-3">
-                      No staking reward distribution was recorded for the last
-                      round.
+                      No anchoring reward distribution was recorded for the last
+                      cycle.
                     </p>
                   ) : null}
                 </div>
@@ -700,13 +700,13 @@ export default function NFTDetailPage({
                     className="flex-1"
                     size="lg"
                     disabled
-                    title="This NFT has already been staked and cannot be staked again"
+                    title="This NFT has already been anchored and cannot be anchored again"
                   >
-                    Stake NFT
+                    Anchor NFT
                   </Button>
                 ) : (
                   <Button asChild className="flex-1" size="lg">
-                    <Link href="/stake">Stake NFT</Link>
+                    <Link href="/stake">Anchor NFT</Link>
                   </Button>
                 )
               )}
@@ -808,7 +808,7 @@ export default function NFTDetailPage({
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-text-primary font-medium">
-                        Minted
+                        Imprinted
                       </p>
                       <p className="text-xs text-text-secondary mt-0.5">
                         {formatTimestamp(nft.Tx.TimeStamp)}
@@ -824,7 +824,7 @@ export default function NFTDetailPage({
                     </div>
                     <div className="flex-1">
                       <p className="text-sm text-text-primary font-medium">
-                        Original Winner
+                        Original Recipient
                       </p>
                       <Link
                         href={`/account?address=${nft.WinnerAddr}`}

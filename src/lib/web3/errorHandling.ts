@@ -101,11 +101,13 @@ export function parseContractError(error: unknown): string {
 		return 'Invalid token approval address.';
 	}
 
-	// Check for unknown error signature (can't decode)
+	// Check for unknown error signature (can't decode). Prefer the explicit revert line so we
+	// do not match the first 4 bytes of a contract *address* (also 0x + 8 hex) elsewhere in the log.
 	if (errorMessage.includes('Unable to decode signature') && errorMessage.includes('0x')) {
-		const signatureMatch = errorMessage.match(/0x[0-9a-fA-F]{8}/);
+		const revertLine = errorMessage.match(/following signature:\s*\n?\s*(0x[0-9a-fA-F]{8})\b/i);
+		const signatureMatch = revertLine ?? errorMessage.match(/\bsignature:\s*(0x[0-9a-fA-F]{8})\b/i);
 		if (signatureMatch) {
-			const signature = signatureMatch[0];
+			const signature = signatureMatch[1];
 
 			// ERC-20 selectors inside "Unable to decode" path
 			if (signature === '0xe450d38c') {

@@ -8,8 +8,8 @@
 'use client';
 
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { Address } from 'viem';
-import { CONTRACTS } from '@/lib/web3/contracts';
+import { Address, zeroAddress } from 'viem';
+import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import PrizesWalletABI from '@/contracts/PrizesWallet.json';
 
@@ -17,10 +17,14 @@ import PrizesWalletABI from '@/contracts/PrizesWallet.json';
  * Hook for reading from Prizes Wallet
  */
 export function usePrizesWalletRead() {
+	const contracts = useContractAddresses();
+	const addr = contracts?.PRIZES_WALLET ?? zeroAddress;
+	const queryEnabled = !!contracts?.PRIZES_WALLET;
 	const contractConfig = {
-		address: CONTRACTS.PRIZES_WALLET,
+		address: addr,
 		abi: PrizesWalletABI,
-		chainId: defaultChain.id
+		chainId: defaultChain.id,
+		query: { enabled: queryEnabled },
 	} as const;
 
 	return {
@@ -80,14 +84,16 @@ export function usePrizesWalletRead() {
  * Hook for writing to Prizes Wallet
  */
 export function usePrizesWalletWrite() {
-	const { data: hash, writeContract, isPending, error } = useWriteContract();
-	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
-
+	const contracts = useContractAddresses();
+	const addr = contracts?.PRIZES_WALLET ?? zeroAddress;
 	const contractConfig = {
-		address: CONTRACTS.PRIZES_WALLET,
+		address: addr,
 		abi: PrizesWalletABI,
 		chainId: defaultChain.id
 	} as const;
+
+	const { data: hash, writeContract, isPending, error } = useWriteContract();
+	const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
 	return {
 	/**

@@ -41,7 +41,7 @@ export default function HowItWorksPage() {
 						</h1>
 						<p className="body-xl">
 							Master the mechanics of this sophisticated blockchain auction game. Strategic timing and
-							understanding the prize structure are keys to success.
+							understanding the allocation structure are keys to success.
 						</p>
 					</motion.div>
 				</Container>
@@ -64,21 +64,21 @@ export default function HowItWorksPage() {
 						{[
 							{
 								icon: Trophy,
-								title: 'Be Last Bidder',
+								title: 'Be Last Participant',
 								description:
-									'Place a bid to become the last bidder. If you remain the last bidder when the countdown timer reaches zero, you win the main prize.'
+									'Place a gesture to become the last participant. If you remain the last participant when the countdown timer reaches zero, you win the main allocation.'
 							},
 							{
 								icon: Timer,
 								title: 'Timer Extends',
 								description:
-									'Each bid extends the countdown timer by approximately 1 hour (grows slightly each round). This creates dynamic competition.'
+									'Each gesture extends the countdown timer by approximately 1 hour (grows slightly each cycle). This creates dynamic competition.'
 							},
 							{
 								icon: Sparkles,
-								title: 'Multiple Prizes',
+								title: 'Multiple Allocations',
 								description:
-									"Even if you don't win the main prize, you can win as Endurance Champion, Chrono-Warrior, or through random raffles."
+									"Even if you don't win the main allocation, you can win as Endurance Champion, Chrono-Warrior, or through random stellar selections."
 							}
 						].map((item, index) => (
 							<motion.div
@@ -112,13 +112,13 @@ export default function HowItWorksPage() {
 						viewport={{ once: true }}
 						className="text-center mb-12"
 					>
-						<h2 className="heading-md mb-4">Bidding Mechanics</h2>
-						<p className="body-lg max-w-2xl mx-auto">Understanding price dynamics and bid types</p>
+						<h2 className="heading-md mb-4">Gesturing Mechanics</h2>
+						<p className="body-lg max-w-2xl mx-auto">Understanding price dynamics and gesture types</p>
 					</motion.div>
 
 					<Accordion.Root type="single" collapsible className="space-y-4">
 						{/* ETH Bidding */}
-						<Accordion.Item value="eth-bidding">
+						<Accordion.Item value="eth-gesturing">
 							<Card glass>
 							<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
 								<div className="flex items-center space-x-4">
@@ -127,10 +127,10 @@ export default function HowItWorksPage() {
 									</div>
 									<div className="text-left">
 										<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-											ETH Bidding
+											ETH Gesturing
 										</h3>
 										<p className="text-sm text-text-secondary">
-											Bid with Ethereum (the primary bidding method)
+											Gesture with Ethereum (the primary gesturing method)
 										</p>
 									</div>
 								</div>
@@ -139,7 +139,7 @@ export default function HowItWorksPage() {
 							<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
-											ETH bidding is the primary way to participate in Cosmic Signature.
+											ETH gesturing is the primary way to participate in Cosmic Signature.
 											Here&apos;s how it works:
 										</p>
 
@@ -151,12 +151,12 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														First Bid of Round
+														First Gesture of Cycle
 													</p>
 													<p className="text-sm">
-													The very first bid of each round MUST be an ETH bid. This
-													activates the round and sets the initial countdown timer. The
-													first bid price starts at a low baseline.
+													The very first gesture of each cycle MUST be an ETH gesture. This
+													activates the cycle and sets the initial countdown timer. The
+													first gesture price starts at a low baseline.
 													</p>
 												</div>
 											</div>
@@ -168,10 +168,10 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														Price Increases After Each Bid
+														Price Increases After Each Gesture
 													</p>
 													<p className="text-sm">
-														After someone places an ETH bid, the next ETH bid price
+														After someone places an ETH gesture, the next ETH gesture price
 														increases by approximately 1%. This formula ensures prices
 														gradually rise as competition intensifies.
 													</p>
@@ -185,10 +185,10 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														Dutch Auction at Round Start
+														Dutch Auction at Cycle Start
 													</p>
 													<p className="text-sm">
-														When a new round starts (before the first bid), ETH prices
+														When a new cycle starts (before the first gesture), ETH prices
 														decrease over time from a high starting point. This Dutch
 														auction lasts approximately 2 days, encouraging strategic
 														timing.
@@ -217,8 +217,8 @@ export default function HowItWorksPage() {
 										<div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mt-4">
 											<p className="text-sm">
 												<strong className="text-text-primary">Pro Tip:</strong> Check the
-												current price immediately before bidding, as prices change with each
-												bid. The price you see might increase if someone bids before your
+												current price immediately before gesturing, as prices change with each
+												gesture. The price you see might increase if someone gestures before your
 												transaction confirms.
 											</p>
 										</div>
@@ -228,7 +228,7 @@ export default function HowItWorksPage() {
 						</Accordion.Item>
 
 						{/* CST Bidding */}
-						<Accordion.Item value="cst-bidding">
+						<Accordion.Item value="cst-gesturing">
 							<Card glass>
 							<Accordion.Trigger className="w-full p-6 flex items-center justify-between hover:bg-background-elevated/50 transition-colors group">
 								<div className="flex items-center space-x-4">
@@ -237,10 +237,10 @@ export default function HowItWorksPage() {
 									</div>
 									<div className="text-left">
 										<h3 className="font-serif text-xl font-semibold text-text-primary mb-1">
-											CST Token Bidding
+											CST Token Gesturing
 										</h3>
 										<p className="text-sm text-text-secondary">
-											Bid with earned CST tokens (alternative bidding method)
+											Gesture with earned CST tokens (alternative gesturing method)
 										</p>
 									</div>
 								</div>
@@ -249,8 +249,8 @@ export default function HowItWorksPage() {
 							<Accordion.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
 									<div className="p-6 pt-0 space-y-4 text-text-secondary">
 										<p className="leading-relaxed">
-											CST (Cosmic Signature Token) bidding offers an alternative way to compete
-											using tokens you&apos;ve earned from previous bids:
+											CST (Cosmic Signature Token) gesturing offers an alternative way to compete
+											using tokens you&apos;ve earned from previous gestures:
 										</p>
 
 										<div className="space-y-3">
@@ -261,7 +261,7 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														Earn CST from Every Bid
+														Earn CST from Every Gesture
 													</p>
 												<p className="text-sm">
 													Every bid you place (ETH or CST) earns you{' '}
@@ -278,7 +278,7 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														CST Bids Burn Tokens
+														CST Gestures Burn Tokens
 													</p>
 												<p className="text-sm">
 													When you bid with CST, those tokens are permanently burned
@@ -300,7 +300,7 @@ export default function HowItWorksPage() {
 														Dutch Auction Pricing
 													</p>
 													<p className="text-sm">
-														After each CST bid, a new Dutch auction begins. The price starts
+														After each CST gesture, a new Dutch auction begins. The price starts
 														high and decreases linearly to 0 over approximately 12 hours.
 														Strategic players wait for lower prices.
 													</p>
@@ -314,11 +314,11 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														Cannot Be First Bid
+														Cannot Be First Gesture
 													</p>
 													<p className="text-sm">
-														CST bids cannot be the first bid of a round. At least one ETH
-														bid must be placed first to activate the round.
+														CST gestures cannot be the first gesture of a cycle. At least one ETH
+														gesture must be placed first to activate the cycle.
 													</p>
 												</div>
 											</div>
@@ -356,7 +356,7 @@ export default function HowItWorksPage() {
 												Random Walk NFT Discount
 											</h3>
 											<p className="text-sm text-text-secondary">
-												Get 50% off ETH bids by using a Random Walk NFT
+												Get 50% off ETH gestures by using a Random Walk NFT
 											</p>
 										</div>
 									</div>
@@ -377,12 +377,12 @@ export default function HowItWorksPage() {
 												/>
 												<div>
 													<p className="text-text-primary font-medium mb-1">
-														50% Discount on ETH Bids
+														50% Discount on ETH Gestures
 													</p>
 													<p className="text-sm">
-														When you bid with ETH and include a Random Walk NFT, you pay
-														only 50% of the normal ETH bid price. This can result in
-														significant savings on expensive bids.
+														When you gesture with ETH and include a Random Walk NFT, you pay
+														only 50% of the normal ETH gesture price. This can result in
+														significant savings on expensive gestures.
 													</p>
 												</div>
 											</div>
@@ -398,7 +398,7 @@ export default function HowItWorksPage() {
 													</p>
 													<p className="text-sm">
 														You must be the owner of the Random Walk NFT to use it for
-														bidding. The contract verifies ownership on-chain.
+														gesturing. The contract verifies ownership on-chain.
 													</p>
 												</div>
 											</div>
@@ -454,11 +454,11 @@ export default function HowItWorksPage() {
 													ETH Dutch Auction
 												</h4>
 												<ul className="space-y-2 text-sm">
-													<li>• Occurs when round starts (before first bid)</li>
+													<li>• Occurs when cycle starts (before first gesture)</li>
 													<li>• Lasts approximately 2 days</li>
-													<li>• Starts at 2x previous round&apos;s ending price</li>
+													<li>• Starts at 2x previous cycle&apos;s ending price</li>
 													<li>• Decreases to a minimum price</li>
-													<li>• After first bid: prices increase per bid</li>
+													<li>• After first gesture: prices increase per gesture</li>
 												</ul>
 											</div>
 
@@ -467,11 +467,11 @@ export default function HowItWorksPage() {
 													CST Dutch Auction
 												</h4>
 												<ul className="space-y-2 text-sm">
-													<li>• Occurs after each CST bid</li>
+													<li>• Occurs after each CST gesture</li>
 													<li>• Lasts approximately 12 hours</li>
-													<li>• Starts at 2x previous CST bid</li>
+													<li>• Starts at 2x previous CST gesture</li>
 													<li>• Decreases linearly to 0</li>
-													<li>• Can reach exactly 0 (free bids possible!)</li>
+													<li>• Can reach exactly 0 (free gestures possible!)</li>
 												</ul>
 											</div>
 										</div>
@@ -480,7 +480,7 @@ export default function HowItWorksPage() {
 											<p className="text-sm">
 												<strong className="text-text-primary">Strategy:</strong> In Dutch
 												auctions, waiting longer gets you better prices, but someone else might
-												bid before you. This creates a psychological game of chicken.
+												gesture before you. This creates a psychological game of chicken.
 											</p>
 										</div>
 									</div>
@@ -520,8 +520,8 @@ export default function HowItWorksPage() {
 									</h3>
 								</div>
 								<p className="text-text-secondary leading-relaxed mb-6">
-									The player who held the &quot;last bidder&quot; position for the longest single
-									continuous duration during the round.
+									The player who held the &quot;last participant&quot; position for the longest single
+									continuous duration during the cycle.
 								</p>
 
 								<div className="space-y-4">
@@ -530,7 +530,7 @@ export default function HowItWorksPage() {
 										<ul className="space-y-2 text-sm text-text-secondary">
 											<li className="flex items-start">
 												<span className="mr-2">•</span>
-												<span>Timer starts when you become last bidder</span>
+												<span>Timer starts when you become last participant</span>
 											</li>
 											<li className="flex items-start">
 												<span className="mr-2">•</span>
@@ -542,15 +542,15 @@ export default function HowItWorksPage() {
 											</li>
 											<li className="flex items-start">
 												<span className="mr-2">•</span>
-												<span>Bidding multiple times in a row doesn&apos;t add durations</span>
+												<span>Gesturing multiple times in a row doesn&apos;t add durations</span>
 											</li>
 										</ul>
 									</div>
 
 									<div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-										<p className="text-sm font-semibold text-text-primary mb-2">Prize:</p>
+										<p className="text-sm font-semibold text-text-primary mb-2">Allocation:</p>
 										<ul className="space-y-1 text-sm text-text-secondary">
-											<li>• 10x CST per bid in round</li>
+											<li>• 10x CST per gesture in cycle</li>
 											<li>• 1 Cosmic Signature NFT</li>
 										</ul>
 									</div>
@@ -574,7 +574,7 @@ export default function HowItWorksPage() {
 								</div>
 								<p className="text-text-secondary leading-relaxed mb-6">
 									The player who held the &quot;Endurance Champion&quot; title for the longest
-									continuous duration during the round. Champion of champions.
+									continuous duration during the cycle. Champion of champions.
 								</p>
 
 								<div className="space-y-4">
@@ -601,10 +601,10 @@ export default function HowItWorksPage() {
 									</div>
 
 									<div className="p-4 rounded-lg bg-status-info/5 border border-status-info/20">
-										<p className="text-sm font-semibold text-text-primary mb-2">Prize:</p>
+										<p className="text-sm font-semibold text-text-primary mb-2">Allocation:</p>
 										<ul className="space-y-1 text-sm text-text-secondary">
 											<li>• {dashboardData?.ChronoWarriorPercentage || '--'}% of prize pool in ETH</li>
-											<li>• Transferred to Prizes Wallet (withdraw later)</li>
+											<li>• Transferred to Allocations Wallet (withdraw later)</li>
 										</ul>
 									</div>
 								</div>
@@ -623,9 +623,9 @@ export default function HowItWorksPage() {
 						viewport={{ once: true }}
 						className="text-center mb-12"
 					>
-						<h2 className="heading-md mb-4">Complete Prize Distribution</h2>
+						<h2 className="heading-md mb-4">Complete Allocation Distribution</h2>
 						<p className="body-lg max-w-2xl mx-auto">
-							When a round ends, prizes are distributed across multiple categories
+							When a cycle ends, allocations are distributed across multiple categories
 						</p>
 					</motion.div>
 
@@ -633,7 +633,7 @@ export default function HowItWorksPage() {
 						<div className="space-y-6">
 							{[
 								{
-									name: 'Main Prize Winner',
+									name: 'Main Allocation Recipient',
 									percentage: dashboardData?.PrizePercentage || 0,
 									recipients: 1,
 									rewards: [`${dashboardData?.PrizePercentage || 0}% of ETH pool`, '1 Cosmic Signature NFT'],
@@ -643,16 +643,16 @@ export default function HowItWorksPage() {
 									name: 'Endurance Champion',
 									percentage: 0,
 									recipients: 1,
-									rewards: ['Total Bids × 10 CST', '1 Cosmic Signature NFT'],
+									rewards: ['Total Gestures × 10 CST', '1 Cosmic Signature NFT'],
 									color: 'accent'
 								},
 								{
-									name: 'Last CST Bidder',
+									name: 'Last CST Participant',
 									percentage: 0,
 									recipients: 1,
-									rewards: ['Total Bids × 10 CST', '1 Cosmic Signature NFT'],
+									rewards: ['Total Gestures × 10 CST', '1 Cosmic Signature NFT'],
 									color: 'success',
-									note: 'Only if CST bids were placed'
+									note: 'Only if CST gestures were placed'
 								},
 								{
 									name: 'Chrono-Warrior',
@@ -662,31 +662,31 @@ export default function HowItWorksPage() {
 									color: 'info'
 								},
 								{
-									name: 'Raffle - ETH Prizes',
+									name: 'Stellar Selection - ETH Allocations',
 									percentage: dashboardData?.RafflePercentage || 0,
 									recipients: dashboardData?.NumRaffleEthWinnersBidding || 0,
-									rewards: [`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} random bidders`],
+									rewards: [`${dashboardData?.RafflePercentage || 0}% of ETH split among ${dashboardData?.NumRaffleEthWinnersBidding || 0} random participants`],
 									color: 'warning'
 								},
 								{
-									name: 'Raffle - NFT Prizes',
+									name: 'Stellar Selection - NFT Allocations',
 									percentage: 0,
 									recipients: (dashboardData?.NumRaffleNFTWinnersBidding || 0) + (dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0),
 									rewards: [
-										`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to random bidders`,
-										`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to random RW NFT stakers`
+										`${dashboardData?.NumRaffleNFTWinnersBidding || 0} Cosmic Signature NFTs to random participants`,
+										`${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} Cosmic Signature NFTs to random RW NFT anchor-holders`
 									],
 									color: 'warning'
 								},
 								{
-									name: 'NFT Stakers',
+									name: 'NFT Anchor-holders',
 									percentage: dashboardData?.StakingPercentage || 0,
 									recipients: 'All',
 									rewards: [`${dashboardData?.StakingPercentage || 0}% of ETH distributed proportionally`],
 									color: 'success'
 								},
 								{
-									name: 'Charity',
+									name: 'Public Goods',
 									percentage: dashboardData?.CharityPercentage || 0,
 									recipients: 1,
 									rewards: [`${dashboardData?.CharityPercentage || 0}% of ETH to charitable causes`],
@@ -713,8 +713,8 @@ export default function HowItWorksPage() {
 												<Badge variant="outline">
 													{prize.recipients}{' '}
 													{typeof prize.recipients === 'number' && prize.recipients > 1
-														? 'Winners'
-														: 'Winner'}
+														? 'Recipients'
+														: 'Recipient'}
 												</Badge>
 											)}
 										</div>
@@ -768,34 +768,34 @@ export default function HowItWorksPage() {
 									'Dutch auctions reward patience - prices decrease over time',
 									'But waiting too long means others might outbid you',
 									'Monitor the auction progress bar closely',
-									'Consider gas fees when deciding bid timing'
+									'Consider gas fees when deciding gesture timing'
 								]
 							},
 							{
 								title: 'CST Token Strategy',
 								tips: [
-									`Every bid earns you ${cstRewardAmount} CST tokens`,
-									`Wait for CST price to drop below ${cstRewardAmount} for profitable bids`,
+									`Every gesture earns you ${cstRewardAmount} CST tokens`,
+									`Wait for CST price to drop below ${cstRewardAmount} for profitable gestures`,
 									'Use slippage protection to avoid overpaying',
-									'CST bids are burned, so manage your token balance'
+									'CST gestures are burned, so manage your token balance'
 								]
 							},
 							{
 								title: 'Random Walk NFTs',
 								tips: [
-									'Only use on high-value bids (50% savings)',
+									'Only use on high-value gestures (50% savings)',
 									'Each NFT is permanently consumed when used',
-									'Cannot be used for staking after bidding',
+									'Cannot be used for anchoring after gesturing',
 									'Plan carefully - this decision is irreversible'
 								]
 							},
 							{
-								title: 'Multiple Prize Paths',
+								title: 'Multiple Allocation Paths',
 								tips: [
-									"Don't just chase main prize - other prizes are valuable",
+									"Don't just chase main allocation - other allocations are valuable",
 									'Endurance Champion requires holding position longest',
-									'Raffle prizes are random - every bid increases odds',
-									'Stake NFTs for passive income between rounds'
+									'Stellar Selection allocations are random - every gesture increases odds',
+									'Anchor NFTs for passive income between cycles'
 								]
 							}
 						].map((section, index) => (

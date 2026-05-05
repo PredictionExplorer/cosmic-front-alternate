@@ -27,6 +27,7 @@ import { defaultChain } from "@/lib/web3/chains";
 import { shouldUseRpcProxy } from "@/lib/web3/transport";
 import { useApiNetwork } from "@/hooks/useApiNetwork";
 import { NetworkSwitchGuard } from "@/components/web3/NetworkSwitchGuard";
+import { getClientBuildInfo } from "@/lib/buildInfo";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -123,6 +124,11 @@ function TanStackQueryErrorLogger() {
 
 function StartupConfigLog() {
   useEffect(() => {
+    const showConfigLog =
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+    if (!showConfigLog) return;
+
     const chainId = getDefaultChainId();
     const rpcUrl = defaultChain.rpcUrls.default.http[0] ?? "";
     const apiUrl = getCosmicApiBaseUrl();
@@ -134,12 +140,19 @@ function StartupConfigLog() {
         ? `${window.location.origin}/api/rpc → ${rpcUrl}`
         : rpcUrl;
 
+    const build = getClientBuildInfo();
+    const buildLines =
+      build != null
+        ? `\n  Build: ${build.shortSha}${build.ref ? ` (${build.ref})` : ""}\n  Commit: ${build.fullSha}`
+        : "";
+
     console.log(
       "[Cosmic Signature] Config:\n" +
         `  Network: ${networkEnv}\n` +
         `  Chain ID: ${chainId}\n` +
         `  RPC URL: ${rpcDisplay}\n` +
-        `  API URL: ${apiUrl}`,
+        `  API URL: ${apiUrl}` +
+        buildLines,
     );
   }, []);
 

@@ -4,8 +4,8 @@
  * Properly decodes Solidity custom errors using the contract ABI
  */
 
-import { decodeErrorResult } from 'viem';
-import type { Abi, Hex } from 'viem';
+import { decodeErrorResult, formatEther, parseAbi } from 'viem';
+import type { Abi, Address, Hex } from 'viem';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
 import PrizesWalletABI from '@/contracts/PrizesWallet.json';
 import StakingWalletCSTABI from '@/contracts/StakingWalletCosmicSignatureNft.json';
@@ -20,6 +20,12 @@ const CONTRACT_ABIS: Record<string, Abi> = {
   StakingWalletCST: StakingWalletCSTABI as Abi,
   StakingWalletRWLK: StakingWalletRWLKABI as Abi,
 };
+
+/** OZ IERC20 errors bubbled from CST `transferFrom` during `bidWithCst` — not listed on CosmicGame ABI, so viem otherwise reports "unknown signature". */
+const IERC20_ERRORS_ABI = parseAbi([
+  'error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)',
+  'error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)',
+]) as Abi;
 
 /**
  * Decode contract error and extract user-friendly message
@@ -83,13 +89,18 @@ export function decodeContractError(error: unknown): string | null {
           }
         }
 
-        // If no message in args, check if decoded has errorName property
-        // and return a friendly version
+        // If no message in args, map known game error names (avoid breaking acronyms like ERC20)
         if (decoded.errorName) {
-          // Convert camelCase to spaces and capitalize
-          const friendlyName = decoded.errorName
-            .replace(/([A-Z])/g, ' $1')
-            .trim();
+          const byName: Record<string, string> = {
+            RoundIsInactive: 'The current cycle has not started yet',
+            InsufficientReceivedBidAmount:
+              'Insufficient amount sent for gesture. Price may have increased.',
+            TooLongBidMessage: 'Gesture message is too long (max 280 characters)',
+          };
+          if (byName[decoded.errorName]) {
+            return byName[decoded.errorName];
+          }
+          const friendlyName = decoded.errorName.replace(/([A-Z])/g, ' $1').trim();
           console.log('Returning friendly error name:', friendlyName);
           return friendlyName;
         }
@@ -100,6 +111,23 @@ export function decodeContractError(error: unknown): string | null {
       // This ABI doesn't have this error, try next one
       continue;
     }
+  }
+
+  try {
+    const decoded = decodeErrorResult({
+      abi: IERC20_ERRORS_ABI,
+      data: hexData as Hex,
+    });
+    if (decoded.errorName === 'ERC20InsufficientBalance') {
+      const [, balance, needed] = decoded.args as readonly [Address, bigint, bigint];
+      return `Insufficient CST for this gesture (you have ${formatEther(balance)} CST; at least ${formatEther(needed)} CST required).`;
+    }
+    if (decoded.errorName === 'ERC20InsufficientAllowance') {
+      const [, allowance, needed] = decoded.args as readonly [Address, bigint, bigint];
+      return `Insufficient CST allowance for the game contract (allowance ${formatEther(allowance)} CST, need ${formatEther(needed)} CST). Approve CST spending on Cosmic Game and try again.`;
+    }
+  } catch {
+    // not an OZ ERC20 error
   }
 
   console.log('Failed to decode error with any ABI');

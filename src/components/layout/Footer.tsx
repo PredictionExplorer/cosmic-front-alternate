@@ -1,9 +1,14 @@
 import Link from 'next/link';
 import { Container } from '../ui/Container';
 import { Github, Twitter, MessageCircle } from 'lucide-react';
+import { getClientBuildInfo, isVercelProductionDeploy } from '@/lib/buildInfo';
 
 export function Footer() {
 	const currentYear = new Date().getFullYear();
+	const build = getClientBuildInfo();
+	const showBuild =
+		build &&
+		(!isVercelProductionDeploy() || process.env.NEXT_PUBLIC_SHOW_BUILD_COMMIT === "1");
 
 	return (
 		<footer className="bg-background-surface">
@@ -82,7 +87,7 @@ export function Footer() {
 										href="/stake"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Stake NFTs
+										Anchor NFTs
 									</Link>
 								</li>
 							</ul>
@@ -113,7 +118,7 @@ export function Footer() {
 										href="/game/prizes"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Prize Structure
+										Allocation Structure
 									</Link>
 								</li>
 								<li>
@@ -169,10 +174,10 @@ export function Footer() {
 								</li>
 								<li>
 									<Link
-										href="/donations"
+										href="/contributions"
 										className="text-sm text-text-secondary hover:text-primary transition-colors duration-500"
 									>
-										Donations
+										Contributions
 									</Link>
 								</li>
 							</ul>
@@ -182,9 +187,21 @@ export function Footer() {
 					{/* Bottom bar */}
 					<div className="mt-16 pt-8 border-t border-text-muted/10">
 						<div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-							<p className="text-[11px] tracking-[0.1em] uppercase text-text-muted">
-								&copy; {currentYear} Cosmic Signature
-							</p>
+							<div className="flex flex-col items-center gap-1 md:items-start">
+								<p className="text-[11px] tracking-[0.1em] uppercase text-text-muted">
+									&copy; {currentYear} Cosmic Signature
+								</p>
+								{showBuild ? (
+									<p
+										data-testid="build-commit"
+										className="font-mono text-[10px] text-text-muted/70"
+										title={`${build.fullSha}${build.ref ? ` (${build.ref})` : ""}`}
+									>
+										{build.shortSha}
+										{build.ref ? ` · ${build.ref}` : ""}
+									</p>
+								) : null}
+							</div>
 							<div className="flex space-x-8">
 								<Link
 									href="/terms"

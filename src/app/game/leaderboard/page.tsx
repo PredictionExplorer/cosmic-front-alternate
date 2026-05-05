@@ -31,8 +31,8 @@ type BidItem = Pick<ComponentBidData, 'BidderAddr' | 'BidPriceEth'>;
 
 export default function LeaderboardPage() {
   const [timeframe, setTimeframe] = useState<"all-time" | "current">("all-time");
-  const [category, setCategory] = useState<"prizes" | "bids" | "spending">(
-    "prizes"
+  const [category, setCategory] = useState<"allocations" | "gestures" | "spending">(
+    "allocations"
   );
   // Current round number from global context
   const { dashboardData } = useApiData();
@@ -48,7 +48,7 @@ export default function LeaderboardPage() {
         ? await api.getBidListByRound(currentRound)
         : await api.getBidList();
 
-      if (category === "prizes") {
+      if (category === "allocations") {
         const winners = await api.getUniqueWinners();
 
         if (timeframe === "current" && currentRound > 0) {
@@ -83,14 +83,14 @@ export default function LeaderboardPage() {
 
           result = sorted
             .slice(0, 50)
-            .map((winner: Record<string, unknown>, index: number) => ({
+            .map((recipient: Record<string, unknown>, index: number) => ({
               rank: index + 1,
-              address: (winner.WinnerAddr as string) || "0x0",
-              value: (winner.PrizesCount as number) || 0,
-              nftsWon: (winner.PrizesCount as number) || 0,
+              address: (recipient.WinnerAddr as string) || "0x0",
+              value: (recipient.PrizesCount as number) || 0,
+              nftsWon: (recipient.PrizesCount as number) || 0,
             }));
         }
-      } else if (category === "bids") {
+      } else if (category === "gestures") {
         const bidderCounts = bids.reduce((acc: Record<string, number>, bid: BidItem) => {
           const addr = bid.BidderAddr;
           if (addr) {
@@ -183,7 +183,7 @@ export default function LeaderboardPage() {
           >
             <h1 className="heading-xl text-balance mb-6">Leaderboard</h1>
             <p className="body-xl">
-              Discover the top players, biggest winners, and most active
+              Discover the top players, biggest recipients, and most active
               participants in Cosmic Signature
             </p>
           </motion.div>
@@ -214,31 +214,31 @@ export default function LeaderboardPage() {
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Current Round
+                Current Cycle
               </button>
             </div>
 
             {/* Category Selector */}
             <div className="flex p-1 rounded-lg bg-background-elevated border border-text-muted/10">
               <button
-                onClick={() => setCategory("prizes")}
+                onClick={() => setCategory("allocations")}
                 className={`px-4 py-2 rounded-md font-medium transition-all ${
-                  category === "prizes"
+                  category === "allocations"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Prizes Won
+                Allocations Won
               </button>
               <button
-                onClick={() => setCategory("bids")}
+                onClick={() => setCategory("gestures")}
                 className={`px-4 py-2 rounded-md font-medium transition-all ${
-                  category === "bids"
+                  category === "gestures"
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-primary"
                 }`}
               >
-                Most Bids
+                Most Gestures
               </button>
               <button
                 onClick={() => setCategory("spending")}
@@ -302,17 +302,17 @@ export default function LeaderboardPage() {
                     </h3>
                   </Link>
                   <p className="font-mono text-2xl font-bold text-accent-platinum mb-2">
-                    {category === "prizes"
+                    {category === "allocations"
                       ? leaderboardData[1]?.value || 0
-                      : category === "bids"
+                      : category === "gestures"
                       ? leaderboardData[1]?.value || 0
                       : `${formatEth(leaderboardData[1]?.value || 0)} ETH`}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    {category === "prizes"
-                      ? "Prizes Won"
-                      : category === "bids"
-                      ? "Bids Placed"
+                    {category === "allocations"
+                      ? "Allocations Won"
+                      : category === "gestures"
+                      ? "Gestures Placed"
                       : "Total Spent"}
                   </p>
                 </Card>
@@ -343,17 +343,17 @@ export default function LeaderboardPage() {
                     </h3>
                   </Link>
                   <p className="font-mono text-3xl font-bold text-primary mb-3">
-                    {category === "prizes"
+                    {category === "allocations"
                       ? leaderboardData[0]?.value || 0
-                      : category === "bids"
+                      : category === "gestures"
                       ? leaderboardData[0]?.value || 0
                       : `${formatEth(leaderboardData[0]?.value || 0)} ETH`}
                   </p>
                   <p className="text-sm text-text-secondary">
-                    {category === "prizes"
-                      ? "Prizes Won"
-                      : category === "bids"
-                      ? "Bids Placed"
+                    {category === "allocations"
+                      ? "Allocations Won"
+                      : category === "gestures"
+                      ? "Gestures Placed"
                       : "Total Spent"}
                   </p>
                 </Card>
@@ -388,17 +388,17 @@ export default function LeaderboardPage() {
                     </h3>
                   </Link>
                   <p className="font-mono text-2xl font-bold text-status-warning mb-2">
-                    {category === "prizes"
+                    {category === "allocations"
                       ? leaderboardData[2]?.value || 0
-                      : category === "bids"
+                      : category === "gestures"
                       ? leaderboardData[2]?.value || 0
                       : `${formatEth(leaderboardData[2]?.value || 0)} ETH`}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    {category === "prizes"
-                      ? "Prizes Won"
-                      : category === "bids"
-                      ? "Bids Placed"
+                    {category === "allocations"
+                      ? "Allocations Won"
+                      : category === "gestures"
+                      ? "Gestures Placed"
                       : "Total Spent"}
                   </p>
                 </Card>
@@ -422,10 +422,10 @@ export default function LeaderboardPage() {
           <Card glass>
             <CardHeader>
               <CardTitle>
-                {category === "prizes"
-                  ? "Top Prize Winners"
-                  : category === "bids"
-                  ? "Most Active Bidders"
+                {category === "allocations"
+                  ? "Top Allocation Recipients"
+                  : category === "gestures"
+                  ? "Most Active Participants"
                   : "Top Spenders"}
               </CardTitle>
             </CardHeader>
@@ -441,10 +441,10 @@ export default function LeaderboardPage() {
                         Player
                       </th>
                       <th className="p-4 text-right text-sm font-medium text-text-secondary">
-                        {category === "prizes"
-                          ? "Number of Prizes"
-                          : category === "bids"
-                          ? "Total Bids"
+                        {category === "allocations"
+                          ? "Number of Allocations"
+                          : category === "gestures"
+                          ? "Total Gestures"
                           : "Total Spent"}
                       </th>
                     </tr>
@@ -500,9 +500,9 @@ export default function LeaderboardPage() {
                             </td>
                             <td className="p-4 text-right">
                               <p className="font-mono font-semibold text-primary">
-                                {category === "prizes"
+                                {category === "allocations"
                                   ? entry.value || 0
-                                  : category === "bids"
+                                  : category === "gestures"
                                   ? entry.value || 0
                                   : `${formatEth(entry.value || 0)} ETH`}
                               </p>

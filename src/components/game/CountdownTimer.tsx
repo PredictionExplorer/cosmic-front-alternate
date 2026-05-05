@@ -54,11 +54,11 @@ export function CountdownTimer({ targetSeconds, onComplete, size = 'md', showIco
 	};
 
 	return (
-		<div className="flex items-center space-x-2">
+		<div className="flex flex-nowrap items-center gap-2 whitespace-nowrap">
 			{showIcon && (
 				<Clock
 					size={iconSizes[size]}
-					className={`${
+					className={`shrink-0 ${
 						isCritical
 							? 'text-status-error animate-pulse'
 							: isUrgent
@@ -68,7 +68,7 @@ export function CountdownTimer({ targetSeconds, onComplete, size = 'md', showIco
 				/>
 			)}
 			<div
-				className={`font-mono font-semibold ${sizeClasses[size]} ${
+				className={`shrink-0 font-mono font-semibold tabular-nums ${sizeClasses[size]} ${
 					isCritical ? 'text-status-error animate-pulse' : isUrgent ? 'text-status-warning' : 'text-primary'
 				}`}
 			>

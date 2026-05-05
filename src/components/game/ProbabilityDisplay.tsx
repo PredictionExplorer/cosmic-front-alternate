@@ -113,7 +113,7 @@ export function ProbabilityDisplay() {
               {raffleEthAmount.toFixed(4)} ETH
             </div>
             <div className="text-text-muted text-xs mt-1">
-              (ETH Raffle Prize)
+              (ETH Stellar Selection Allocation)
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export function ProbabilityDisplay() {
               Cosmic Signature
             </div>
             <div className="text-text-muted text-xs mt-1">
-              (NFT Raffle Prize)
+              (NFT Stellar Selection Allocation)
             </div>
           </div>
         </div>
@@ -149,7 +149,7 @@ export function ProbabilityDisplay() {
               {dashboardData?.NumRaffleNFTWinnersBidding || 0} NFT winners will
               be selected
             </p>
-            <p>More bids = Higher chances of winning!</p>
+            <p>More gestures = Higher chances of winning!</p>
           </div>
         </div>
 
