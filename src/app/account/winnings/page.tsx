@@ -704,7 +704,7 @@ export default function MyWinningsPage() {
               <Trophy className="mx-auto mb-4 text-text-muted" size={64} />
               <h1 className="heading-sm mb-4">Connect Your Wallet</h1>
               <p className="text-text-secondary">
-                Please connect your wallet to view and claim your prizes
+                Please connect your wallet to view and claim your allocations
               </p>
             </Card>
           </Container>
@@ -722,7 +722,7 @@ export default function MyWinningsPage() {
               className="animate-spin mx-auto mb-4 text-primary"
               size={48}
             />
-            <p className="text-text-secondary">Loading your prizes...</p>
+            <p className="text-text-secondary">Loading your allocations...</p>
           </Card>
         </Container>
       </div>
@@ -830,7 +830,7 @@ export default function MyWinningsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {totalEthToClaim > 0 && (
                     <Card glass className="p-4">
-                      <p className="text-sm text-text-secondary mb-1">Raffle ETH</p>
+                      <p className="text-sm text-text-secondary mb-1">Stellar Selection ETH</p>
                       <p className="font-mono text-xl font-semibold text-primary">
                         {totalEthToClaim.toFixed(6)} ETH
                       </p>
@@ -846,7 +846,7 @@ export default function MyWinningsPage() {
                   )}
                   {totalStakingRewards > 0 && (
                     <Card glass className="p-4">
-                      <p className="text-sm text-text-secondary mb-1">Staking Rewards</p>
+                      <p className="text-sm text-text-secondary mb-1">Anchoring Rewards</p>
                       <p className="font-mono text-xl font-semibold text-status-success">
                         {totalStakingRewards.toFixed(6)} ETH
                       </p>
@@ -890,7 +890,7 @@ export default function MyWinningsPage() {
         </section>
       )}
 
-      {/* Claimable ETH Rewards (Raffle) */}
+      {/* Claimable ETH Rewards (Stellar Selection) */}
       <section className="py-12">
         <Container>
           <h2 className="font-serif text-3xl font-semibold text-text-primary mb-6">
@@ -941,7 +941,7 @@ export default function MyWinningsPage() {
                 </Card>
               )}
 
-              {/* Raffle Winnings Table */}
+              {/* Stellar Selection ETH winnings table */}
               <Card glass className="overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -990,7 +990,7 @@ export default function MyWinningsPage() {
                                 href={`/game/history/rounds/${winning.RoundNum}`}
                               >
                                 <Badge variant="default">
-                                  Round {winning.RoundNum}
+                                  Cycle {winning.RoundNum}
                                 </Badge>
                               </Link>
                             </td>
@@ -1090,13 +1090,13 @@ export default function MyWinningsPage() {
         </Container>
       </section>
 
-      {/* CST Staking Rewards */}
+      {/* CST Anchoring Rewards */}
       {stakingRewards.length > 0 && (
         <section className="py-12 bg-background-surface/50">
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Claimable CST Staking Rewards
+                Claimable CST Anchoring Rewards
               </h2>
               {stakingRewards.length > 0 && (
                 <Button
@@ -1123,11 +1123,11 @@ export default function MyWinningsPage() {
                 />
                 <div className="text-sm text-text-secondary">
                   <p className="font-semibold text-text-primary mb-1">
-                    How staking rewards work:
+                    How anchoring rewards work:
                   </p>
                   <p>
-                    When you unstake your NFTs, the pending rewards will be automatically 
-                    transferred to your wallet. Use &quot;Claim All&quot; to unstake all deposits 
+                    When you release your NFTs, the pending rewards will be automatically 
+                    transferred to your wallet. Use &quot;Claim All&quot; to release all deposits 
                     and claim all rewards at once.
                   </p>
                 </div>
@@ -1214,7 +1214,7 @@ export default function MyWinningsPage() {
                     </div>
                     <div>
                       <p className="text-sm text-text-secondary mb-1">
-                        Your NFTs Staked
+                        Your NFTs Anchored
                       </p>
                       <p className="font-mono text-lg font-bold text-text-primary">
                         {stakingRewards.reduce((sum, r) => sum + r.YourTokensStaked, 0)}
@@ -1317,7 +1317,7 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Donated NFTs
+                Contributed NFTs
               </h2>
               {unclaimedNFTs.length > 0 && (
                 <Button
@@ -1382,7 +1382,7 @@ export default function MyWinningsPage() {
                         <td className="px-6 py-4 text-center">
                           <Link href={`/game/history/rounds/${nft.RoundNum}`}>
                             <Badge variant="default">
-                              Round {nft.RoundNum}
+                              Cycle {nft.RoundNum}
                             </Badge>
                           </Link>
                         </td>
@@ -1491,7 +1491,7 @@ export default function MyWinningsPage() {
           <Container>
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-3xl font-semibold text-text-primary">
-                Donated ERC20 Tokens
+                Contributed ERC20 Tokens
               </h2>
               {unclaimedERC20.length > 0 && (
                 <Button
@@ -1545,7 +1545,7 @@ export default function MyWinningsPage() {
                         </td>
                         <td className="px-6 py-4 text-center">
                           <Badge variant="default">
-                            Round {token.RoundNum}
+                            Cycle {token.RoundNum}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right font-mono text-text-primary">

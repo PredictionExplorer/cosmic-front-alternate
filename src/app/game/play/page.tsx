@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { explorer } from '@/lib/web3/chains';
 import { motion } from "framer-motion";
 import { Trophy, AlertCircle, Loader2, ChevronDown, X, Timer } from "lucide-react";
@@ -26,6 +27,7 @@ import { api } from "@/services/api";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
 export default function PlayPage() {
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const contractAddrs = useContractAddresses();
   const { read, transactionHash } = useCosmicGame();
@@ -364,9 +366,15 @@ export default function PlayPage() {
       return;
     }
 
+    const claimedCycle =
+      roundNum !== undefined && roundNum !== null && Number.isFinite(roundNum) ? roundNum : null;
     const success = await claimMainPrize();
     if (success) {
-      setTimeout(() => refreshDashboard(), 2000);
+      if (claimedCycle !== null && claimedCycle >= 0) {
+        router.push(`/game/claim-success?cycle=${claimedCycle}`);
+      } else {
+        setTimeout(() => refreshDashboard(), 2000);
+      }
     }
   };
 
@@ -392,20 +400,20 @@ export default function PlayPage() {
           <Container>
             <div className="flex items-center justify-center gap-2 text-sm font-semibold">
               <AlertCircle size={16} />
-              Cosmic Signature is not deployed on this network. Please switch your wallet to the correct network before placing bids.
+              Cosmic Signature is not deployed on this network. Please switch your wallet to the correct network before placing gestures.
             </div>
           </Container>
         </div>
       )}
 
-      {/* Compact Header with Round Info — scroll-mt aligns with fixed site header when using in-page anchors */}
+      {/* Compact header: extra top padding so large cycle title isn’t clipped under the fixed nav */}
       <section className="scroll-mt-24 py-6 sm:py-7 bg-background-surface/50 border-b border-text-muted/10">
         <Container>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-start md:items-center">
             {/* Left: Round Number */}
             <div>
               <div className="text-4xl font-bold font-serif text-gradient mb-2">
-                Round {currentRound.roundNumber}
+                Cycle {currentRound.roundNumber}
               </div>
               <div className="flex items-center gap-2">
                 {!hasRoundData ? (
@@ -416,7 +424,7 @@ export default function PlayPage() {
                   <Badge variant="success">Active</Badge>
                 )}
                 <span className="text-sm text-text-muted">
-                  {currentRound.totalBids} bid{currentRound.totalBids !== 1 ? 's' : ''}
+                  {currentRound.totalBids} gesture{currentRound.totalBids !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
@@ -425,12 +433,12 @@ export default function PlayPage() {
             <div className="flex justify-center">
               {!hasRoundData ? (
                 <div className="text-center">
-                  <div className="text-sm text-text-muted mb-2">Loading Round Data...</div>
+                  <div className="text-sm text-text-muted mb-2">Loading Cycle Data...</div>
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 </div>
               ) : !isRoundActive && timeUntilRoundStarts > 0 ? (
                 <div className="text-center">
-                  <div className="text-base font-semibold text-status-info mb-2 uppercase tracking-wider">Round Starts In</div>
+                  <div className="text-base font-semibold text-status-info mb-2 uppercase tracking-wider">Cycle Starts In</div>
                   <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
                 </div>
               ) : timeRemaining > 0 ? (
@@ -440,18 +448,18 @@ export default function PlayPage() {
             
             {/* Right: Prize Pool */}
             <div className="text-right">
-              <div className="text-sm text-text-secondary mb-1">Prize Pool</div>
+              <div className="text-sm text-text-secondary mb-1">Allocation Pool</div>
               <div className="text-2xl font-serif font-bold text-gradient">
                 {formatEth(dashboardData?.PrizeAmountEth || 0)} ETH
               </div>
             </div>
           </div>
           
-          {/* Last Bidder Info */}
+          {/* Last participant info */}
           {lastBidder && lastBidder !== "0x0000000000000000000000000000000000000000" && (
             <div className="mt-4 pt-4 border-t border-text-muted/10">
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-text-secondary">Last Bidder:</span>
+                <span className="text-text-secondary">Last Participant:</span>
                 <span className="font-mono text-primary">{lastBidder}</span>
                 {lastBidMessage && (
                   <>
@@ -477,7 +485,7 @@ export default function PlayPage() {
               <div className="inline-flex items-center space-x-2 mb-4">
                 <Trophy size={32} className="text-primary animate-pulse" />
                 <h2 className="text-3xl font-serif font-bold text-primary">
-                  Claim Your Main Prize!
+                  Claim Your Main Allocation!
                 </h2>
                 <Trophy size={32} className="text-primary animate-pulse" />
               </div>
@@ -494,7 +502,7 @@ export default function PlayPage() {
                   </>
                 ) : (
                   <>
-                    The countdown has ended and you are the last bidder. Claim
+                    The countdown has ended and you are the last participant. Claim
                     your prize now to receive{" "}
                   </>
                 )}
@@ -520,7 +528,7 @@ export default function PlayPage() {
                     className="shadow-luxury-lg animate-pulse w-full"
                 >
                   <Trophy className="mr-2" size={24} />
-                  Claim Main Prize
+                  Claim Main Allocation
                 </Button>
                   {timeRemaining > 0 && timeRemaining <= 5 && (
                     <p className="text-xs text-status-info text-center">
@@ -532,7 +540,7 @@ export default function PlayPage() {
               {!claimTimeoutExpired && (
                 <p className="text-xs text-text-muted mt-4">
                   Important: You have 1 day to claim. After that, anyone can
-                  claim and receive your prize.
+                  claim and receive your allocation.
                 </p>
               )}
             </motion.div>
@@ -544,12 +552,12 @@ export default function PlayPage() {
       <section className="py-12">
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Bid Form */}
+            {/* Left column: gesture form */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Bid Type Selector */}
+              {/* Gesture type selector */}
               <Card glass>
                 <CardHeader>
-                  <CardTitle>Place Your Bid</CardTitle>
+                  <CardTitle>Place Your Gesture</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* ETH or CST Toggle */}
@@ -565,7 +573,7 @@ export default function PlayPage() {
                           : "text-text-secondary hover:text-primary"
                       }`}
                     >
-                      ETH Bid
+                      ETH Gesture
                     </button>
                     <button
                       onClick={() => setBidType("CST")}
@@ -577,11 +585,11 @@ export default function PlayPage() {
                           ? "text-text-muted opacity-50 cursor-not-allowed"
                           : "text-text-secondary hover:text-primary"
                       }`}
-                      title={numBids === 0 ? "First bid must be ETH" : !isRoundActive ? "Round not active yet" : ""}
+                      title={numBids === 0 ? "First gesture must be ETH" : !isRoundActive ? "Cycle not active yet" : ""}
                     >
-                      CST Bid
+                      CST Gesture
                       {numBids === 0 && (
-                        <span className="text-xs block font-semibold text-status-warning">(First bid must be ETH)</span>
+                        <span className="text-xs block font-semibold text-status-warning">(First gesture must be ETH)</span>
                       )}
                     </button>
                   </div>
@@ -591,7 +599,7 @@ export default function PlayPage() {
                       {/* Current ETH Price */}
                       <div className="space-y-2">
                         <label className="text-sm text-text-secondary">
-                          Current Bid Price
+                          Current Gesture Price
                         </label>
                         <div className="flex items-baseline space-x-2">
                           <span className="font-mono text-4xl font-semibold text-primary">
@@ -690,7 +698,7 @@ export default function PlayPage() {
                                 {selectedNftId !== null ? (
                                   <div className="p-3 rounded-lg bg-status-info/10 border border-status-info/20">
                                     <p className="text-xs text-text-primary font-medium">
-                                      You have selected token #{Number(selectedNftId)} to get 50% discount in bid price
+                                      You have selected token #{Number(selectedNftId)} to get 50% discount in gesture price
                                     </p>
                                   </div>
                                 ) : (
@@ -716,19 +724,19 @@ export default function PlayPage() {
                       {/* Current CST Price */}
                       <div className="space-y-2">
                         <label className="text-sm text-text-secondary">
-                          Current CST Bid Price
+                          Current CST Gesture Price
                         </label>
                         <div className="flex items-baseline space-x-2">
                           {numBids === 0 ? (
                             <span className="font-mono text-2xl font-semibold text-status-warning">
-                              ETH bid required first
+                              ETH gesture required first
                             </span>
                           ) : cstBidPrice === 0 ? (
                             <>
                               <span className="font-mono text-4xl font-semibold text-status-success">
                                 FREE
                               </span>
-                              <span className="text-status-success">BID</span>
+                              <span className="text-status-success">GESTURE</span>
                             </>
                           ) : (
                             <>
@@ -741,9 +749,9 @@ export default function PlayPage() {
                         </div>
                         <p className="text-xs text-text-secondary">
                           {numBids === 0
-                            ? "The first bid in each round must be placed with ETH."
+                            ? "The first gesture in each cycle must be placed with ETH."
                             : cstBidPrice === 0
-                            ? "Dutch auction ended - Bid for free!"
+                            ? "Dutch auction ended — gesture for free!"
                             : "Price decreases to 0 over time"}
                         </p>
                       </div>
@@ -763,19 +771,19 @@ export default function PlayPage() {
                             className="w-full px-3 py-2.5 rounded-lg bg-background-elevated border border-text-muted/10 text-text-primary placeholder:text-text-muted focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all tabular-nums"
                           />
                           <p className="text-xs text-text-secondary">
-                            Your bid will revert if the price increases above
+                            Your gesture will revert if the price increases above
                             this limit
                           </p>
                         </div>
                       )}
 
-                      {/* Free Bid Info */}
+                      {/* Free CST gesture info */}
                       {cstBidPrice === 0 && (
                         <div className="p-4 rounded-lg bg-status-success/10 border border-status-success/20">
                           <p className="text-sm text-text-secondary text-center">
                             This is a{" "}
                             <span className="text-status-success font-semibold">
-                              free bid
+                              free gesture
                             </span>
                             ! No CST tokens required.
                           </p>
@@ -799,7 +807,7 @@ export default function PlayPage() {
                       }}
                       rows={3}
                       disabled={isTransactionPending}
-                      placeholder="Add a message with your bid..."
+                      placeholder="Add a message with your gesture..."
                       className={`w-full px-4 py-3 rounded-lg bg-background-elevated border ${
                         bidMessageError 
                           ? 'border-status-error' 
@@ -841,7 +849,7 @@ export default function PlayPage() {
                       <div className="space-y-4 p-4 rounded-lg bg-background-elevated border border-text-muted/10">
                         <p className="text-xs text-text-secondary">
                           Advanced options for price collision prevention and
-                          donations while bidding.
+                          contributions while gesturing.
                         </p>
 
                         {/* Price Collision Prevention */}
@@ -871,8 +879,8 @@ export default function PlayPage() {
                               </span>
                             </div>
                             <p className="text-xs text-text-secondary">
-                              Adds a buffer to prevent your bid from failing if
-                              someone bids simultaneously
+                              Adds a buffer to prevent your gesture from failing if
+                              someone gestures simultaneously
                             </p>
                           </div>
                         )}
@@ -880,7 +888,7 @@ export default function PlayPage() {
                         {/* Donation Type Selection */}
                         <div>
                           <label className="text-sm text-text-secondary font-medium mb-2 block">
-                            Donation Type (Optional)
+                            Contribution Type (Optional)
                           </label>
                           <div className="flex space-x-2">
                             <button
@@ -893,7 +901,7 @@ export default function PlayPage() {
                                   : "bg-background-surface text-text-secondary hover:text-primary"
                               }`}
                             >
-                              Donate NFT
+                              Contribute NFT
                             </button>
                             <button
                               type="button"
@@ -905,11 +913,11 @@ export default function PlayPage() {
                                   : "bg-background-surface text-text-secondary hover:text-primary"
                               }`}
                             >
-                              Donate ERC20
+                              Contribute ERC20
                             </button>
                           </div>
                           <p className="text-xs text-text-muted mt-2">
-                            Leave fields empty to skip donation
+                            Leave fields empty to skip contribution
                           </p>
                         </div>
 
@@ -996,7 +1004,7 @@ export default function PlayPage() {
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         </div>
                         <p className="text-sm text-text-secondary">
-                          Loading round activation data...
+                          Loading cycle activation data...
                         </p>
                       </div>
                     </div>
@@ -1004,13 +1012,13 @@ export default function PlayPage() {
                     <div className="p-6 rounded-lg bg-status-info/10 border border-status-info/20 mb-4">
                       <div className="text-center space-y-4">
                         <p className="text-sm font-semibold text-status-info">
-                          The current bidding round is not active yet.
+                          The current gesturing cycle is not active yet.
                         </p>
                         <div className="flex justify-center">
                           <CountdownTimer targetSeconds={timeUntilRoundStarts} size="lg" />
                         </div>
                         <p className="text-xs text-text-muted">
-                          Bidding will open when the countdown reaches zero
+                          Gesturing will open when the countdown reaches zero
                         </p>
                       </div>
                     </div>
@@ -1021,7 +1029,7 @@ export default function PlayPage() {
                     <div className="p-4 rounded-lg bg-status-warning/10 border border-status-warning/20">
                       <p className="text-sm text-text-secondary text-center">
                         <AlertCircle className="inline mr-2" size={16} />
-                        Please connect your wallet to place a bid
+                        Please connect your wallet to place a gesture
                       </p>
                     </div>
                   ) : isTransactionPending ? (
@@ -1032,12 +1040,12 @@ export default function PlayPage() {
                   ) : !hasRoundData ? (
                     <Button size="lg" className="w-full" disabled>
                       <Loader2 className="mr-2 animate-spin" size={20} />
-                      Loading Round Data...
+                      Loading Cycle Data...
                     </Button>
                   ) : !isRoundActive ? (
                     <Button size="lg" className="w-full" disabled>
                       <Timer className="mr-2" size={20} />
-                      Round Not Active - Wait for Countdown
+                      Cycle Not Active - Wait for Countdown
                     </Button>
                   ) : (
                     <Button
@@ -1046,7 +1054,7 @@ export default function PlayPage() {
                       onClick={bidType === "ETH" ? handleEthBid : handleCstBid}
                     >
                       <Trophy className="mr-2" size={20} />
-                      Place {bidType} Bid
+                      Place {bidType} Gesture
                       {bidType === "ETH" &&
                         ` (${discountedEthPrice.toFixed(6)} ETH)`}
                       {bidType === "CST" && cstBidPrice === 0 && " (FREE)"}
@@ -1063,7 +1071,7 @@ export default function PlayPage() {
                       <span className="text-status-success font-semibold">
                         {cstRewardAmount} CST
                       </span>{" "}
-                      tokens for placing this bid
+                      tokens for placing this gesture
                     </p>
                   </div>
 
@@ -1093,12 +1101,12 @@ export default function PlayPage() {
               {/* Price Stats */}
               <Card glass>
                 <CardHeader>
-                  <CardTitle>Bid Prices</CardTitle>
+                  <CardTitle>Gesture Prices</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
                     <p className="text-xs text-text-secondary mb-2 uppercase tracking-wide">
-                      ETH Bid
+                      ETH Gesture
                     </p>
                     <p className="font-mono text-2xl font-semibold text-primary">
                       {ethBidPrice.toFixed(6)} ETH
@@ -1117,7 +1125,7 @@ export default function PlayPage() {
                     }`}
                   >
                     <p className="text-xs text-text-secondary mb-2 uppercase tracking-wide">
-                      CST Bid
+                      CST Gesture
                     </p>
                     <p
                       className={`font-mono text-2xl font-semibold ${
@@ -1135,7 +1143,7 @@ export default function PlayPage() {
                         : `${cstBidPrice.toFixed(2)} CST`}
                     </p>
                     {numBids === 0 && (
-                      <p className="text-xs text-status-warning mt-1">First bid must be ETH</p>
+                      <p className="text-xs text-status-warning mt-1">First gesture must be ETH</p>
                     )}
                   </div>
                 </CardContent>
@@ -1144,12 +1152,12 @@ export default function PlayPage() {
               {/* Prize Breakdown */}
               <Card glass>
                 <CardHeader>
-                  <CardTitle>Prize Breakdown</CardTitle>
+                  <CardTitle>Allocation Breakdown</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
                     {
-                      label: "Main Prize",
+                      label: "Main Allocation",
                       value: `${(
                         currentRound.prizePool *
                         ((dashboardData?.PrizePercentage || 0) / 100)
@@ -1164,10 +1172,10 @@ export default function PlayPage() {
                       subtitle: "+ 1 NFT",
                     },
                     {
-                      label: "Last CST Bidder",
+                      label: "Last CST Participant",
                       value: `${currentRound.totalBids * 10} CST`,
                       percentage: "",
-                      subtitle: "+ 1 NFT (if CST bids placed)",
+                      subtitle: "+ 1 NFT (if CST gestures placed)",
                     },
                     {
                       label: "Chrono-Warrior",
@@ -1179,25 +1187,25 @@ export default function PlayPage() {
                       subtitle: "",
                     },
                     {
-                      label: `Raffle (${dashboardData?.NumRaffleEthWinnersBidding || 0} winners)`,
+                      label: `Stellar Selection (${dashboardData?.NumRaffleEthWinnersBidding || 0} recipients)`,
                       value: `${(
                         currentRound.prizePool *
                         ((dashboardData?.RafflePercentage || 0) / 100)
                       ).toFixed(4)} ETH`,
                       percentage: `${dashboardData?.RafflePercentage || 0}%`,
-                      subtitle: "Split among winners",
+                      subtitle: "Split among recipients",
                     },
                     {
-                      label: "Raffle NFTs",
+                      label: "Stellar Selection NFTs",
                       value: `${
                         (dashboardData?.NumRaffleNFTWinnersBidding || 0) +
                         (dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0)
                       } NFTs`,
                       percentage: "",
-                      subtitle: `${dashboardData?.NumRaffleNFTWinnersBidding || 0} to bidders, ${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} to stakers`,
+                      subtitle: `${dashboardData?.NumRaffleNFTWinnersBidding || 0} to participants, ${dashboardData?.NumRaffleNFTWinnersStakingRWalk || 0} to anchor-holders`,
                     },
                     {
-                      label: "NFT Stakers",
+                      label: "NFT Anchor-holders",
                       value: `${(
                         currentRound.prizePool *
                         ((dashboardData?.StakingPercentage || 0) / 100)
@@ -1206,7 +1214,7 @@ export default function PlayPage() {
                       subtitle: "Proportional distribution",
                     },
                     {
-                      label: "Charity",
+                      label: "Public Goods",
                       value: `${(
                         currentRound.prizePool *
                         ((dashboardData?.CharityPercentage || 0) / 100)
@@ -1270,7 +1278,7 @@ export default function PlayPage() {
                           >
                             comprehensive guide
                           </a>{" "}
-                          to understand bidding strategies and prize mechanics.
+                          to understand gesture strategies and prize mechanics.
                         </p>
                       </div>
                     </div>

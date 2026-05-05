@@ -92,9 +92,10 @@ export function decodeContractError(error: unknown): string | null {
         // If no message in args, map known game error names (avoid breaking acronyms like ERC20)
         if (decoded.errorName) {
           const byName: Record<string, string> = {
-            RoundIsInactive: 'The current round has not started yet',
-            InsufficientReceivedBidAmount: 'Insufficient amount sent for bid. Price may have increased.',
-            TooLongBidMessage: 'Bid message is too long (max 280 characters)',
+            RoundIsInactive: 'The current cycle has not started yet',
+            InsufficientReceivedBidAmount:
+              'Insufficient amount sent for gesture. Price may have increased.',
+            TooLongBidMessage: 'Gesture message is too long (max 280 characters)',
           };
           if (byName[decoded.errorName]) {
             return byName[decoded.errorName];
@@ -119,7 +120,7 @@ export function decodeContractError(error: unknown): string | null {
     });
     if (decoded.errorName === 'ERC20InsufficientBalance') {
       const [, balance, needed] = decoded.args as readonly [Address, bigint, bigint];
-      return `Insufficient CST for this bid (you have ${formatEther(balance)} CST; at least ${formatEther(needed)} CST required).`;
+      return `Insufficient CST for this gesture (you have ${formatEther(balance)} CST; at least ${formatEther(needed)} CST required).`;
     }
     if (decoded.errorName === 'ERC20InsufficientAllowance') {
       const [, allowance, needed] = decoded.args as readonly [Address, bigint, bigint];
