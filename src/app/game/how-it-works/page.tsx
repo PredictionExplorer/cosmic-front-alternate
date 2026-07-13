@@ -24,7 +24,8 @@ export default function HowItWorksPage() {
 	const { useCstRewardPerBid } = useCosmicGameRead();
 	const { data: cstRewardPerBid } = useCstRewardPerBid();
 	
-	const cstRewardAmount = cstRewardPerBid ? Number(cstRewardPerBid) / 1e18 : 0;
+	// V2 computes the reward dynamically (sqrt of time since last bid), so round for display.
+	const cstRewardAmount = cstRewardPerBid ? Math.round((Number(cstRewardPerBid) / 1e18) * 100) / 100 : 0;
 	return (
 		<div className="min-h-screen">
 			{/* Hero */}

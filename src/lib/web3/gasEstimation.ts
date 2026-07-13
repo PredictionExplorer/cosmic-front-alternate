@@ -25,7 +25,7 @@ export async function estimateContractGas(
     value?: bigint;
     account?: Address;
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; rawError?: unknown }> {
   try {
     // Use simulateContract to validate the transaction (catches contract-level reverts)
     await simulateContract(config, {
@@ -62,12 +62,13 @@ export async function estimateContractGas(
     console.log('Parsed error message:', friendlyError);
     
     if (friendlyError && friendlyError !== 'Transaction failed. Please try again.') {
-      return { success: false, error: friendlyError };
+      return { success: false, error: friendlyError, rawError: error };
     }
     
     return { 
       success: false, 
-      error: friendlyError || 'Transaction validation failed. Please check requirements.'
+      error: friendlyError || 'Transaction validation failed. Please check requirements.',
+      rawError: error
     };
   }
 }

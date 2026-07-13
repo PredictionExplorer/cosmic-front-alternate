@@ -91,7 +91,7 @@ export default function ContractsPage() {
 	const timeIncrease = mainPrizeTimeIncrementIncreaseDivisor ? 100 / Number(mainPrizeTimeIncrementIncreaseDivisor) : 0;
 
 	// Format token amounts
-	const cstRewardFormatted = cstRewardPerBid && typeof cstRewardPerBid === 'bigint' ? Number(formatEther(cstRewardPerBid)) : 0;
+	const cstRewardFormatted = cstRewardPerBid && typeof cstRewardPerBid === 'bigint' ? Math.round(Number(formatEther(cstRewardPerBid)) * 100) / 100 : 0;
 	const cstBeginningBidPriceFormatted = cstDutchAuctionBeginningBidPriceMinLimit && typeof cstDutchAuctionBeginningBidPriceMinLimit === 'bigint'
 		? Number(formatEther(cstDutchAuctionBeginningBidPriceMinLimit)) 
 		: 0;

@@ -267,8 +267,9 @@ export default function PlayPage() {
   const adjustedEthPrice = ethBidPrice * (1 + priceBuffer / 100);
   const discountedEthPrice = useRandomWalkNft ? adjustedEthPrice * 0.5 : adjustedEthPrice;
 
+  // V2 computes the reward dynamically (sqrt of time since last bid), so round for display.
   const cstRewardAmount = cstRewardPerBid
-    ? Number(cstRewardPerBid) / 1e18
+    ? Math.round((Number(cstRewardPerBid) / 1e18) * 100) / 100
     : 100;
 
   // Build donation object from form state

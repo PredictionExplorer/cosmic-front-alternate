@@ -96,6 +96,8 @@ export function decodeContractError(error: unknown): string | null {
             InsufficientReceivedBidAmount:
               'Insufficient amount sent for gesture. Price may have increased.',
             TooLongBidMessage: 'Gesture message is too long (max 280 characters)',
+            BidCstRewardAmountMinLimitNotReached:
+              'The CST reward for this gesture dropped below your minimum. Try again.',
           };
           if (byName[decoded.errorName]) {
             return byName[decoded.errorName];

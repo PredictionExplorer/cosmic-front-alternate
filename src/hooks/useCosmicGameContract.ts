@@ -12,6 +12,12 @@ import { Address, zeroAddress } from 'viem';
 import { useContractAddresses } from '@/hooks/useContractAddresses';
 import { defaultChain } from '@/lib/web3/chains';
 import CosmicGameABI from '@/contracts/CosmicGame.json';
+import {
+  BID_CST_REWARD_AMOUNT_MIN_LIMIT_V2,
+  bidArgsForV2,
+  pickBidWriteAbi,
+  type CosmicGameBidFunctionName,
+} from '@/lib/web3/cosmicGameContractCompat';
 
 /**
  * Hook for reading from the Cosmic Game contract
@@ -124,13 +130,26 @@ export function useCosmicGameRead() {
 			}),
 
 		/**
-		 * Get CST reward amount per bid
+		 * Get CST reward amount per bid.
+		 *
+		 * V2 contracts compute the reward dynamically (grows with time since the
+		 * last bid) via `getBidCstRewardAmount`. On V1 contracts that selector
+		 * doesn't exist, so we fall back to the fixed `cstRewardAmountForBidding`.
 		 */
-		useCstRewardPerBid: () =>
-			useReadContract({
+		useCstRewardPerBid: () => {
+			// The V2 reward grows with time since the last bid, so keep it fresh.
+			const v2 = useReadContract({
 				...contractConfig,
-				functionName: 'cstRewardAmountForBidding'
-			}),
+				functionName: 'getBidCstRewardAmount',
+				query: { enabled: queryEnabled, refetchInterval: 5000 }
+			});
+			const v1 = useReadContract({
+				...contractConfig,
+				functionName: 'cstRewardAmountForBidding',
+				query: { enabled: queryEnabled && v2.isError }
+			});
+			return v2.isError ? v1 : v2;
+		},
 
 		/**
 		 * Get maximum bid message length
@@ -197,6 +216,31 @@ export function useCosmicGameWrite() {
 		return contractConfig;
 	};
 
+	/**
+	 * Send a bid using the V2 argument shape (V2 appends `bidCstRewardAmountMinLimit_`
+	 * after the message; 0 = accept any CST reward). The ABI is narrowed to the single
+	 * matching overload since the merged ABI contains both V1 and V2 signatures.
+	 * Note: `usePlaceBid` is the preferred bid path — it also handles the V1 fallback.
+	 */
+	const writeBid = (
+		functionName: CosmicGameBidFunctionName,
+		v1Args: readonly unknown[],
+		options?: { value?: bigint; bidCstRewardAmountMinLimit?: bigint }
+	) => {
+		const args = bidArgsForV2(
+			functionName,
+			v1Args,
+			options?.bidCstRewardAmountMinLimit ?? BID_CST_REWARD_AMOUNT_MIN_LIMIT_V2
+		);
+		return writeContract({
+			...requireGameConfig(),
+			abi: pickBidWriteAbi(functionName, args),
+			functionName,
+			args,
+			...(options?.value !== undefined ? { value: options.value } : {})
+		});
+	};
+
 	return {
 		/**
 		 * Place an ETH bid
@@ -206,12 +250,7 @@ export function useCosmicGameWrite() {
 		 * @param value - ETH amount to send (in Wei)
 		 */
 		bidWithEth: (randomWalkNftId: bigint, message: string, value: bigint) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithEth',
-				args: [randomWalkNftId, message],
-				value
-			});
+			return writeBid('bidWithEth', [randomWalkNftId, message], { value });
 		},
 
 		/**
@@ -221,33 +260,21 @@ export function useCosmicGameWrite() {
 		 * @param message - Bid message
 		 */
 		bidWithCst: (priceMaxLimit: bigint, message: string) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithCst',
-				args: [priceMaxLimit, message]
-			});
+			return writeBid('bidWithCst', [priceMaxLimit, message]);
 		},
 
 		/**
 		 * Place a CST bid and donate an NFT
 		 */
 		bidWithCstAndDonateNft: (priceMaxLimit: bigint, message: string, nftAddress: Address, nftTokenId: bigint) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithCstAndDonateNft',
-				args: [priceMaxLimit, message, nftAddress, nftTokenId]
-			});
+			return writeBid('bidWithCstAndDonateNft', [priceMaxLimit, message, nftAddress, nftTokenId]);
 		},
 
 		/**
 		 * Place a CST bid and donate ERC20 tokens
 		 */
 		bidWithCstAndDonateToken: (priceMaxLimit: bigint, message: string, tokenAddress: Address, amount: bigint) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithCstAndDonateToken',
-				args: [priceMaxLimit, message, tokenAddress, amount]
-			});
+			return writeBid('bidWithCstAndDonateToken', [priceMaxLimit, message, tokenAddress, amount]);
 		},
 
 		/**
@@ -301,12 +328,7 @@ export function useCosmicGameWrite() {
 			nftId: bigint,
 			value: bigint
 		) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithEthAndDonateNft',
-				args: [randomWalkNftId, message, nftAddress, nftId],
-				value
-			});
+			return writeBid('bidWithEthAndDonateNft', [randomWalkNftId, message, nftAddress, nftId], { value });
 		},
 
 		/**
@@ -319,12 +341,7 @@ export function useCosmicGameWrite() {
 			amount: bigint,
 			value: bigint
 		) => {
-			return writeContract({
-				...requireGameConfig(),
-				functionName: 'bidWithEthAndDonateToken',
-				args: [randomWalkNftId, message, tokenAddress, amount],
-				value
-			});
+			return writeBid('bidWithEthAndDonateToken', [randomWalkNftId, message, tokenAddress, amount], { value });
 		},
 
 		/**

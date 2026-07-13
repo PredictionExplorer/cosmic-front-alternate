@@ -29,13 +29,14 @@ export function usePrizesWalletRead() {
 
 	return {
 		/**
-		 * Get user's ETH balance in prizes wallet
+		 * Get ETH prize balance in prizes wallet for a round
+		 * (caller's balance by default, or another winner's when address is given)
 		 */
-		useEthBalance: (address?: Address) =>
+		useEthBalance: (roundNum: bigint, address?: Address) =>
 			useReadContract({
 				...contractConfig,
-				functionName: address ? 'getEthBalanceInfo' : 'getEthBalanceInfo',
-				args: address ? [address] : undefined
+				functionName: 'getEthBalanceAmount',
+				args: address ? [roundNum, address] : [roundNum]
 			}),
 
 		/**

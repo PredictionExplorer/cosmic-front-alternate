@@ -18,7 +18,13 @@ import { parseContractError } from '@/lib/web3/errorHandling';
 import { estimateContractGas } from '@/lib/web3/gasEstimation';
 import { validateBidMessageLength } from '@/lib/web3/errorDecoder';
 import { getBufferedEip1559Fees } from '@/lib/web3/transactionFees';
-import CosmicGameABI from '@/contracts/CosmicGame.json';
+import {
+  bidArgsForV2,
+  isUnrecognizedSelectorError,
+  pickBidWriteAbi,
+  preferV2BidArgsFirst,
+  type CosmicGameBidFunctionName,
+} from '@/lib/web3/cosmicGameContractCompat';
 
 /** EIP-1559 fees with +25% buffer vs floating Arbitrum base fee */
 async function writeWithBufferedFees(args: {
@@ -37,6 +43,47 @@ async function writeWithBufferedFees(args: {
     value: args.value,
     ...(fees ?? {}),
   });
+}
+
+type BidCallValidation =
+  | { success: true; args: readonly unknown[]; abi: Abi }
+  | { success: false; error?: string };
+
+/**
+ * Simulate a bid with V2 args first (falling back to V1 on unrecognized selector)
+ * and return the argument shape + narrowed ABI slice that the contract accepts.
+ * V2 appends `bidCstRewardAmountMinLimit_` (0 = accept any CST reward) after the message.
+ */
+async function validateBidCall(params: {
+  address: `0x${string}`;
+  functionName: CosmicGameBidFunctionName;
+  v1Args: readonly unknown[];
+  value?: bigint;
+  account: `0x${string}`;
+}): Promise<BidCallValidation> {
+  const v2Args = bidArgsForV2(params.functionName, params.v1Args);
+  const attempts = preferV2BidArgsFirst() ? [v2Args, params.v1Args] : [params.v1Args, v2Args];
+
+  let lastError: string | undefined;
+  for (const args of attempts) {
+    const abi = pickBidWriteAbi(params.functionName, args);
+    const estimation = await estimateContractGas(wagmiConfig, {
+      address: params.address,
+      abi,
+      functionName: params.functionName,
+      args,
+      value: params.value,
+      account: params.account,
+    });
+    if (estimation.success) {
+      return { success: true, args, abi };
+    }
+    lastError = estimation.error;
+    if (!isUnrecognizedSelectorError(estimation.rawError)) {
+      return { success: false, error: estimation.error };
+    }
+  }
+  return { success: false, error: lastError };
 }
 
 interface DonationNft {
@@ -283,25 +330,24 @@ export function usePlaceBid(): PlaceBidResult {
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
-        const estimation = await estimateContractGas(wagmiConfig, {
+        const validation = await validateBidCall({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateNft',
-          args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
+          v1Args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
           value: finalValue,
           account: address,
         });
-        if (!estimation.success) {
-          showError(estimation.error || 'Transaction validation failed');
+        if (!validation.success) {
+          showError(validation.error || 'Transaction validation failed');
           return false;
         }
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
+          abi: validation.abi,
           functionName: 'bidWithEthAndDonateNft',
-          args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
+          args: validation.args,
           value: finalValue,
         });
         showInfo('Transaction submitted! Waiting for confirmation...');
@@ -318,25 +364,24 @@ export function usePlaceBid(): PlaceBidResult {
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
-        const estimation = await estimateContractGas(wagmiConfig, {
+        const validation = await validateBidCall({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
           functionName: 'bidWithEthAndDonateToken',
-          args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, tokenAmount],
+          v1Args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, tokenAmount],
           value: finalValue,
           account: address,
         });
-        if (!estimation.success) {
-          showError(estimation.error || 'Transaction validation failed');
+        if (!validation.success) {
+          showError(validation.error || 'Transaction validation failed');
           return false;
         }
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
+          abi: validation.abi,
           functionName: 'bidWithEthAndDonateToken',
-          args: [nftIdToSend, bidMessage, donation.address as `0x${string}`, tokenAmount],
+          args: validation.args,
           value: finalValue,
         });
         showInfo('Transaction submitted! Waiting for confirmation...');
@@ -346,25 +391,24 @@ export function usePlaceBid(): PlaceBidResult {
       }
 
       // Regular bid (no donation)
-      const estimation = await estimateContractGas(wagmiConfig, {
+      const validation = await validateBidCall({
         address: COSMIC_GAME,
-        abi: CosmicGameABI,
         functionName: 'bidWithEth',
-        args: [nftIdToSend, bidMessage],
+        v1Args: [nftIdToSend, bidMessage],
         value: finalValue,
         account: address,
       });
-      if (!estimation.success) {
-        showError(estimation.error || 'Transaction validation failed');
+      if (!validation.success) {
+        showError(validation.error || 'Transaction validation failed');
         return false;
       }
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeWithBufferedFees({
         address: COSMIC_GAME,
-        abi: CosmicGameABI,
+        abi: validation.abi,
         functionName: 'bidWithEth',
-        args: [nftIdToSend, bidMessage],
+        args: validation.args,
         value: finalValue,
       });
       showInfo('Transaction submitted! Waiting for confirmation...');
@@ -437,24 +481,23 @@ export function usePlaceBid(): PlaceBidResult {
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
-        const estimation = await estimateContractGas(wagmiConfig, {
+        const validation = await validateBidCall({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateNft',
-          args: [maxLimit, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
+          v1Args: [maxLimit, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
           account: address,
         });
-        if (!estimation.success) {
-          showError(estimation.error || 'Transaction validation failed');
+        if (!validation.success) {
+          showError(validation.error || 'Transaction validation failed');
           return false;
         }
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
+          abi: validation.abi,
           functionName: 'bidWithCstAndDonateNft',
-          args: [maxLimit, bidMessage, donation.address as `0x${string}`, BigInt(donation.tokenId)],
+          args: validation.args,
         });
         showInfo('Transaction submitted! Waiting for confirmation...');
         await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -470,24 +513,23 @@ export function usePlaceBid(): PlaceBidResult {
         if (!approved) return false;
 
         showInfo('Step 2/2: Validating and submitting bid transaction...');
-        const estimation = await estimateContractGas(wagmiConfig, {
+        const validation = await validateBidCall({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
           functionName: 'bidWithCstAndDonateToken',
-          args: [maxLimit, bidMessage, donation.address as `0x${string}`, tokenAmount],
+          v1Args: [maxLimit, bidMessage, donation.address as `0x${string}`, tokenAmount],
           account: address,
         });
-        if (!estimation.success) {
-          showError(estimation.error || 'Transaction validation failed');
+        if (!validation.success) {
+          showError(validation.error || 'Transaction validation failed');
           return false;
         }
 
         showInfo('Please confirm the transaction in your wallet...');
         const hash = await writeWithBufferedFees({
           address: COSMIC_GAME,
-          abi: CosmicGameABI,
+          abi: validation.abi,
           functionName: 'bidWithCstAndDonateToken',
-          args: [maxLimit, bidMessage, donation.address as `0x${string}`, tokenAmount],
+          args: validation.args,
         });
         showInfo('Transaction submitted! Waiting for confirmation...');
         await waitForTransactionReceipt(wagmiConfig, { hash });
@@ -496,24 +538,23 @@ export function usePlaceBid(): PlaceBidResult {
       }
 
       // Regular CST bid
-      const estimation = await estimateContractGas(wagmiConfig, {
+      const validation = await validateBidCall({
         address: COSMIC_GAME,
-        abi: CosmicGameABI,
         functionName: 'bidWithCst',
-        args: [maxLimit, bidMessage],
+        v1Args: [maxLimit, bidMessage],
         account: address,
       });
-      if (!estimation.success) {
-        showError(estimation.error || 'Transaction validation failed');
+      if (!validation.success) {
+        showError(validation.error || 'Transaction validation failed');
         return false;
       }
 
       showInfo('Please confirm the transaction in your wallet...');
       const hash = await writeWithBufferedFees({
         address: COSMIC_GAME,
-        abi: CosmicGameABI,
+        abi: validation.abi,
         functionName: 'bidWithCst',
-        args: [maxLimit, bidMessage],
+        args: validation.args,
       });
       showInfo('Transaction submitted! Waiting for confirmation...');
       await waitForTransactionReceipt(wagmiConfig, { hash });

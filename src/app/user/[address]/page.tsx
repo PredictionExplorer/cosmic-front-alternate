@@ -939,7 +939,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                       .slice((bidHistoryPage - 1) * itemsPerPage, bidHistoryPage * itemsPerPage)
                       .map((bid: Bid, index: number) => (
                       <tr
-                        key={bid.EvtLogId}
+                        key={`${bid.EvtLogId}-${bid.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
@@ -1047,7 +1047,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                       .slice((claimHistoryPage - 1) * itemsPerPage, claimHistoryPage * itemsPerPage)
                       .map((claim: ClaimHistory, index: number) => (
                       <tr
-                        key={claim.EvtLogId}
+                        key={`${claim.EvtLogId}-${claim.RoundNum}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
@@ -1114,7 +1114,7 @@ export default function UserStatisticsPage({ params }: { params: Promise<{ addre
                       .slice((marketingRewardsPage - 1) * itemsPerPage, marketingRewardsPage * itemsPerPage)
                       .map((reward: MarketingReward, index: number) => (
                       <tr
-                        key={reward.EvtLogId}
+                        key={`${reward.EvtLogId}-${index}`}
                         className={`border-b border-text-muted/5 ${
                           index % 2 === 0 ? "bg-background-surface/30" : ""
                         }`}
